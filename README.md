@@ -1,7 +1,7 @@
 # 經典網路系列/Pytorch實作系列
 
 
-___Few shot learning__
+__Few shot learning__
 
 * [Siamese network](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed)
 
