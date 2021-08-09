@@ -9,7 +9,7 @@ __Few shot learning__
 
 __圖像分類__
 
-* [ResNet](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43)
+* [ResNet50](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43)
 
 __圖像生成__
 
@@ -30,6 +30,10 @@ __語意分割__
 __風格遷移__
 
 * [Style Transfer](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620)
+
+* [Neural Doodle](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-neural-doodle-80bb55108836)
+
+* [Fast Style Transfer]()
 
 __文本分類__
 
