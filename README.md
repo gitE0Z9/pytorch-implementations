@@ -11,9 +11,17 @@ __圖像分類__
 
 * [ResNet50](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43)
 
+* [EfficientNet]()
+
 __物件偵測__
 
 * [YOLOv1](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)
+
+* [YOLO 9000]()
+
+* [YOLOv3]()
+
+* [SSD]()
 
 __語意分割__
 
@@ -48,6 +56,10 @@ __文本分類__
 __POS Tagging__
 
 * [biLSTM](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)
+
+__Named Entity Recognition / Token Classification__
+
+* [biLSTM-CRF](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6)
 
 __機器翻譯__
 
