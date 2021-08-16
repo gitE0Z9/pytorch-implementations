@@ -45,7 +45,9 @@ __風格遷移__
 
 * [Neural Doodle](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-neural-doodle-80bb55108836)
 
-* [Fast Style Transfer]()
+* [Fast Style Transfer](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)
+
+* [AdaIN]()
 
 __文本分類__
 
@@ -69,6 +71,6 @@ __增強學習__
 
 * [DQN](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337)
 
-__時間序列__
+__序列資料__
 
 * [TCN](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d)
