@@ -1,4 +1,4 @@
-# 經典網路系列/Pytorch實作系列
+# Pytorch實作系列
 
 
 __Few shot learning__
