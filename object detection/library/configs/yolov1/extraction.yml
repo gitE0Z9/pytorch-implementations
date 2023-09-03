@@ -1,0 +1,72 @@
+HARDWARE:
+  DEVICE: "cuda:0"
+  NUM_WORKERS: 4
+  AMP: false
+
+MODEL:
+  NAME: "yolov1"
+  BACKBONE: "extraction"
+  NUM_ANCHORS: 2
+  SCALE: 64
+  CLASSIFIER_PATH: ""
+  DETECTOR_PATH: ""
+  ANCHORS_PATH: ""
+
+DATA:
+  VOC:
+    ROOT: "D://research/pytorch implementation/data"
+    CSV_ROOT: "datasets/voc"
+    CLASSES_PATH: "datasets/voc/voc_classes.txt"
+    NUM_CLASSES: 20
+  COCO:
+    ROOT: ""
+    CLASSES_PATH: ""
+    NUM_CLASSES: 80
+  IMAGENET:
+    ROOT: "D://ILSVRC"
+    CLASSES_PATH: "datasets/imagenet/imagenet_darknet.txt"
+    NUM_CLASSES: 1000
+
+TRAIN:
+  DETECTOR:
+    IMAGE_SIZE: 448
+    BATCH_SIZE: 16
+    ACC_ITER: 4
+    OPTIM:
+      TYPE: "adam"
+      LR: 0.0001
+      DECAY: 0.0005
+      MOMENTUM: 0.9
+    START_EPOCH: 10
+    END_EPOCH: 30
+    MULTISCALE: false
+    SAVE:
+      DIR: ""
+      INTERVAL: 10
+  CLASSIFIER:
+    IMAGE_SIZE: 224
+    BATCH_SIZE: 64
+    ACC_ITER: 1
+    OPTIM:
+      TYPE: "adam"
+      LR: 0.001
+      DECAY: 0.0005
+      MOMENTUM: 0.9
+    START_EPOCH: 0
+    END_EPOCH: 100
+    FINETUNE:
+      EPOCH: 10
+      BATCH_SIZE: 32
+      IMAGE_SIZE: 448
+    SAVE:
+      DIR: ""
+      INTERVAL: 1
+
+INFERENCE:
+  METHOD: "torchvision"
+  CONF_THRESH: 0.3
+  NMS_THRESH: 0.5
+  PARAMETER:
+    CONFLUENCE_THRESH: 0.5
+    SIGMA: 0.5
+    BETA: 1.2

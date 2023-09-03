@@ -1,0 +1,11 @@
+torch
+torchvision
+numpy
+pandas
+tensorboard
+tensorboardX
+tqdm
+opencv-python
+opencv-contrib-python
+albumentations
+pydantic

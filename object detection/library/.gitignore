@@ -1,0 +1,13 @@
+cmd
+
+.vscode
+.pytest_cache
+.pyc
+__pycache__
+
+.env
+
+runs
+artifacts/*
+
+eval.csv

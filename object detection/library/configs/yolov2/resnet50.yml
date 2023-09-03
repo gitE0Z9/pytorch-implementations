@@ -1,0 +1,72 @@
+HARDWARE:
+  DEVICE: "cuda:0"
+  NUM_WORKERS: 4
+  AMP: false
+
+MODEL:
+  NAME: "yolov2"
+  BACKBONE: "resnet50"
+  NUM_ANCHORS: 5
+  SCALE: 32
+  CLASSIFIER_PATH: ""
+  DETECTOR_PATH: ""
+  ANCHORS_PATH: "configs/yolov2/anchors.txt"
+
+DATA:
+  VOC:
+    ROOT: "D://research/pytorch implementation/data"
+    CSV_ROOT: "datasets/voc"
+    CLASSES_PATH: "datasets/voc/voc_classes.txt"
+    NUM_CLASSES: 20
+  COCO:
+    ROOT: ""
+    CLASSES_PATH: ""
+    NUM_CLASSES: 80
+  IMAGENET:
+    ROOT: ""
+    CLASSES_PATH: "configs/imagenet/imagenet_classes.txt"
+    NUM_CLASSES: 1000
+
+TRAIN:
+  DETECTOR:
+    IMAGE_SIZE: 416
+    BATCH_SIZE: 8
+    ACC_ITER: 8
+    OPTIM:
+      TYPE: "adam"
+      LR: 0.001
+      DECAY: 0.0005
+      MOMENTUM: 0
+    START_EPOCH: 0
+    END_EPOCH: 100
+    MULTISCALE: false
+    SAVE:
+      DIR: ""
+      INTERVAL: 10
+  CLASSIFIER:
+    IMAGE_SIZE: 224
+    BATCH_SIZE: 128
+    ACC_ITER: 1
+    OPTIM:
+      TYPE: "adam"
+      LR: 0.001
+      DECAY: 0.0005
+      MOMENTUM: 0
+    START_EPOCH: 100
+    END_EPOCH: 100
+    FINETUNE:
+      EPOCH: 10
+      IMAGE_SIZE: 448
+      BATCH_SIZE: 16
+    SAVE:
+      DIR: ""
+      INTERVAL: 10
+
+INFERENCE:
+  METHOD: "torchvision"
+  CONF_THRESH: 0.3
+  NMS_THRESH: 0.5
+  PARAMETER:
+    CONFLUENCE_THRESH: 0.5
+    SIGMA: 0.25
+    BETA: 0.6
