@@ -12,7 +12,7 @@ def rand_color() -> List[int]:
 
 
 def load_image(path: str) -> np.ndarray:
-    assert os.path.exists(path), "Image does't exist."
+    assert os.path.exists(path), f"Image {path} does't exist."
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
@@ -27,7 +27,7 @@ def tensor2np_uint8(img: torch.Tensor) -> np.ndarray:
 def draw_label(img: np.ndarray, label: torch.Tensor, width: int, height: int):
     """draw detection label"""
 
-    for i, (x, y, w, h, c) in enumerate(label):
+    for x, y, w, h, c in label:
         x, y, w, h = x * width, y * height, w * width, h * height
         x1, y1, x2, y2 = (
             int(x - w / 2),
@@ -66,10 +66,10 @@ def draw_pred(
             cv2.rectangle(img, (x, y - 30), (x + w, y), color, -1)
             cv2.putText(
                 img,
-                class_info,
-                (x + 5, y - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),
-                1,
+                text=class_info,
+                org=(x + 5, y - 10),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.8,
+                color=(255, 255, 255),
+                thickness=1,
             )

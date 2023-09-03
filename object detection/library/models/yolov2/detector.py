@@ -88,7 +88,10 @@ class Yolov2Resnet(nn.Module):
         if layer_number not in [18, 34, 50]:
             raise NotImplementedError
 
-        backbone = getattr(torchvision.models, f"resnet{layer_number}")(weights=True)
+        backbone_class = getattr(torchvision.models, f"resnet{layer_number}")
+        default_weight = getattr(torchvision.models, f"ResNet{layer_number}_Weights")
+
+        backbone = backbone_class(weights=default_weight.DEFAULT)
 
         return backbone
 

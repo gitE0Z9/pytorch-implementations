@@ -145,11 +145,12 @@ def yolo_postprocess(
     cls_index = decoded_output[:, :, 5:].argmax(2)
 
     processed_result = []
-    for b in range(batch):
+    for i in range(batch):
         detection_result = []
         for class_index in range(number_class):
-            if cls_index[b].eq(class_index).any():
-                this_class_detection = decoded_output[b, cls_index[b].eq(class_index)]
+            is_this_class = cls_index[i].eq(class_index)
+            if is_this_class.any():
+                this_class_detection = decoded_output[i, is_this_class]
                 best_index = select_best_index(
                     this_class_detection[:, :4],
                     this_class_detection[:, 5 + class_index],

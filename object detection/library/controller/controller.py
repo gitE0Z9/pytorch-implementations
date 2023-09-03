@@ -183,11 +183,11 @@ class Controller:
 
         """
         if self.dataset_name == "VOC":
-            root = self.cfg.DATA.VOC.CSV_ROOT
             batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
 
             self.data[mode]["dataset"] = VOCDatasetFromCSV(
-                csv_root=root,
+                root=self.cfg.DATA.VOC.ROOT,
+                csv_root=self.cfg.DATA.VOC.CSV_ROOT,
                 class_name=self.class_names,
                 mode="trainval" if mode == "train" else "test",
                 transform=self.data[mode]["preprocess"],
@@ -228,12 +228,10 @@ class Controller:
         self.set_preprocess(training_cfg.IMAGE_SIZE)
 
         transform = self.data["test"]["preprocess"]
-        conf_thresh = self.cfg.INFERENCE.CONF_THRESH
-        nms_thresh = self.cfg.INFERENCE.NMS_THRESH
 
         if self.network_type == NetworkType.DETECTOR.value:
             self.load_detector()
         elif self.network_type == NetworkType.CLASSIFIER.value:
-            self.load_classifier(stage="inference")
+            self.load_classifier(stage=NetworkStage.INFERENCE.value)
 
-        return transform, conf_thresh, nms_thresh
+        return transform

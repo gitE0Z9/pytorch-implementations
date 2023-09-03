@@ -75,7 +75,7 @@ class Predictor(Controller):
         show: bool = False,
         save_dir: str = None,
     ):
-        transform, _, _ = self.prepare_inference()
+        transform = self.prepare_inference()
         self.load_weight(model_path)
 
         assert isinstance(image_paths, list), "image should be a list."
@@ -117,7 +117,7 @@ class Predictor(Controller):
         save_dir: str = None,
     ):
         """Press Q to quit"""
-        transform, _, _ = self.prepare_inference()
+        transform = self.prepare_inference()
         self.load_weight(model_path)
 
         vid = cv2.VideoCapture(video_path)

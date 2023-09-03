@@ -146,7 +146,6 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
 
     def get_img(self, path):
         jpg = path.replace("Annotations", "JPEGImages").replace("xml", "jpg")
-
         img = load_image(jpg)
 
         return img
@@ -159,13 +158,18 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
                 .to_numpy()
                 .tolist()
             ]
-            path = img_table["name"].apply(lambda p: os.path.join(self.root, p))
+            # path = img_table["name"].apply(
+            #     lambda p: os.path.join(self.root, "VOCdevkit", p)
+            # )
+            path = img_table["name"]
+            path = os.path.join(self.root, "VOCdevkit", path)
         else:
             label = (
                 img_table[["cx", "cy", "w", "h", "class_id", "anchor_id"]]
                 .to_numpy()
                 .tolist()
             )
-            path = os.path.join(self.root, img_table.iloc[0]["name"])
+            path = img_table.iloc[0]["name"]
+            path = os.path.join(self.root, "VOCdevkit", path)
 
         return label, path
