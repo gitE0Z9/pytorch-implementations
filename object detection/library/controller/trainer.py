@@ -1,3 +1,4 @@
+import os
 import random
 from pathlib import Path
 
@@ -187,6 +188,8 @@ class Trainer(Controller):
                         self.scaler.update()
 
                 running_loss += loss.item()
+
+                # if not converge
                 assert not np.isnan(running_loss), "loss died"
 
                 self.writer.add_scalar(
@@ -200,14 +203,15 @@ class Trainer(Controller):
                     self.scheduler.step()
 
                 # save model every 10 epoch
-
                 if (e + 1) % self.save_interval == 0:
-                    file_name = (
-                        f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{e+1}.pth"
-                    )
-                    torch.save(
-                        self.model.state_dict(),
-                        Path(self.save_dir).joinpath(file_name).as_posix(),
-                    )
+                    self.save_weight(e)
 
         self.writer.close()
+
+    def save_weight(self, epoch: int):
+        file_name = f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{epoch+1}.pth"
+        os.makedirs(self.save_dir, exist_ok=True)
+        torch.save(
+            self.model.state_dict(),
+            Path(self.save_dir).joinpath(file_name).as_posix(),
+        )
