@@ -41,7 +41,7 @@ TRAIN:
     END_EPOCH: 100
     MULTISCALE: false
     SAVE:
-      DIR: ""
+      DIR: "artifacts/yolov1/resnet34"
       INTERVAL: 10
   CLASSIFIER:
     IMAGE_SIZE: 224
