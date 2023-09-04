@@ -38,7 +38,7 @@ def decode_model_prediction(
 
 
 def generate_grid(grid_x: int, grid_y: int) -> torch.Tensor:
-    y_offset, x_offset = torch.meshgrid(
+    x_offset, y_offset = torch.meshgrid(
         torch.arange(grid_x),
         torch.arange(grid_y),
         indexing="xy",

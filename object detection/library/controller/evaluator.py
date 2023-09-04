@@ -1,14 +1,13 @@
 from typing import List
 
 import albumentations as A
-import numpy as np
 import pandas as pd
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from constants.enums import NetworkType
+from constants.enums import NetworkType, PRCurveInterpolation
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
-from utils.eval import interpolate_pr_curve, average_precision, matched_gt_and_det
+from utils.eval import average_precision, matched_gt_and_det
 from utils.inference import (
     decode_model_prediction,
     generate_grid,
@@ -16,7 +15,7 @@ from utils.inference import (
     yolo_postprocess,
 )
 from utils.train import build_targets
-from constants.enums import PRCurveInterpolation
+
 from controller.controller import Controller
 
 
@@ -220,7 +219,7 @@ class Evaluator(Controller):
                 _, eval_table = self.evaluate_detector()
                 results[weight_path] = eval_table.loc["AP@0.5"]
 
-            cmap = [list(APs) + [APs.mean()] for weight_path, APs in results.items()]
+            cmap = [list(APs) + [APs.mean()] for _, APs in results.items()]
             result_table = pd.DataFrame(
                 cmap,
                 columns=self.class_names + ["all"],

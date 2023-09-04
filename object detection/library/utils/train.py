@@ -16,8 +16,10 @@ def collate_fn(batch):
 
 def generate_grid_train(grid_x: int, grid_y: int, center: bool = False) -> torch.Tensor:
     """recover x,y coord since we use x,y offset"""
-    y_offset, x_offset = torch.meshgrid(
-        torch.arange(grid_x) / grid_x, torch.arange(grid_y) / grid_y
+    x_offset, y_offset = torch.meshgrid(
+        torch.arange(grid_x) / grid_x,
+        torch.arange(grid_y) / grid_y,
+        indexing="xy",
     )
     if center:
         y_offset, x_offset = (y_offset + 0.5 / grid_y), (x_offset + 0.5 / grid_x)
