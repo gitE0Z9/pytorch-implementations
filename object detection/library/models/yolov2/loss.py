@@ -14,7 +14,7 @@ class YOLOv2Loss(nn.Module):
         num_anchors: int,
         device: str,
         lambda_obj: float = 5,
-        iou_thresh: float = 0.6,
+        iou_threshold: float = 0.6,
     ):
         super(YOLOv2Loss, self).__init__()
 
@@ -22,7 +22,7 @@ class YOLOv2Loss(nn.Module):
         self.device = device
         self.lambda_obj = lambda_obj
         self.lambda_prior = 0.01
-        self.iou_thresh = iou_thresh
+        self.iou_threshold = iou_threshold
         self.epsilon = 1e-5
 
     def iou_box(
@@ -63,11 +63,11 @@ class YOLOv2Loss(nn.Module):
     #     best predictd iou lower than threshold: noobject loss
     #     best predicted iou over threshold: no loss
 
-    #     many conditions overlapped Orz...
+    #     not match to anchor
     #     """
     #     b, c, grid_y, grid_x = prediction.shape
     #     prediction = prediction.reshape(b, self.num_anchors, c//self.num_anchors, grid_y, grid_x)
-    #     groundtruth = self.build_targets(groundtruth, (b, 1, c//self.num_anchors, grid_y, grid_x)) # N, 1, 25, 13, 13
+    #     groundtruth = build_targets(groundtruth, (b, 1, c//self.num_anchors, grid_y, grid_x)) # N, 1, 25, 13, 13
     #     # groundtruth[:,:,2:4,:,:] = groundtruth[:,:,2:4,:,:] * grid_x
     #     groundtruth = groundtruth.tile(1, self.num_anchors, 1, 1, 1)
     #     groundtruth = groundtruth.to('cuda:0') if prediction.is_cuda else groundtruth.to('cpu')
@@ -130,18 +130,32 @@ class YOLOv2Loss(nn.Module):
         anchors: torch.Tensor,
         seen: int,
     ) -> torch.Tensor:
-        """ "
+        """forward function of YOLOv2Loss
+        Some extra rules
         positive anchors: x,y,w,h,c,p loss
-        before 12800, negative anchors : uses anchors as truths
-        best predictd iou lower than threshold: noobject loss
-        best predicted iou over threshold: no loss
+        before 12800, negative anchors : use anchors as truths
+        best matched, iou lower than threshold: noobject loss
+        best matched, iou over threshold: no loss
 
-        many conditions overlapped Orz...
+        p.s. match with fixed anchor and no overlapping groundtruth(?
+
+        Args:
+            prediction (torch.Tensor): prediction
+            groundtruth (list): groundtruth
+            anchors (torch.Tensor): anchors
+            seen (int): had seen how many images, 12800 is the threshold in the paper
+
+        Returns:
+            torch.Tensor: loss
         """
 
-        batch_size, c, grid_y, grid_x = prediction.shape
+        batch_size, channel, grid_y, grid_x = prediction.shape
         prediction = prediction.reshape(
-            batch_size, self.num_anchors, c // self.num_anchors, grid_y, grid_x
+            batch_size,
+            self.num_anchors,
+            channel // self.num_anchors,
+            grid_y,
+            grid_x,
         )
         groundtruth = [torch.Tensor(gt).to(self.device) for gt in groundtruth]
 
@@ -155,13 +169,25 @@ class YOLOv2Loss(nn.Module):
 
         with torch.no_grad():
             noobject_indicator = torch.zeros(
-                batch_size, self.num_anchors, 1, grid_y, grid_x
+                batch_size,
+                self.num_anchors,
+                1,
+                grid_y,
+                grid_x,
             ).to(self.device)
             positive_indicator = torch.zeros(
-                batch_size, self.num_anchors, 1, grid_y, grid_x
+                batch_size,
+                self.num_anchors,
+                1,
+                grid_y,
+                grid_x,
             ).to(self.device)
             target = torch.zeros(
-                batch_size, self.num_anchors, c // self.num_anchors, grid_y, grid_x
+                batch_size,
+                self.num_anchors,
+                channel // self.num_anchors,
+                grid_y,
+                grid_x,
             ).to(self.device)
 
             recover_prediction_loc = xywh_to_xyxy(prediction[:, :, :4, :, :])
@@ -180,7 +206,7 @@ class YOLOv2Loss(nn.Module):
                 ious = box_iou(cur_prediction_loc, cur_gt_loc)
                 iou_indicator = (
                     ious.max(1)[0]
-                    .le(self.iou_thresh)
+                    .le(self.iou_threshold)
                     .view(self.num_anchors, 1, grid_y, grid_x)
                 )
                 noobject_indicator[
@@ -225,9 +251,8 @@ class YOLOv2Loss(nn.Module):
             anchors_truth[:, :, 2:4, :, :] = anchors.tile(
                 batch_size, 1, 1, grid_y, grid_x
             )
-            prior_loss = F.mse_loss(
-                box_pred, (1 - positive_indicator) * anchors_truth, reduction="sum"
-            )
+            anchors_truth = (1 - positive_indicator) * anchors_truth
+            prior_loss = F.mse_loss(box_pred, anchors_truth, reduction="sum")
 
         # high iou predictors
         positive = prediction * positive_indicator  # N, 5, 25, 13, 13

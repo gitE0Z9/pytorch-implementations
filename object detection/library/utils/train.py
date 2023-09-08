@@ -64,6 +64,7 @@ def IOU(pred_cbox: torch.Tensor, gt_cbox: torch.Tensor) -> torch.Tensor:
     pred_area = pred_box[:, :, 2:3, :, :] * pred_box[:, :, 3:4, :, :]  # N, 5, 1, 7, 7
     gt_area = gt_box[:, :, 2:3, :, :] * gt_box[:, :, 3:4, :, :]  # N, 1, 1, 7, 7
     total_area = pred_area + gt_area - intersection  # N, 5, 1, 7, 7
+    total_area = total_area.clamp(min=0, max=1)
 
     assert intersection.ge(0).all(), "intersection should be more than 0"
     assert total_area.ge(0).all(), "total area should be more than 0"

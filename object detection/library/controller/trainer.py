@@ -91,6 +91,7 @@ class Trainer(Controller):
         self.writer = SummaryWriter()
 
         training_cfg = self.get_training_cfg()
+
         if self.network_type == NetworkType.DETECTOR.value:
             self.load_detector()
             self.set_preprocess(training_cfg.IMAGE_SIZE)
@@ -120,12 +121,14 @@ class Trainer(Controller):
                 start_epoch = end_epoch
                 end_epoch += training_cfg.FINETUNE.EPOCH
 
-        running_loss = 0.0
         dataset_size = len(self.data["train"]["dataset"])
         seen = start_epoch * dataset_size
         iter_num = start_epoch * dataset_size  # for tensorboard if multiscale enabled
 
         for e in range(start_epoch, end_epoch):
+            print(f"Epoch {e}/{end_epoch}")
+            running_loss = 0.0
+
             # multiscale training in YOLOv2
             # compare to every 10 batch in paper, we use 10 or 1 epoch
             if (
@@ -151,22 +154,16 @@ class Trainer(Controller):
                 iter_num += 1
                 seen += imgs.size(0)
 
-                imgs = imgs.to(self.device)
+                imgs: torch.Tensor = imgs.to(self.device)
 
                 if self.network_type == NetworkType.CLASSIFIER.value:
-                    labels = labels.to(self.device)
+                    labels: torch.Tensor = labels.to(self.device)
 
                 with autocast(enabled=self.cfg.HARDWARE.AMP):
-                    output = self.model(imgs)
+                    output: torch.Tensor = self.model(imgs)
 
                     if self.network_type == NetworkType.DETECTOR.value:
-                        kwargs = {}
-                        if self.cfg.MODEL.NAME == "yolov2":
-                            kwargs = dict(
-                                anchors=self.anchors,
-                                seen=seen,
-                            )
-
+                        kwargs = self.get_detector_loss_kwargs(seen)
                         loss: torch.Tensor = self.loss(output, labels, **kwargs)
                     elif self.network_type == NetworkType.CLASSIFIER.value:
                         loss: torch.Tensor = self.loss(output, labels)
@@ -189,6 +186,10 @@ class Trainer(Controller):
 
                 running_loss += loss.item()
 
+                # release gpu
+                if "cuda" in self.device:
+                    imgs = imgs.detach().cpu()
+
                 # if not converge
                 assert not np.isnan(running_loss), "loss died"
 
@@ -207,6 +208,16 @@ class Trainer(Controller):
                     self.save_weight(e)
 
         self.writer.close()
+
+    def get_detector_loss_kwargs(self, seen: int) -> dict:
+        kwargs = {}
+        if self.cfg.MODEL.NAME == "yolov2":
+            kwargs = dict(
+                anchors=self.anchors,
+                seen=seen,
+            )
+
+        return kwargs
 
     def save_weight(self, epoch: int):
         file_name = f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{epoch+1}.pth"

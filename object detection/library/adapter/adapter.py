@@ -36,7 +36,9 @@ class DetectorLossAdapter:
         detector_name = self.cfg.MODEL.NAME
 
         if detector_name == "yolov1":
-            return YoloLoss()
+            return YoloLoss(
+                self.device,
+            )
 
         elif detector_name == "yolov2":
             return YOLOv2Loss(
