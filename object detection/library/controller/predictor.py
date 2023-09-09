@@ -114,7 +114,7 @@ class Predictor(Controller):
         model_path: str,
         video_path: str,
         show: bool = False,
-        save_dir: str = None,
+        save_dir: str | None = None,
     ):
         """Press Q to quit"""
         transform = self.prepare_inference()
@@ -132,7 +132,9 @@ class Predictor(Controller):
                 encoder = cv2.VideoWriter_fourcc(*"MP4V")
             else:
                 raise NotImplementedError
-            writer = cv2.VideoWriter(dst, encoder, vid.get(5), (vid.get(3), vid.get(4)))
+            writer = cv2.VideoWriter(
+                dst, encoder, vid.get(5), (int(vid.get(3)), int(vid.get(4)))
+            )
 
         # show window
         if show:
