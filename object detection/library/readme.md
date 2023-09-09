@@ -1,5 +1,16 @@
 # Library
 
+A library for object detection.
+
+## Supported models
+
+| model    | status |
+| -------- | ------ |
+| YOLOv1   | ✔️      |
+| YOLOv2   | ✔️      |
+| YOLO9000 | ❌      |
+| SSD      | ❌      |
+
 ## Usage
 
 ### Training
