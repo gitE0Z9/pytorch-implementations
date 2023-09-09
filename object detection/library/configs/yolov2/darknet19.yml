@@ -24,7 +24,7 @@ DATA:
     NUM_CLASSES: 80
   IMAGENET:
     ROOT: "D://ILSVRC"
-    CLASSES_PATH: "configs/imagenet/imagenet_classes.txt"
+    CLASSES_PATH: "configs/imagenet/imagenet_darknet.txt"
     NUM_CLASSES: 1000
 
 TRAIN:
