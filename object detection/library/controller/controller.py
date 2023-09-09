@@ -11,6 +11,7 @@ from configs.schema import (
 )
 from datasets.imagenet.datasets import ImageNetDataset
 from datasets.voc.datasets import VOCDatasetFromCSV
+from datasets.coco.datasets import COCODatasetRaw
 from utils.config import load_anchors, load_classes, load_config
 from utils.plot import rand_color
 from utils.train import collate_fn
@@ -203,7 +204,7 @@ class Controller:
                 self.data[mode]["dataset"],
                 batch_size=batch,
                 collate_fn=collate_fn,
-                shuffle=mode == "train",
+                shuffle=mode == OperationMode.TRAIN.value,
             )
 
         elif self.dataset_name == "IMAGENET":
@@ -225,10 +226,24 @@ class Controller:
             self.data[mode]["loader"] = torch.utils.data.DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
+                collate_fn=collate_fn,
                 shuffle=mode == OperationMode.TRAIN.value,
             )
 
         elif self.dataset_name == "COCO":
+            self.data[mode]["dataset"] = COCODatasetRaw(
+                self.cfg.DATA.COCO.ROOT,
+                self.class_names,
+                mode,
+                transform=self.data[mode]["preprocess"],
+            )
+
+            self.data[mode]["loader"] = torch.utils.data.DataLoader(
+                self.data[mode]["dataset"],
+                batch_size=batch,
+                shuffle=mode == OperationMode.TRAIN.value,
+            )
+        else:
             raise NotImplementedError
 
     def prepare_inference(self):
