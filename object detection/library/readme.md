@@ -1,6 +1,6 @@
 # Library
 
-## usage
+## Usage
 
 ### Training
 
@@ -18,13 +18,15 @@
 
 `python predict.py -c configs/yolov2/resnet18.yml -nt DETECTOR -d VOC -f "C://Users/user/Desktop/demo.jpg" -media image -w artifacts/yolov2/resnet18/yolov2.resnet18.60.pth -show`
 
-## model parameter
+## Parameters
+
+### Model
 
 * `config`: path to model config yaml file.
 
 * `dataset`: dataset name for class.
 
-## Lifecycle parameter
+## Lifecycle
 
 * `mode`: running mode, `train` or `test`.
 
@@ -32,7 +34,7 @@
 
 * `network_type`: `detector` or `classifier`.
 
-## Inference Parameter
+## Inference
 
 * `weight`: path to model weight.
 
