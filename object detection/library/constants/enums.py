@@ -17,6 +17,11 @@ class NetworkStage(Enum):
     SCRATCH = "scratch"
 
 
+class OperationMode(Enum):
+    TRAIN = "train"
+    TEST = "test"
+
+
 class PRCurveInterpolation(Enum):
     ALL = "all"
     VOC = "voc"

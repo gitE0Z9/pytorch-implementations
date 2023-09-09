@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from adapter.adapter import DetectorLossAdapter, OptimizerAdapter
 from albumentations.pytorch.transforms import ToTensorV2
-from constants.enums import NetworkStage, NetworkType
+from constants.enums import NetworkStage, NetworkType, OperationMode
 from tensorboardX import SummaryWriter
 from torch.cuda.amp import autocast
 from tqdm import tqdm
@@ -51,7 +51,7 @@ class Trainer(Controller):
                 ]
             )
 
-        self.data["train"]["preprocess"] = preprocess
+        self.data[OperationMode.TRAIN.value]["preprocess"] = preprocess
 
     def load_loss(self):
         """
@@ -108,7 +108,7 @@ class Trainer(Controller):
                 else training_cfg.IMAGE_SIZE,
             )
 
-        self.load_dataset(mode="train")
+        self.load_dataset(OperationMode.TRAIN.value)
         self.load_loss()
         self.load_optimizer()
 
@@ -121,7 +121,7 @@ class Trainer(Controller):
                 start_epoch = end_epoch
                 end_epoch += training_cfg.FINETUNE.EPOCH
 
-        dataset_size = len(self.data["train"]["dataset"])
+        dataset_size = len(self.data[OperationMode.TRAIN.value]["dataset"])
         seen = start_epoch * dataset_size
         iter_num = start_epoch * dataset_size  # for tensorboard if multiscale enabled
 
@@ -137,10 +137,12 @@ class Trainer(Controller):
             ):
                 random_scale = random.randint(10, 19) * self.cfg.MODEL.SCALE
                 self.set_preprocess(random_scale)
-                self.load_dataset(mode="train")
+                self.load_dataset(OperationMode.TRAIN.value)
                 if random_scale > training_cfg.IMAGE_SIZE:
-                    self.data["train"]["loader"] = torch.utils.data.DataLoader(
-                        self.data["train"]["dataset"],
+                    self.data[OperationMode.TRAIN.value][
+                        "loader"
+                    ] = torch.utils.data.DataLoader(
+                        self.data[OperationMode.TRAIN.value]["dataset"],
                         batch_size=training_cfg.BATCH_SIZE // 2,
                         collate_fn=collate_fn,
                         shuffle=True,
@@ -149,7 +151,7 @@ class Trainer(Controller):
                     self.acc_iter = 64 // training_cfg.BATCH_SIZE
 
             for i, (imgs, labels) in enumerate(
-                tqdm(self.data["train"]["loader"])
+                tqdm(self.data[OperationMode.TRAIN.value]["loader"])
             ):  # think about removing tqdm
                 iter_num += 1
                 seen += imgs.size(0)

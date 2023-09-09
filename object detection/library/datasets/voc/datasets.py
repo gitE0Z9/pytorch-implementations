@@ -5,6 +5,7 @@ from xml.etree import cElementTree as etree
 import pandas as pd
 import torch
 from utils.plot import load_image
+from constants.enums import OperationMode
 
 
 class VOCDatasetRaw(torch.utils.data.Dataset):
@@ -13,11 +14,17 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
         root: str,
         class_name: List[str],
         year: str = "2012+2007",
-        mode: str = "trainval",
+        mode: str = OperationMode.TEST.value,
         transform=None,
     ):
+        mode_filename = self.get_mode(mode)
         list_path = [
-            (os.path.join(root, f"VOCdevkit/VOC{y}/ImageSets/Main/{mode}.txt"), y)
+            (
+                os.path.join(
+                    root, f"VOCdevkit/VOC{y}/ImageSets/Main/{mode_filename}.txt"
+                ),
+                y,
+            )
             for y in year.split("+")
         ]
 
@@ -58,6 +65,14 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
                 label = transformed["bboxes"]
 
         return img, label
+
+    def get_mode(self, mode: str) -> str:
+        mapping = {
+            OperationMode.TRAIN.value: "trainval",
+            OperationMode.TEST.value: "test",
+        }
+
+        return mapping.get(mode, "test")
 
     def get_img(self, idx):
         jpg = (
@@ -109,15 +124,17 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
         root: str,
         csv_root: str,
         class_name: List[str],
-        mode: str = "trainval",
+        mode: str = OperationMode.TEST.value,
         transform=None,
     ):
+        mode_filename = self.get_mode(mode)
+
         self.root = root
         self.mode = mode
         self.class_name = class_name
         self.transform = transform
 
-        self.table = pd.read_csv(f"{csv_root}/voc_{mode}.csv", index_col="id")
+        self.table = pd.read_csv(f"{csv_root}/voc_{mode_filename}.csv", index_col="id")
         self.table["class_id"] = self.table["class_id"].astype("int")
         self.table["anchor_id"] = self.table["anchor_id"].astype("int")
 
@@ -143,6 +160,14 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
                 label = transformed["bboxes"]
 
         return img, label
+
+    def get_mode(self, mode: str) -> str:
+        mapping = {
+            OperationMode.TRAIN.value: "trainval",
+            OperationMode.TEST.value: "test",
+        }
+
+        return mapping.get(mode, "test")
 
     def get_img(self, path):
         jpg = path.replace("Annotations", "JPEGImages").replace("xml", "jpg")

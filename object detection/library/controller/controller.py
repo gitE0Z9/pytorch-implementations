@@ -1,10 +1,8 @@
 from importlib import import_module
 
-import albumentations as A
 import torch
 import torch.nn as nn
 import torchvision
-from albumentations.pytorch.transforms import ToTensorV2
 from configs.schema import (
     ClassifierTrainingCfg,
     DatasetCfg,
@@ -17,7 +15,7 @@ from utils.config import load_anchors, load_classes, load_config
 from utils.plot import rand_color
 from utils.train import collate_fn
 
-from constants.enums import NetworkStage, NetworkType
+from constants.enums import NetworkStage, NetworkType, OperationMode
 
 
 class Controller:
@@ -52,8 +50,16 @@ class Controller:
 
         self.model = None
         self.data = {
-            "train": {"preprocess": None, "dataset": None, "loader": None},
-            "test": {"preprocess": None, "dataset": None, "loader": None},
+            OperationMode.TRAIN.value: {
+                "preprocess": None,
+                "dataset": None,
+                "loader": None,
+            },
+            OperationMode.TEST.value: {
+                "preprocess": None,
+                "dataset": None,
+                "loader": None,
+            },
         }
         self.loss = None
         self.optimizer = None
@@ -189,7 +195,7 @@ class Controller:
                 root=self.cfg.DATA.VOC.ROOT,
                 csv_root=self.cfg.DATA.VOC.CSV_ROOT,
                 class_name=self.class_names,
-                mode="trainval" if mode == "train" else "test",
+                mode=mode,
                 transform=self.data[mode]["preprocess"],
             )
 
@@ -206,17 +212,20 @@ class Controller:
             self.data[mode]["dataset"] = ImageNetDataset(
                 self.cfg.DATA.IMAGENET.ROOT,
                 self.class_names,
-                "train" if mode == "train" else "val",
+                mode,
                 transform=self.data[mode]["preprocess"],
             )
 
-            if mode == "train" and self.stage == NetworkStage.FINETUNE.value:
+            if (
+                mode == OperationMode.TRAIN.value
+                and self.stage == NetworkStage.FINETUNE.value
+            ):
                 batch //= 2
 
             self.data[mode]["loader"] = torch.utils.data.DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
-                shuffle=mode == "train",
+                shuffle=mode == OperationMode.TRAIN.value,
             )
 
         elif self.dataset_name == "COCO":
@@ -227,7 +236,7 @@ class Controller:
 
         self.set_preprocess(training_cfg.IMAGE_SIZE)
 
-        transform = self.data["test"]["preprocess"]
+        transform = self.data[OperationMode.TEST.value]["preprocess"]
 
         if self.network_type == NetworkType.DETECTOR.value:
             self.load_detector()

@@ -4,7 +4,12 @@ import albumentations as A
 import pandas as pd
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from constants.enums import NetworkType, PRCurveInterpolation
+from constants.enums import (
+    NetworkType,
+    OperationMode,
+    PRCurveInterpolation,
+    NetworkStage,
+)
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from utils.eval import average_precision, matched_gt_and_det
@@ -33,7 +38,7 @@ class Evaluator(Controller):
             ],
         )
 
-        self.data["test"]["preprocess"] = preprocess
+        self.data[OperationMode.TEST.value]["preprocess"] = preprocess
 
     def postprocess(self, output: torch.Tensor, img_h: int, img_w: int) -> torch.Tensor:
         dataset_cfg = self.get_dataset_cfg()
@@ -79,7 +84,7 @@ class Evaluator(Controller):
         AP = {c: 0 for c in self.class_names}
         AP_table = {c: [] for c in self.class_names}
 
-        for imgs, labels in tqdm(self.data["test"]["loader"]):
+        for imgs, labels in tqdm(self.data[OperationMode.TEST.value]["loader"]):
             imgs = imgs.to(self.device)
             batch_size, _, img_h, img_w = imgs.shape
             output = model_predict(self.model, imgs)
@@ -188,12 +193,15 @@ class Evaluator(Controller):
     def evaluate_classifier(self):
         """evaluate accuracy for classifier"""
         accuracy = 0
-        for imgs, labels in tqdm(self.data["test"]["loader"]):
+        for imgs, labels in tqdm(self.data[OperationMode.TEST.value]["loader"]):
             imgs = imgs.to(self.device)
             labels = labels.to(self.device)
             predictions = self.model(imgs).argmax(1)
             accuracy += predictions.eq(labels).sum().item()
-        print("validation accuracy", accuracy / len(self.data["test"]["dataset"]))
+        print(
+            "validation accuracy",
+            accuracy / len(self.data[OperationMode.TEST.value]["dataset"]),
+        )
 
     def evaluate(self, weight_paths: List[str], store: bool, description: str):
         """main function for evaluate"""
@@ -204,10 +212,10 @@ class Evaluator(Controller):
             self.load_detector()
 
         elif self.network_type == NetworkType.CLASSIFIER.value:
-            self.load_classifier(stage="inference")
+            self.load_classifier(stage=NetworkStage.INFERENCE.value)
 
         self.set_preprocess(image_size)
-        self.load_dataset("test")
+        self.load_dataset(OperationMode.TEST.value)
         self.model.eval()
 
         if self.network_type == NetworkType.DETECTOR.value:

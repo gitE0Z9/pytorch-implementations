@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from constants.enums import NetworkType
+from constants.enums import NetworkType, OperationMode
 from utils.inference import decode_model_prediction, model_predict, yolo_postprocess
 from utils.plot import draw_pred, load_image
 
@@ -28,7 +28,7 @@ class Predictor(Controller):
             ],
         )
 
-        self.data["test"]["preprocess"] = preprocess
+        self.data[OperationMode.TEST.value]["preprocess"] = preprocess
 
     def postprocess(self, output: torch.Tensor, img_h: int, img_w: int) -> torch.Tensor:
         dataset_cfg = self.get_dataset_cfg()
