@@ -19,8 +19,8 @@ DATA:
     CLASSES_PATH: "datasets/voc/voc_classes.txt"
     NUM_CLASSES: 20
   COCO:
-    ROOT: ""
-    CLASSES_PATH: ""
+    ROOT: "D://research/pytorch implementation/data/coco"
+    CLASSES_PATH: "datasets/coco/coco_classes.txt"
     NUM_CLASSES: 80
   IMAGENET:
     ROOT: ""
