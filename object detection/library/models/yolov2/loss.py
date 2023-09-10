@@ -11,8 +11,8 @@ from torchvision.ops import box_iou, box_convert
 class YOLOv2Loss(nn.Module):
     def __init__(
         self,
-        num_anchors: int,
         device: str,
+        num_anchors: int,
         lambda_obj: float = 5,
         iou_threshold: float = 0.6,
     ):
