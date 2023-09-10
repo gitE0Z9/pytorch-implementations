@@ -1,19 +1,22 @@
-from typing import Tuple
 import torch
-import numpy as np
+import torch.nn.functional as F
 from torch import nn
-from torch import functional as F
-from torchvision.ops import box_iou, box_convert
+from torchvision.ops import box_convert, box_iou
 
 
-def log_sum_exp(x):
+def log_sum_exp(x: torch.Tensor) -> torch.Tensor:
     """logsoftmax"""
     # x is B*A,C+1
     x_max, _ = x.max(1, keepdim=True)
     return torch.log(torch.sum(torch.exp(x - x_max), 1, keepdim=True)) + x_max
 
 
-def hard_negative_mining(conf_pred, placeholder, pos, num_neg):
+def hard_negative_mining(
+    conf_pred: torch.Tensor,
+    placeholder: torch.Tensor,
+    pos: torch.Tensor,
+    num_negatives: int,
+):
     """for classification loss"""
 
     batch_size, num_priors, num_classes = conf_pred.shape
@@ -23,6 +26,7 @@ def hard_negative_mining(conf_pred, placeholder, pos, num_neg):
     cls_loss = log_sum_exp(batch_conf) - batch_conf.gather(
         1, placeholder[:, :, 4].view(-1, 1).long()
     )  # B*A, 1
+
     # Hard Negative Mining
     cls_loss = cls_loss.view(batch_size, num_priors)  # B, A
     cls_loss = cls_loss * (
@@ -30,7 +34,7 @@ def hard_negative_mining(conf_pred, placeholder, pos, num_neg):
     )  # positive box has highest log likelihood, least loss
     _, loss_idx = cls_loss.sort(1, descending=True)  # B, A
     _, idx_rank = loss_idx.sort(1)  # B, A
-    neg = idx_rank < num_neg  # looking for higher quantile # B, A
+    neg = idx_rank < num_negatives  # looking for higher quantile # B, A
 
     # Confidence Loss Including Positive and Negative Examples
     final_indicator = pos.logical_or(neg)  # B, A
@@ -45,8 +49,9 @@ def hard_negative_mining(conf_pred, placeholder, pos, num_neg):
 
 
 class MultiboxLoss(nn.Module):
-    def __init__(self, negpos_ratio: float, threshold: float):
+    def __init__(self, device: str, negpos_ratio: float, threshold: float):
         super(MultiboxLoss, self).__init__()
+        self.device = device
         self.negpos_ratio = negpos_ratio
         self.threshold = threshold
         self.variance = [0.1, 0.2]
@@ -94,42 +99,32 @@ class MultiboxLoss(nn.Module):
             [second_truths, truths[best_truth_idx][over_t, 4:5]], 1
         )
 
-    def build_targets(
+    def forward(
         self,
-        groundtruth: list,
-        target_shape: Tuple[int],
-    ) -> torch.Tensor:
-        grid_y, grid_x = target_shape[3], target_shape[4]
-        target = np.zeros(target_shape)
-
-        for b_idx, boxes in enumerate(groundtruth):
-            for box in boxes:
-                cx, cy, w, h, c, _ = box
-                x, y = cx % (1 / grid_x), cy % (1 / grid_y)
-                x_ind, y_ind = int(cx * grid_x), int(cy * grid_y)  # cell position
-                target[b_idx, :, 4, y_ind, x_ind] = 1
-                target[b_idx, :, 0:4, y_ind, x_ind] = [x, y, w, h]
-                target[b_idx, :, 5 + int(c), y_ind, x_ind] = 1
-
-        target = torch.from_numpy(target)
-        return target
-
-    def forward(self, predictions, targets, anchors):
+        predictions: tuple[torch.Tensor, torch.Tensor],
+        targets: torch.Tensor,
+        anchors: torch.Tensor,
+    ):
         loc_pred, conf_pred = predictions
         batch_size, num_priors, _ = loc_pred.shape
 
         # matching
-        placeholder = torch.zeros(batch_size, num_priors, 5).to(device)
+        placeholder = torch.zeros_like(loc_pred).to(self.device)
         # targets shape is B X (?,5) in xyxyc
         for b in range(batch_size):
             self.match(
-                targets[b], placeholder[b], anchors, self.threshold, self.variance
+                targets[b],
+                placeholder[b],
+                anchors,
+                self.threshold,
+                self.variance,
             )
 
         pos = placeholder[:, :, 4] > 0  # B, A
         num_pos = pos.sum(dim=1, keepdim=True)  # B, 1
         num_neg = torch.clamp(
-            self.negpos_ratio * num_pos.long(), max=num_priors - 1
+            self.negpos_ratio * num_pos.long(),
+            max=num_priors - 1,
         )  # B, 1
 
         # Localization Loss
@@ -142,7 +137,7 @@ class MultiboxLoss(nn.Module):
 
         cls_loss = hard_negative_mining(conf_pred, placeholder, pos, num_neg)
 
-        # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
+        # Sum of losses: L(c,l,g) = (Lconf(c, g) + αLloc(l, g)) / N
         N = num_pos.sum()
         loc_loss /= N
         cls_loss /= N

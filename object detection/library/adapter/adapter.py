@@ -4,6 +4,7 @@ import torch
 # from models.yolov2.detector import Yolov2, Yolov2Resnet
 from models.yolov1.loss import YoloLoss
 from models.yolov2.loss import YOLOv2Loss
+from models.ssd.loss import MultiboxLoss
 from configs.schema import Setting, OptimizerCfg
 
 
@@ -42,7 +43,12 @@ class DetectorLossAdapter:
 
         elif detector_name == "yolov2":
             return YOLOv2Loss(
+                self.device,
                 self.cfg.MODEL.NUM_ANCHORS,
+            )
+
+        elif detector_name == "ssd":
+            return MultiboxLoss(
                 self.device,
             )
 
