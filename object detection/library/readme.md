@@ -37,7 +37,7 @@ A library for object detection.
 
 * `dataset`: dataset name for class.
 
-## Lifecycle
+### Lifecycle
 
 * `mode`: running mode, `train` or `test`.
 
@@ -45,7 +45,7 @@ A library for object detection.
 
 * `network_type`: `detector` or `classifier`.
 
-## Inference
+### Inference
 
 * `weight`: path to model weight.
 

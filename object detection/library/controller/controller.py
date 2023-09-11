@@ -195,7 +195,7 @@ class Controller:
             self.data[mode]["dataset"] = VOCDatasetFromCSV(
                 root=self.cfg.DATA.VOC.ROOT,
                 csv_root=self.cfg.DATA.VOC.CSV_ROOT,
-                class_name=self.class_names,
+                class_names=self.class_names,
                 mode=mode,
                 transform=self.data[mode]["preprocess"],
             )
@@ -226,21 +226,23 @@ class Controller:
             self.data[mode]["loader"] = torch.utils.data.DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
-                collate_fn=collate_fn,
                 shuffle=mode == OperationMode.TRAIN.value,
             )
 
         elif self.dataset_name == "COCO":
+            batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
+
             self.data[mode]["dataset"] = COCODatasetRaw(
                 self.cfg.DATA.COCO.ROOT,
                 self.class_names,
-                mode,
+                mode=mode,
                 transform=self.data[mode]["preprocess"],
             )
 
             self.data[mode]["loader"] = torch.utils.data.DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
+                collate_fn=collate_fn,
                 shuffle=mode == OperationMode.TRAIN.value,
             )
         else:

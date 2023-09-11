@@ -28,7 +28,10 @@ def avg_iou(x: torch.Tensor, group: torch.Tensor, center: torch.Tensor) -> float
 
 
 def kmeans(
-    x: torch.Tensor, cluster_num: int = 5, total_iter: int = 300
+    x: torch.Tensor,
+    cluster_num: int = 5,
+    total_iter: int = 300,
+    error_acceptance: float = 1e-2,
 ) -> torch.Tensor:
     """generate kmeans index and center"""
     # init group
@@ -50,7 +53,7 @@ def kmeans(
         print("mean IOU: ", new_avg_iou)
 
         # early stopping
-        if new_avg_iou - prev_avg_iou > 1e-2:
+        if new_avg_iou - prev_avg_iou > error_acceptance:
             prev_avg_iou = new_avg_iou
         else:
             break

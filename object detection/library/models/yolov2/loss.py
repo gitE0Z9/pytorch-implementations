@@ -281,5 +281,5 @@ class YOLOv2Loss(nn.Module):
         return total_loss
 
 
-class Yolo9000Loss(nn.Module):
+class YOLO9000Loss(nn.Module):
     ...

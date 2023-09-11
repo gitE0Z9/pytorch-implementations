@@ -51,7 +51,7 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
         label = self.get_label(idx, h, w)
 
         if self.transform:
-            is_bbox = self.transform.to_dict()["transform"]["bbox_params"]
+            is_bbox = self.transform.to_dict()["transform"].get("bbox_params", False)
 
             kwargs = dict(image=img)
 
@@ -123,7 +123,7 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
         self,
         root: str,
         csv_root: str,
-        class_name: List[str],
+        class_names: List[str],
         mode: str = OperationMode.TEST.value,
         transform=None,
     ):
@@ -131,7 +131,7 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
 
         self.root = root
         self.mode = mode
-        self.class_name = class_name
+        self.class_names = class_names
         self.transform = transform
 
         self.table = pd.read_csv(f"{csv_root}/voc_{mode_filename}.csv", index_col="id")
