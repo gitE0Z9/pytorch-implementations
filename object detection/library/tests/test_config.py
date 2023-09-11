@@ -9,9 +9,13 @@ class Testconfig:
         cfg = load_config("configs/yolov2/resnet18.yml")
         assert anchors.shape == torch.Size([1, cfg["MODEL"]["NUM_ANCHORS"], 2, 1, 1])
 
-    def test_classes(self):
+    def test_voc_classes(self):
         cls_name = load_classes("datasets/voc/voc_classes.txt")
         assert len(cls_name) == 20, "wrong length"
+
+    def test_coco_classes(self):
+        cls_name = load_classes("datasets/coco/coco_classes.txt")
+        assert len(cls_name) == 80, "wrong length"
 
     def test_resnet18_config(self):
         cfg = load_config("configs/yolov2/resnet18.yml")
