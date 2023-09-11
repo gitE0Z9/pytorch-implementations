@@ -17,19 +17,6 @@ class ModelCfg(BaseModel):
     ANCHORS_PATH: str
 
 
-class DatasetCfg(BaseModel):
-    ROOT: str
-    CSV_ROOT: str | None = None
-    NUM_CLASSES: int
-    CLASSES_PATH: str
-
-
-class DatasetCfgs(BaseModel):
-    VOC: DatasetCfg
-    COCO: DatasetCfg
-    IMAGENET: DatasetCfg
-
-
 class OptimizerCfg(BaseModel):
     TYPE: str
     LR: float
@@ -87,6 +74,5 @@ class InferenceCfg(BaseModel):
 class Setting(BaseModel):
     HARDWARE: HardwareCfg
     MODEL: ModelCfg
-    DATA: DatasetCfgs
     TRAIN: TrainingCfgs
     INFERENCE: InferenceCfg

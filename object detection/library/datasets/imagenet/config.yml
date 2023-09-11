@@ -1,0 +1,3 @@
+ROOT: "D://ILSVRC"
+CLASSES_PATH: "datasets/imagenet/imagenet_classes.txt"
+NUM_CLASSES: 1000

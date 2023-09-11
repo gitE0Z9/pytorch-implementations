@@ -6,7 +6,7 @@ from constants.enums import OperationMode
 from datasets.coco.datasets import COCODatasetFromCSV
 from datasets.voc.datasets import VOCDatasetFromCSV
 from utils.anchors import dist_metric, kmeans
-from utils.config import load_classes, load_config
+from utils.config import load_config
 from utils.plot import show_anchors
 
 
@@ -43,6 +43,7 @@ from utils.plot import show_anchors
 )
 def main(
     config: str,
+    dataset_config: str,
     dataset: str,
     show: bool,
     save_dir: str,
@@ -50,8 +51,6 @@ def main(
     dataset = dataset.upper()
 
     cfg = load_config(config)
-    class_names = load_classes(cfg["DATA"][dataset]["CLASSES_PATH"])
-
     cluster_num = cfg["MODEL"]["NUM_ANCHORS"]
 
     dataset_class_mapping = {
@@ -61,9 +60,6 @@ def main(
 
     # comment lines of raw data
     dataset = dataset_class_mapping.get(dataset)(
-        root=cfg["DATA"][dataset]["ROOT"],
-        csv_root=cfg["DATA"][dataset]["CSV_ROOT"],
-        class_names=class_names,
         mode=OperationMode.TRAIN.value,
         # transform=A.Compose(
         #     [

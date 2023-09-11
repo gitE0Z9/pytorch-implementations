@@ -12,22 +12,6 @@ MODEL:
   DETECTOR_PATH: ""
   ANCHORS_PATH: ""
 
-DATA:
-  VOC:
-    ROOT: "D://research/pytorch-implementations/data"
-    CSV_ROOT: "datasets/voc"
-    CLASSES_PATH: "datasets/voc/voc_classes.txt"
-    NUM_CLASSES: 20
-  COCO:
-    ROOT: "D://research/pytorch-implementations/data/coco"
-    CSV_ROOT: "datasets/coco"
-    CLASSES_PATH: "datasets/coco/coco_classes.txt"
-    NUM_CLASSES: 80
-  IMAGENET:
-    ROOT: "D://ILSVRC"
-    CLASSES_PATH: "datasets/imagenet/imagenet_classes.txt"
-    NUM_CLASSES: 1000
-
 TRAIN:
   DETECTOR:
     IMAGE_SIZE: 448

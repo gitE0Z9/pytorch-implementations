@@ -7,29 +7,29 @@ import pandas as pd
 import torch
 from constants.enums import OperationMode
 from utils.plot import load_image
+from datasets.schema import DatasetCfg
+from utils.config import load_config, load_classes
 
 
 class COCODatasetRaw(torch.utils.data.Dataset):
     def __init__(
         self,
-        root: str,
-        class_names: list[str],
+        root: str | None = None,
         year: str = "2017",
         mode: str = OperationMode.TEST.value,
+        class_names: list[str] = [],
         transform=None,
     ):
-        mode_filename = self.get_mode(mode)
-        label_file_path = (
-            Path(root)
-            .joinpath("annotations")
-            .joinpath(f"instances_{mode_filename}{year}.json")
-        )
-
-        self.root = root
+        self.config = DatasetCfg(**load_config("datasets/coco/config.yml"))
+        self.root = Path(root or self.config.ROOT)
         self.year = year
         self.mode = mode
-        self.class_names = class_names
+        self.class_names = class_names or load_classes(self.config.CLASSES_PATH)
         self.transform = transform
+
+        label_file_path = self.root.joinpath("annotations").joinpath(
+            f"instances_{self.get_mode_filename()}{year}.json"
+        )
         self.labels = self.get_labels(label_file_path)
 
     def __len__(self) -> int:
@@ -40,7 +40,7 @@ class COCODatasetRaw(torch.utils.data.Dataset):
         """
         return len(self.labels["images"])
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         img, h, w = self.get_img(idx)
         label = self.get_label(idx, h, w)
 
@@ -60,7 +60,7 @@ class COCODatasetRaw(torch.utils.data.Dataset):
 
         return img, label
 
-    def get_mode(self, mode: str) -> str:
+    def get_mode_filename(self) -> str:
         """get mode representation in filename
 
         Args:
@@ -74,7 +74,7 @@ class COCODatasetRaw(torch.utils.data.Dataset):
             OperationMode.TEST.value: "val",
         }
 
-        return mapping.get(mode, "val")
+        return mapping.get(self.mode, "val")
 
     def get_labels(self, annotation_path: str):
         with open(annotation_path, "r") as f:
@@ -91,9 +91,10 @@ class COCODatasetRaw(torch.utils.data.Dataset):
         # removed_count = 0
         # image_id = set(image["id"] for image in dom["images"])
         # unlabeled_image_id = image_id.difference(labeled_image_id)
-        removed_image = [
-            image for image in dom["images"] if image["id"] not in labeled_image_id
-        ]
+        removed_image = filter(
+            lambda image: image["id"] not in labeled_image_id,
+            dom["images"],
+        )
         for image in removed_image:
             dom["images"].remove(image)
             # removed_count += 1
@@ -106,11 +107,9 @@ class COCODatasetRaw(torch.utils.data.Dataset):
         return dom
 
     def get_img(self, idx: int) -> tuple[np.ndarray, int, int]:
-        mode_filename = self.get_mode(self.mode)
-
         img_path = (
             Path(self.root)
-            .joinpath(f"{mode_filename}{self.year}")
+            .joinpath(f"{self.get_mode_filename()}{self.year}")
             .joinpath(self.labels["images"][idx]["file_name"])
             .as_posix()
         )
@@ -157,29 +156,31 @@ class COCODatasetRaw(torch.utils.data.Dataset):
 class COCODatasetFromCSV(torch.utils.data.Dataset):
     def __init__(
         self,
-        root: str,
-        csv_root: str,
-        class_names: list[str],
+        root: str | None = None,
+        csv_root: str | None = None,
         year: str = "2017",
         mode: str = OperationMode.TEST.value,
+        class_names: list[str] = [],
         transform=None,
     ):
-        mode_filename = self.get_mode(mode)
-
-        self.root = root
-        self.mode = mode
+        self.config = DatasetCfg(**load_config("datasets/coco/config.yml"))
+        self.root = Path(root or self.config.ROOT)
+        self.csv_root = Path(csv_root or self.config.CSV_ROOT)
         self.year = year
-        self.class_names = class_names
+        self.mode = mode
+        self.class_names = class_names or load_classes(self.config.CLASSES_PATH)
         self.transform = transform
 
-        self.table = pd.read_csv(f"{csv_root}/coco_{mode_filename}.csv", index_col="id")
-        self.table["class_id"] = self.table["class_id"].astype("int")
-        # self.table["anchor_id"] = self.table["anchor_id"].astype("int")
+        self.table = pd.read_csv(
+            self.csv_root.joinpath(f"coco_{self.get_mode_filename()}.csv").as_posix(),
+            index_col="id",
+            dtype={"class_id": "Int8"},
+        )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.table.index.nunique()
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         label, path = self.get_label(idx)
         img = self.get_img(path)
 
@@ -199,20 +200,18 @@ class COCODatasetFromCSV(torch.utils.data.Dataset):
 
         return img, label
 
-    def get_mode(self, mode: str) -> str:
+    def get_mode_filename(self) -> str:
         mapping = {
             OperationMode.TRAIN.value: "train",
             OperationMode.TEST.value: "val",
         }
 
-        return mapping.get(mode, "val")
+        return mapping.get(self.mode, "val")
 
-    def get_img(self, path: str) -> tuple[np.ndarray, int, int]:
-        mode_filename = self.get_mode(self.mode)
-
+    def get_img(self, path: str) -> np.ndarray:
         img_path = (
             Path(self.root)
-            .joinpath(f"{mode_filename}{self.year}")
+            .joinpath(f"{self.get_mode_filename()}{self.year}")
             .joinpath(path)
             .as_posix()
         )
@@ -221,30 +220,23 @@ class COCODatasetFromCSV(torch.utils.data.Dataset):
 
         return img
 
-    def get_label(self, idx):
-        mode_filename = self.get_mode(self.mode)
-
+    def get_label(self, idx: int) -> tuple[list, str]:
         img_table = self.table.loc[idx]
+        label = img_table[["cx", "cy", "w", "h", "class_id"]].to_numpy().tolist()
+
         if isinstance(img_table, pd.Series):
-            label = [img_table[["cx", "cy", "w", "h", "class_id"]].to_numpy().tolist()]
+            label = [label]
+            path = img_table["name"]
             # path = img_table["name"].apply(
             #     lambda p: os.path.join(self.root, "VOCdevkit", p)
             # )
-            path = img_table["name"]
-            path = (
-                Path(self.root)
-                .joinpath(f"{mode_filename}{self.year}")
-                .joinpath(path)
-                .as_posix()
-            )
         else:
-            label = img_table[["cx", "cy", "w", "h", "class_id"]].to_numpy().tolist()
             path = img_table.iloc[0]["name"]
-            path = (
-                Path(self.root)
-                .joinpath(f"{mode_filename}{self.year}")
-                .joinpath(path)
-                .as_posix()
-            )
+
+        path = (
+            self.root.joinpath(f"{self.get_mode_filename()}{self.year}")
+            .joinpath(path)
+            .as_posix()
+        )
 
         return label, path

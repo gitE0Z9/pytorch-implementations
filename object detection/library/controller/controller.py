@@ -5,10 +5,10 @@ import torch.nn as nn
 import torchvision
 from configs.schema import (
     ClassifierTrainingCfg,
-    DatasetCfg,
     DetectorTrainingCfg,
     Setting,
 )
+from datasets.schema import DatasetCfg
 from datasets.imagenet.datasets import ImageNetDataset
 from datasets.voc.datasets import VOCDatasetFromCSV
 from datasets.coco.datasets import COCODatasetFromCSV
@@ -83,7 +83,9 @@ class Controller:
         return getattr(self.cfg.TRAIN, self.network_type)
 
     def get_dataset_cfg(self) -> DatasetCfg:
-        return getattr(self.cfg.DATA, self.dataset_name)
+        return DatasetCfg(
+            **load_config(f"configs/{self.dataset_name.lower()}/config.yml")
+        )
 
     def get_classifier_class(self) -> nn.Module:
         backbone = self.cfg.MODEL.BACKBONE
@@ -193,9 +195,6 @@ class Controller:
             batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
 
             self.data[mode]["dataset"] = VOCDatasetFromCSV(
-                root=self.cfg.DATA.VOC.ROOT,
-                csv_root=self.cfg.DATA.VOC.CSV_ROOT,
-                class_names=self.class_names,
                 mode=mode,
                 transform=self.data[mode]["preprocess"],
             )
@@ -211,9 +210,7 @@ class Controller:
             batch = self.cfg.TRAIN.CLASSIFIER.BATCH_SIZE
 
             self.data[mode]["dataset"] = ImageNetDataset(
-                self.cfg.DATA.IMAGENET.ROOT,
-                self.class_names,
-                mode,
+                mode=mode,
                 transform=self.data[mode]["preprocess"],
             )
 
@@ -233,9 +230,6 @@ class Controller:
             batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
 
             self.data[mode]["dataset"] = COCODatasetFromCSV(
-                self.cfg.DATA.COCO.ROOT,
-                self.cfg.DATA.COCO.CSV_ROOT,
-                self.class_names,
                 mode=mode,
                 transform=self.data[mode]["preprocess"],
             )

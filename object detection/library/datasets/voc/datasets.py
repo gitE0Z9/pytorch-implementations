@@ -1,52 +1,54 @@
-import os
-from typing import List
+from pathlib import Path
 from xml.etree import cElementTree as etree
 
 import pandas as pd
+import numpy as np
 import torch
 from utils.plot import load_image
+from utils.config import load_config, load_classes
 from constants.enums import OperationMode
+from datasets.schema import DatasetCfg
 
 
 class VOCDatasetRaw(torch.utils.data.Dataset):
     def __init__(
         self,
-        root: str,
-        class_name: List[str],
+        root: str | None = None,
         year: str = "2012+2007",
         mode: str = OperationMode.TEST.value,
+        class_names: list[str] = [],
         transform=None,
     ):
-        mode_filename = self.get_mode(mode)
-        list_path = [
-            (
-                os.path.join(
-                    root, f"VOCdevkit/VOC{y}/ImageSets/Main/{mode_filename}.txt"
-                ),
-                y,
-            )
-            for y in year.split("+")
-        ]
-
-        self.root = root
+        self.config = DatasetCfg(**load_config("datasets/voc/config.yml"))
+        self.root = Path(root or self.config.ROOT)
         self.year = year
         self.mode = mode
-        self.class_name = class_name
+        self.class_names = class_names or load_classes(self.config.CLASSES_PATH)
         self.transform = transform
+
         self.labels = []
-        for p, y in list_path:
-            with open(p, "r") as f:
-                for g in f.readlines():
+        for y in year.split("+"):
+            year_directory = self.root.joinpath(f"VOC{y}")
+            list_path = (
+                year_directory.joinpath("ImageSets")
+                .joinpath("Main")
+                .joinpath(f"{self.get_mode_filename()}.txt")
+                .as_posix()
+            )
+            with open(list_path, "r") as f:
+                for line in f.readlines():
                     self.labels.append(
-                        os.path.join(
-                            root, f"VOCdevkit/VOC{y}/Annotations", f"{g.strip()}.xml"
+                        (
+                            year_directory.joinpath("Annotations")
+                            .joinpath(f"{line.strip()}.xml")
+                            .as_posix()
                         )
                     )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.labels)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         img, h, w = self.get_img(idx)
         label = self.get_label(idx, h, w)
 
@@ -66,15 +68,15 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
 
         return img, label
 
-    def get_mode(self, mode: str) -> str:
+    def get_mode_filename(self) -> str:
         mapping = {
             OperationMode.TRAIN.value: "trainval",
             OperationMode.TEST.value: "test",
         }
 
-        return mapping.get(mode, "test")
+        return mapping.get(self.mode, "test")
 
-    def get_img(self, idx):
+    def get_img(self, idx: int):
         jpg = (
             self.labels[idx].replace("Annotations", "JPEGImages").replace("xml", "jpg")
         )
@@ -84,7 +86,7 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
 
         return img, h, w
 
-    def get_label(self, idx, h, w):
+    def get_label(self, idx: int, h: int, w: int):
         xml = self.labels[idx]
         tree = etree.parse(xml)
         label = self.process_label(tree, h, w)
@@ -108,7 +110,7 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
             w = (xmax - xmin) / img_w
             h = (ymax - ymin) / img_h
 
-            class_ind = self.class_name.index(obj.find("name").text)
+            class_ind = self.class_names.index(obj.find("name").text)
 
             cx = (xmin + xmax) / 2 / img_w
             cy = (ymin + ymax) / 2 / img_h
@@ -121,22 +123,24 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
 class VOCDatasetFromCSV(torch.utils.data.Dataset):
     def __init__(
         self,
-        root: str,
-        csv_root: str,
-        class_names: List[str],
+        root: str | None = None,
+        csv_root: str | None = None,
         mode: str = OperationMode.TEST.value,
+        class_names: list[str] = [],
         transform=None,
     ):
-        mode_filename = self.get_mode(mode)
-
-        self.root = root
+        self.config = DatasetCfg(**load_config("datasets/voc/config.yml"))
+        self.root = Path(root or self.config.ROOT)
+        self.csv_root = Path(csv_root or self.config.CSV_ROOT)
         self.mode = mode
-        self.class_names = class_names
+        self.class_names = class_names or load_classes(self.config.CLASSES_PATH)
         self.transform = transform
 
-        self.table = pd.read_csv(f"{csv_root}/voc_{mode_filename}.csv", index_col="id")
-        self.table["class_id"] = self.table["class_id"].astype("int")
-        self.table["anchor_id"] = self.table["anchor_id"].astype("int")
+        self.table = pd.read_csv(
+            self.csv_root.joinpath(f"voc_{self.get_mode_filename()}.csv").as_posix(),
+            index_col="id",
+            dtype={"class_id": "Int8"},
+        )
 
     def __len__(self):
         return self.table.index.nunique()
@@ -161,40 +165,33 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
 
         return img, label
 
-    def get_mode(self, mode: str) -> str:
+    def get_mode_filename(self) -> str:
         mapping = {
             OperationMode.TRAIN.value: "trainval",
             OperationMode.TEST.value: "test",
         }
 
-        return mapping.get(mode, "test")
+        return mapping.get(self.mode, "test")
 
-    def get_img(self, path):
-        jpg = path.replace("Annotations", "JPEGImages").replace("xml", "jpg")
-        img = load_image(jpg)
+    def get_img(self, path: str) -> np.ndarray:
+        img_path = path.replace("Annotations", "JPEGImages").replace("xml", "jpg")
+        img = load_image(img_path)
 
         return img
 
-    def get_label(self, idx):
+    def get_label(self, idx: int) -> tuple[list, str]:
         img_table = self.table.loc[idx]
+        label = img_table[["cx", "cy", "w", "h", "class_id"]].to_numpy().tolist()
+
         if isinstance(img_table, pd.Series):
-            label = [
-                img_table[["cx", "cy", "w", "h", "class_id", "anchor_id"]]
-                .to_numpy()
-                .tolist()
-            ]
+            label = [label]
+            path = img_table["name"]
             # path = img_table["name"].apply(
             #     lambda p: os.path.join(self.root, "VOCdevkit", p)
             # )
-            path = img_table["name"]
-            path = os.path.join(self.root, "VOCdevkit", path)
         else:
-            label = (
-                img_table[["cx", "cy", "w", "h", "class_id", "anchor_id"]]
-                .to_numpy()
-                .tolist()
-            )
             path = img_table.iloc[0]["name"]
-            path = os.path.join(self.root, "VOCdevkit", path)
+
+        path = self.root.joinpath(path).as_posix()
 
         return label, path

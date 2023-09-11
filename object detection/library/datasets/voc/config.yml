@@ -1,0 +1,4 @@
+ROOT: "D://research/pytorch-implementations/data/VOCdevkit"
+CSV_ROOT: "datasets/voc"
+CLASSES_PATH: "datasets/voc/voc_classes.txt"
+NUM_CLASSES: 20
