@@ -14,12 +14,12 @@ MODEL:
 
 DATA:
   VOC:
-    ROOT: "D://research/pytorch implementation/data"
+    ROOT: "D://research/pytorch-implementations/data"
     CSV_ROOT: "datasets/voc"
     CLASSES_PATH: "datasets/voc/voc_classes.txt"
     NUM_CLASSES: 20
   COCO:
-    ROOT: "D://research/pytorch implementation/data/coco"
+    ROOT: "D://research/pytorch-implementations/data/coco"
     CLASSES_PATH: "datasets/coco/coco_classes.txt"
     NUM_CLASSES: 80
   IMAGENET:

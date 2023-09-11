@@ -4,7 +4,7 @@ HARDWARE:
   AMP: false
 
 MODEL:
-  NAME: "yolov2"
+  NAME: "yolo9000"
   BACKBONE: "darknet19"
   NUM_ANCHORS: 5
   SCALE: 32

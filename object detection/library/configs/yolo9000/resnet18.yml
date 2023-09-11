@@ -4,11 +4,11 @@ HARDWARE:
   AMP: false
 
 MODEL:
-  NAME: "yolov2"
-  BACKBONE: "darknet19"
+  NAME: "yolo9000"
+  BACKBONE: "resnet18"
   NUM_ANCHORS: 5
   SCALE: 32
-  CLASSIFIER_PATH: "artifacts/darknet19/darknet19.pth"
+  CLASSIFIER_PATH: ""
   DETECTOR_PATH: ""
   ANCHORS_PATH: "configs/yolov2/anchors.txt"
 
@@ -24,39 +24,39 @@ DATA:
     NUM_CLASSES: 80
   IMAGENET:
     ROOT: "D://ILSVRC"
-    CLASSES_PATH: "configs/imagenet/imagenet_darknet.txt"
+    CLASSES_PATH: "configs/imagenet/imagenet_classes.txt"
     NUM_CLASSES: 1000
 
 TRAIN:
   DETECTOR:
     IMAGE_SIZE: 416
-    BATCH_SIZE: 16
-    ACC_ITER: 4
+    BATCH_SIZE: 32
+    ACC_ITER: 2
     OPTIM:
       TYPE: "adam"
       LR: 0.0001
       DECAY: 0.0005
-      MOMENTUM: 0.9
-    START_EPOCH: 10
+      MOMENTUM: 0
+    START_EPOCH: 0
     END_EPOCH: 30
     MULTISCALE: false
     SAVE:
-      DIR: "artifacts/yolov2/darknet19"
+      DIR: "artifacts/yolov2/resnet18"
       INTERVAL: 10
   CLASSIFIER:
     IMAGE_SIZE: 224
-    BATCH_SIZE: 64
+    BATCH_SIZE: 128
     ACC_ITER: 1
     OPTIM:
       TYPE: "adam"
       LR: 0.001
       DECAY: 0.0005
-      MOMENTUM: 0.9
-    START_EPOCH: 0
+      MOMENTUM: 0
+    START_EPOCH: 100
     END_EPOCH: 100
     FINETUNE:
       EPOCH: 10
-      BATCH_SIZE: 32
+      BATCH_SIZE: 64
       IMAGE_SIZE: 448
     SAVE:
       DIR: ""
