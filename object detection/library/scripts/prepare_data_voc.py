@@ -1,12 +1,12 @@
 import os
+from pathlib import Path
 from xml.etree import cElementTree as etree
 
 import pandas as pd
 import torch
 from torchvision.ops import box_convert, box_iou
 from tqdm import tqdm
-
-from utils.config import load_anchors, load_classes
+from utils.config import load_anchors, load_classes, load_config
 
 dataset_kind = [("2012", "trainval"), ("2007", "trainval"), ("2007", "test")]
 
@@ -14,16 +14,23 @@ label_path = {"trainval": [], "test": []}
 
 labels = {"trainval": [], "test": []}
 
-class_name = load_classes("config/voc_classes.txt")
-anchors = load_anchors("config/anchors.txt").view(-1, 2)
+class_name = load_classes("datasets/voc/voc_classes.txt")
+anchors = load_anchors("configs/yolov2/anchors.txt").view(-1, 2)
+config = load_config("configs/yolov2/resnet18.yml")
 
 if __name__ == "__main__":
     for year, mode in dataset_kind:
-        root = "../data"  #'D://research/pytorch implementation/data'
-        name_file_path = os.path.join(
-            root, f"VOCdevkit/VOC{year}/ImageSets/Main/{mode}.txt"
+        root = config["DATA"]["VOC"]["ROOT"]
+        class_name_file_path = (
+            Path(root)
+            .joinpath("VOCdevkit")
+            .joinpath(f"VOC{year}")
+            .joinpath("ImageSets")
+            .joinpath("Main")
+            .joinpath(f"{mode}.txt")
         )
-        with open(name_file_path, "r") as f:
+
+        with open(class_name_file_path, "r") as f:
             for g in f.readlines():
                 annot_path = os.path.join(
                     root, f"VOCdevkit/VOC{year}/Annotations", f"{g.strip()}.xml"
