@@ -83,7 +83,7 @@ def build_targets(groundtruth: list, target_shape: Tuple[int]) -> torch.Tensor:
 
     for batch_idx, boxes in enumerate(groundtruth):
         for box in boxes:
-            cx, cy, w, h, c, _ = box
+            cx, cy, w, h, c = box[:5]
             x, y = cx % (1 / grid_x), cy % (1 / grid_y)
             x_ind, y_ind = int(cx * grid_x), int(cy * grid_y)  # cell position
             target[batch_idx, :, 4, y_ind, x_ind] = 1

@@ -11,7 +11,7 @@ from configs.schema import (
 )
 from datasets.imagenet.datasets import ImageNetDataset
 from datasets.voc.datasets import VOCDatasetFromCSV
-from datasets.coco.datasets import COCODatasetRaw
+from datasets.coco.datasets import COCODatasetFromCSV
 from utils.config import load_anchors, load_classes, load_config
 from utils.plot import rand_color
 from utils.train import collate_fn
@@ -137,13 +137,13 @@ class Controller:
 
     def load_detector(self):
         """Load detector"""
-
         model_cfg = self.cfg.MODEL
         backbone = model_cfg.BACKBONE
         detector_path = model_cfg.DETECTOR_PATH
 
+        dataset_cfg = self.get_dataset_cfg()
         number_of_anchors = model_cfg.NUM_ANCHORS
-        number_of_classes = self.cfg.DATA.VOC.NUM_CLASSES
+        number_of_classes = dataset_cfg.NUM_CLASSES
 
         detector_class = self.get_detector_class()
 
@@ -232,8 +232,9 @@ class Controller:
         elif self.dataset_name == "COCO":
             batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
 
-            self.data[mode]["dataset"] = COCODatasetRaw(
+            self.data[mode]["dataset"] = COCODatasetFromCSV(
                 self.cfg.DATA.COCO.ROOT,
+                self.cfg.DATA.COCO.CSV_ROOT,
                 self.class_names,
                 mode=mode,
                 transform=self.data[mode]["preprocess"],

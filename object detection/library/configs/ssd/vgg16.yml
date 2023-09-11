@@ -4,13 +4,13 @@ HARDWARE:
   AMP: false
 
 MODEL:
-  NAME: "yolo9000"
-  BACKBONE: "resnet18"
-  NUM_ANCHORS: 5
-  SCALE: 32
+  NAME: "ssd"
+  BACKBONE: "vgg16"
+  NUM_ANCHORS: 2
+  SCALE: 64
   CLASSIFIER_PATH: ""
   DETECTOR_PATH: ""
-  ANCHORS_PATH: "configs/yolov2/anchors.txt"
+  ANCHORS_PATH: ""
 
 DATA:
   VOC:
@@ -19,20 +19,20 @@ DATA:
     CLASSES_PATH: "datasets/voc/voc_classes.txt"
     NUM_CLASSES: 20
   COCO:
-    ROOT: "D://research/pytorch-implementations/data/coco"
+    ROOT: "D://research/pytorch-implementations/data"
     CSV_ROOT: "datasets/coco"
     CLASSES_PATH: "datasets/coco/coco_classes.txt"
     NUM_CLASSES: 80
   IMAGENET:
     ROOT: "D://ILSVRC"
-    CLASSES_PATH: "configs/imagenet/imagenet_classes.txt"
+    CLASSES_PATH: "datasets/imagenet/imagenet_classes.txt"
     NUM_CLASSES: 1000
 
 TRAIN:
   DETECTOR:
-    IMAGE_SIZE: 416
-    BATCH_SIZE: 32
-    ACC_ITER: 2
+    IMAGE_SIZE: 300
+    BATCH_SIZE: 16
+    ACC_ITER: 4
     OPTIM:
       TYPE: "adam"
       LR: 0.0001
@@ -42,7 +42,7 @@ TRAIN:
     END_EPOCH: 30
     MULTISCALE: false
     SAVE:
-      DIR: "artifacts/yolov2/resnet18"
+      DIR: "artifacts/ssd/vgg16"
       INTERVAL: 10
   CLASSIFIER:
     IMAGE_SIZE: 224
@@ -69,5 +69,5 @@ INFERENCE:
   NMS_THRESH: 0.5
   PARAMETER:
     CONFLUENCE_THRESH: 0.5
-    SIGMA: 0.25
-    BETA: 0.6
+    SIGMA: 0.5
+    BETA: 1.2

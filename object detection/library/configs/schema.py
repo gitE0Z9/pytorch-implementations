@@ -19,16 +19,13 @@ class ModelCfg(BaseModel):
 
 class DatasetCfg(BaseModel):
     ROOT: str
+    CSV_ROOT: str | None = None
     NUM_CLASSES: int
     CLASSES_PATH: str
 
 
-class CSVDatasetCfg(DatasetCfg):
-    CSV_ROOT: str
-
-
 class DatasetCfgs(BaseModel):
-    VOC: CSVDatasetCfg
+    VOC: DatasetCfg
     COCO: DatasetCfg
     IMAGENET: DatasetCfg
 
