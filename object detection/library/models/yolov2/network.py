@@ -1,18 +1,26 @@
 from torch import nn
 import torch.nn.functional as F
+from torch import Tensor
 
 
 class ConvBlock(nn.Module):
     """ConvBNReLU block"""
 
-    def __init__(self, in_channels: int, out_channels: int, kernel: int):
+    def __init__(
+        self, in_channels: int, out_channels: int, kernel: int, stride: int = 1
+    ):
         super(ConvBlock, self).__init__()
         self.conv = nn.Conv2d(
-            in_channels, out_channels, (kernel, kernel), padding=kernel // 2, bias=False
+            in_channels,
+            out_channels,
+            (kernel, kernel),
+            padding=kernel // 2,
+            stride=stride,
+            bias=False,
         )
         self.bn = nn.BatchNorm2d(out_channels)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         tmp = self.conv(x)
         tmp = self.bn(tmp)
         tmp = F.leaky_relu(tmp, 0.1, inplace=True)
@@ -38,15 +46,14 @@ class BottleNeck(nn.Module):
 
         self.conv = nn.Sequential(*self.conv)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         tmp = self.conv(x)
         return tmp
 
 
 class Darknet19(nn.Module):
-    """darknet19"""
-
     def __init__(self):
+        """Darknet19"""
         super(Darknet19, self).__init__()
         self.conv_1 = nn.Sequential(
             ConvBlock(3, 32, 3),
@@ -73,7 +80,7 @@ class Darknet19(nn.Module):
         )
         self.head = nn.Sequential(nn.Conv2d(1024, 1000, (1, 1)))
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         # 112 x 112 x 32 # conv stride 2 will reduce hw 2 times too
         tmp = self.conv_1(x)
         tmp = self.conv_2(tmp)  # 56 X 56 X 64
@@ -99,7 +106,7 @@ class ReorgLayer(nn.Module):
         super(ReorgLayer, self).__init__()
         self.stride = stride
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         b, c, h, w = x.shape
         x = x.reshape(
             b,
