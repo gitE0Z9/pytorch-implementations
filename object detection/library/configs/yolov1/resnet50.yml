@@ -5,7 +5,7 @@ HARDWARE:
 
 MODEL:
   NAME: "yolov1"
-  BACKBONE: "resnet34"
+  BACKBONE: "resnet50"
   NUM_ANCHORS: 2
   SCALE: 64
   CLASSIFIER_PATH: ""
@@ -15,22 +15,22 @@ MODEL:
 TRAIN:
   DETECTOR:
     IMAGE_SIZE: 448
-    BATCH_SIZE: 16
-    ACC_ITER: 4
+    BATCH_SIZE: 8
+    ACC_ITER: 8
     OPTIM:
       TYPE: "adam"
-      LR: 0.0001
+      LR: 0.001
       DECAY: 0.0005
       MOMENTUM: 0
     START_EPOCH: 0
     END_EPOCH: 100
     MULTISCALE: false
     SAVE:
-      DIR: "artifacts/yolov1/resnet34"
+      DIR: "artifacts/yolov1/resnet50"
       INTERVAL: 10
   CLASSIFIER:
     IMAGE_SIZE: 224
-    BATCH_SIZE: 64
+    BATCH_SIZE: 128
     ACC_ITER: 1
     OPTIM:
       TYPE: "adam"
@@ -42,7 +42,7 @@ TRAIN:
     FINETUNE:
       EPOCH: 10
       IMAGE_SIZE: 448
-      BATCH_SIZE: 32
+      BATCH_SIZE: 16
     SAVE:
       DIR: ""
       INTERVAL: 10

@@ -10,7 +10,7 @@ MODEL:
   SCALE: 32
   CLASSIFIER_PATH: ""
   DETECTOR_PATH: ""
-  ANCHORS_PATH: "configs/yolov2/anchors.txt"
+  ANCHORS_PATH: "configs/yolov2/anchors.voc.txt"
 
 TRAIN:
   DETECTOR:

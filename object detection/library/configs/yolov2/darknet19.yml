@@ -10,7 +10,7 @@ MODEL:
   SCALE: 32
   CLASSIFIER_PATH: "artifacts/darknet19/darknet19.pth"
   DETECTOR_PATH: ""
-  ANCHORS_PATH: "configs/yolov2/anchors.txt"
+  ANCHORS_PATH: "configs/yolov2/anchors.voc.txt"
 
 TRAIN:
   DETECTOR:
@@ -51,7 +51,3 @@ INFERENCE:
   METHOD: "torchvision"
   CONF_THRESH: 0.3
   NMS_THRESH: 0.5
-  PARAMETER:
-    CONFLUENCE_THRESH: 0.5
-    SIGMA: 0.25
-    BETA: 0.6

@@ -10,8 +10,8 @@ class HardwareCfg(BaseModel):
 class ModelCfg(BaseModel):
     NAME: str
     BACKBONE: str
-    NUM_ANCHORS: int
-    SCALE: int
+    NUM_ANCHORS: int | list[int]
+    SCALE: int | list[int]
     CLASSIFIER_PATH: str
     DETECTOR_PATH: str
     ANCHORS_PATH: str
@@ -59,16 +59,16 @@ class TrainingCfgs(BaseModel):
 
 
 class PostProcessParameter(BaseModel):
-    CONFLUENCE_THRESH: float
-    SIGMA: float
-    BETA: float
+    CONFLUENCE_THRESH: float = 0.5
+    SIGMA: float = 0.5
+    BETA: float = 1
 
 
 class InferenceCfg(BaseModel):
     METHOD: str
     CONF_THRESH: float
     NMS_THRESH: float
-    PARAMETER: PostProcessParameter
+    PARAMETER: PostProcessParameter | None = None
 
 
 class Setting(BaseModel):
