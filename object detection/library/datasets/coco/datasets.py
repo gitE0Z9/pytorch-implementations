@@ -6,9 +6,11 @@ import numpy as np
 import pandas as pd
 import torch
 from constants.enums import OperationMode
+from tqdm import tqdm
+from utils.config import load_classes, load_config
 from utils.plot import load_image
+
 from datasets.schema import DatasetCfg
-from utils.config import load_config, load_classes
 
 
 class COCODatasetRaw(torch.utils.data.Dataset):
@@ -76,6 +78,17 @@ class COCODatasetRaw(torch.utils.data.Dataset):
 
         return mapping.get(self.mode, "val")
 
+    def get_img_filename(self, idx: int) -> str:
+        return (
+            Path(self.root)
+            .joinpath(f"{self.get_mode_filename()}{self.year}")
+            .joinpath(self.labels["images"][idx]["file_name"])
+            .as_posix()
+        )
+
+    def get_csv_path(self):
+        return f"datasets/coco/coco_{self.get_mode_filename()}.csv"
+
     def get_labels(self, annotation_path: str):
         with open(annotation_path, "r") as f:
             dom = json.loads(f.read())
@@ -107,12 +120,7 @@ class COCODatasetRaw(torch.utils.data.Dataset):
         return dom
 
     def get_img(self, idx: int) -> tuple[np.ndarray, int, int]:
-        img_path = (
-            Path(self.root)
-            .joinpath(f"{self.get_mode_filename()}{self.year}")
-            .joinpath(self.labels["images"][idx]["file_name"])
-            .as_posix()
-        )
+        img_path = self.get_img_filename(idx)
 
         img = load_image(img_path)
         h, w, _ = img.shape
@@ -151,6 +159,22 @@ class COCODatasetRaw(torch.utils.data.Dataset):
             new_labels.append([cx, cy, w, h, class_idx])
 
         return new_labels
+
+    def to_csv(self, csv_path: str = ""):
+        csv_path = csv_path or self.get_csv_path()
+        data = []
+        for idx, (_, labels) in enumerate(tqdm(self)):
+            img_filename = self.get_img_filename(idx)
+            for label in labels:
+                placeholder = [idx, img_filename]
+                placeholder.extend(label)
+                data.append(placeholder)
+
+        df = pd.DataFrame(
+            data,
+            columns=["id", "name", "cx", "cy", "w", "h", "class_id"],
+        )
+        df.to_csv(csv_path, index=False)
 
 
 class COCODatasetFromCSV(torch.utils.data.Dataset):

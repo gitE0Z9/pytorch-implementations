@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import torch
 from utils.plot import load_image
+from tqdm import tqdm
 from utils.config import load_config, load_classes
 from constants.enums import OperationMode
 from datasets.schema import DatasetCfg
@@ -76,12 +77,16 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
 
         return mapping.get(self.mode, "test")
 
-    def get_img(self, idx: int):
-        jpg = (
+    def get_img_filename(self, idx: int) -> str:
+        return (
             self.labels[idx].replace("Annotations", "JPEGImages").replace("xml", "jpg")
         )
 
-        img = load_image(jpg)
+    def get_csv_path(self):
+        return f"datasets/voc/voc_{self.get_mode_filename()}.csv"
+
+    def get_img(self, idx: int):
+        img = load_image(self.get_img_filename(idx))
         h, w, _ = img.shape
 
         return img, h, w
@@ -118,6 +123,22 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
             label.append([cx, cy, w, h, class_ind])
 
         return label
+
+    def to_csv(self, csv_path: str = ""):
+        csv_path = csv_path or self.get_csv_path()
+        data = []
+        for idx, (_, labels) in enumerate(tqdm(self)):
+            img_filename = self.get_img_filename(idx)
+            for label in labels:
+                placeholder = [idx, img_filename]
+                placeholder.extend(label)
+                data.append(placeholder)
+
+        df = pd.DataFrame(
+            data,
+            columns=["id", "name", "cx", "cy", "w", "h", "class_id"],
+        )
+        df.to_csv(csv_path, index=False)
 
 
 class VOCDatasetFromCSV(torch.utils.data.Dataset):
