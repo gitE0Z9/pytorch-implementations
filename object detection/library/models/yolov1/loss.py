@@ -3,21 +3,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from utils.train import IOU, build_targets
+from constants.schema import DetectorContext
 
 
-class YoloLoss(nn.Module):
+class YOLOLoss(nn.Module):
     def __init__(
         self,
-        device: str,
+        context: DetectorContext,
         lambda_coord: float = 5,
         lambda_noobject: float = 0.5,
-        num_bboxes: int = 2,
         iou_threshold: float = 0.5,
     ):
-        super(YoloLoss, self).__init__()
+        super(YOLOLoss, self).__init__()
 
-        self.device = device
-        self.num_bboxes = num_bboxes
+        self.device = context.device
+        self.num_bboxes = context.num_anchors
         self.lambda_coord = lambda_coord
         self.lambda_noobject = lambda_noobject
         self.epsilon = 1e-5
@@ -66,28 +66,26 @@ class YoloLoss(nn.Module):
             * (box_pred[:, 2:4, :, :].abs() + self.epsilon).sqrt()
         )  # sqrt the value then plus sign back
 
-        cls_pred = prediction[:, self.num_bboxes * 5 :, :, :]
-
         # class loss / objecness loss / xywh loss
         # indicator has to be inside the loss function
         cls_loss = F.mse_loss(
-            obj_here * cls_pred,
+            obj_here * prediction[:, self.num_bboxes * 5 :, :, :],
             groundtruth[:, 5:, :, :],
             reduction="sum",
         )
         obj_loss = F.mse_loss(
-            obj_here * box_pred[:, 0:1, :, :],
+            obj_here * box_pred[:, 4:5, :, :],
             obj_here * ious,
             reduction="sum",
         )
         xy_loss = F.mse_loss(
-            obj_here * box_pred[:, 1:3, :, :],
-            groundtruth[:, 1:3, :, :],
+            obj_here * box_pred[:, 0:2, :, :],
+            groundtruth[:, 0:2, :, :],
             reduction="sum",
         )
         wh_loss = F.mse_loss(
             obj_here * wh_pred,
-            groundtruth[:, 3:5, :, :].sqrt(),
+            groundtruth[:, 2:4, :, :].sqrt(),
             reduction="sum",
         )
 
@@ -95,7 +93,7 @@ class YoloLoss(nn.Module):
         noobj_loss = 0.0
         for b in range(self.num_bboxes):
             noobj_loss += F.mse_loss(
-                (1 - obj_here) * prediction[:, 0 + 5 * b : 1 + 5 * b, :, :],
+                (1 - obj_here) * prediction[:, 4 + 5 * b : 5 + 5 * b, :, :],
                 obj_here * 0,  # all zeros
                 reduction="sum",
             )  # weird part

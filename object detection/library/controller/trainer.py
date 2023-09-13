@@ -18,6 +18,14 @@ from controller.controller import Controller
 
 
 class Trainer(Controller):
+    def get_detector_loss_kwargs(self, seen: int) -> dict:
+        kwargs = {}
+
+        if self.cfg.MODEL.NAME == "yolov2":
+            kwargs = dict(seen=seen)
+
+        return kwargs
+
     def set_preprocess(self, input_size: int):
         """
         Set preprocessing pipeline.
@@ -61,7 +69,7 @@ class Trainer(Controller):
         for classifier, only multiclass provided.
         """
         if self.network_type == NetworkType.DETECTOR.value:
-            adapter = DetectorLossAdapter(self.cfg, self.device)
+            adapter = DetectorLossAdapter(self.get_detector_context())
             self.loss = adapter.get_loss()
 
         elif self.network_type == NetworkType.CLASSIFIER.value:
@@ -207,22 +215,12 @@ class Trainer(Controller):
 
                 # save model every 10 epoch
                 if (e + 1) % self.save_interval == 0:
-                    self.save_weight(e)
+                    self.save_weight(e + 1)
 
         self.writer.close()
 
-    def get_detector_loss_kwargs(self, seen: int) -> dict:
-        kwargs = {}
-        if self.cfg.MODEL.NAME == "yolov2":
-            kwargs = dict(
-                anchors=self.anchors,
-                seen=seen,
-            )
-
-        return kwargs
-
     def save_weight(self, epoch: int):
-        file_name = f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{epoch+1}.pth"
+        file_name = f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{epoch}.pth"
         os.makedirs(self.save_dir, exist_ok=True)
         torch.save(
             self.model.state_dict(),
