@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from constants.enums import NetworkType, OperationMode
-from utils.inference import decode_model_prediction, model_predict, yolo_postprocess
+from utils.inference import model_predict
 from utils.plot import draw_pred, load_image
 
 from controller.controller import Controller
@@ -30,43 +30,12 @@ class Predictor(Controller):
 
         self.data[OperationMode.TEST.value]["preprocess"] = preprocess
 
-    def postprocess(self, output: torch.Tensor, img_h: int, img_w: int) -> torch.Tensor:
-        dataset_cfg = self.get_dataset_cfg()
-
-        MODEL_NAME = self.cfg.MODEL.NAME
-        NUM_CLASSES = dataset_cfg.NUM_CLASSES
-
-        if MODEL_NAME == "yolov1":
-            kwargs = {
-                "num_classes": NUM_CLASSES,
-            }
-        elif MODEL_NAME == "yolov2":
-            kwargs = {
-                "anchors": self.anchors.to("cpu"),
-            }
-
-        decoded = decode_model_prediction(
-            MODEL_NAME,
-            output,
-            img_h,
-            img_w,
-            **kwargs,
-        )
-
-        detected = yolo_postprocess(
-            decoded,
-            NUM_CLASSES,
-            self.cfg.INFERENCE,
-        )
-
-        return detected
-
     def detect_single_image(self, image: np.ndarray, transform) -> torch.Tensor:
         img_h, img_w, _ = image.shape
 
         image = transform(image=image)["image"].to(self.device)
         output = model_predict(self.model, image)
-        return self.postprocess(output, img_h, img_w)[0]
+        return self.postprocess(output, (img_h, img_w))[0]
 
     def predict_image_file(
         self,

@@ -12,11 +12,13 @@ from datasets.schema import DatasetCfg
 from datasets.imagenet.datasets import ImageNetDataset
 from datasets.voc.datasets import VOCDatasetFromCSV
 from datasets.coco.datasets import COCODatasetFromCSV
-from utils.config import load_anchors, load_classes, load_config
+from utils.config import load_classes, load_config
 from utils.plot import rand_color
 from utils.train import collate_fn
 
 from constants.enums import NetworkStage, NetworkType, OperationMode
+from constants.schema import DetectorContext
+from models.yolov1.decode import yolo_postprocess
 
 
 class Controller:
@@ -42,12 +44,6 @@ class Controller:
 
         dataset_cfg = self.get_dataset_cfg()
         self.class_names = load_classes(dataset_cfg.CLASSES_PATH)
-
-        anchor_path = self.cfg.MODEL.ANCHORS_PATH
-        self.anchors = (
-            load_anchors(anchor_path).to(self.device) if anchor_path else None
-        )
-        # self.anchors *= self.cfg['TRAIN'][self.mode]['IMAGE_SIZE'] / self.cfg['MODEL']['SCALE']
 
         self.model = None
         self.data = {
@@ -84,7 +80,7 @@ class Controller:
 
     def get_dataset_cfg(self) -> DatasetCfg:
         return DatasetCfg(
-            **load_config(f"configs/{self.dataset_name.lower()}/config.yml")
+            **load_config(f"datasets/{self.dataset_name.lower()}/config.yml")
         )
 
     def get_classifier_class(self) -> nn.Module:
@@ -112,6 +108,15 @@ class Controller:
         model_class = getattr(detector_module, class_name)
 
         return model_class
+
+    def get_detector_context(self) -> DetectorContext:
+        return DetectorContext(
+            detector_name=self.cfg.MODEL.NAME,
+            dataset=self.dataset_name.lower(),
+            device=self.device,
+            num_classes=self.get_dataset_cfg().NUM_CLASSES,
+            num_anchors=self.cfg.MODEL.NUM_ANCHORS,
+        )
 
     def load_classifier(self, stage: str):
         """Load classifier with corresponding network stage."""
@@ -243,9 +248,17 @@ class Controller:
         else:
             raise NotImplementedError
 
+    def load_decoder(self, context: DetectorContext):
+        MODEL_NAME = self.cfg.MODEL.NAME
+
+        module = import_module(f"models.{MODEL_NAME}.decode")
+
+        self.decoder = getattr(module, "Decoder")(context)
+
     def prepare_inference(self):
         training_cfg = self.get_training_cfg()
 
+        # implement in each controller
         self.set_preprocess(training_cfg.IMAGE_SIZE)
 
         transform = self.data[OperationMode.TEST.value]["preprocess"]
@@ -255,4 +268,23 @@ class Controller:
         elif self.network_type == NetworkType.CLASSIFIER.value:
             self.load_classifier(stage=NetworkStage.INFERENCE.value)
 
+        self.load_decoder(self.get_detector_context())
+
         return transform
+
+    def postprocess(
+        self,
+        output: torch.Tensor,
+        img_size: tuple[int, int],
+    ) -> torch.Tensor:
+        dataset_cfg = self.get_dataset_cfg()
+
+        MODEL_NAME = self.cfg.MODEL.NAME
+        NUM_CLASSES = dataset_cfg.NUM_CLASSES
+
+        decoded = self.decoder.decode(output, img_size)
+
+        if "yolo" in MODEL_NAME:
+            detected = yolo_postprocess(decoded, NUM_CLASSES, self.cfg.INFERENCE)
+
+        return detected

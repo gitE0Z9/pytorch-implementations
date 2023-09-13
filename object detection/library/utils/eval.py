@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch
 import torchvision
 
-from utils.inference import model_predict, yolov2_decode
+from utils.inference import model_predict
 from utils.nms import greedy_nms
 from utils.plot import load_image
 from constants.enums import PRCurveInterpolation

@@ -14,10 +14,8 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from utils.eval import average_precision, matched_gt_and_det
 from utils.inference import (
-    decode_model_prediction,
     generate_grid,
     model_predict,
-    yolo_postprocess,
 )
 from utils.train import build_targets
 
@@ -40,37 +38,6 @@ class Evaluator(Controller):
 
         self.data[OperationMode.TEST.value]["preprocess"] = preprocess
 
-    def postprocess(self, output: torch.Tensor, img_h: int, img_w: int) -> torch.Tensor:
-        dataset_cfg = self.get_dataset_cfg()
-
-        MODEL_NAME = self.cfg.MODEL.NAME
-        NUM_CLASSES = dataset_cfg.NUM_CLASSES
-
-        if MODEL_NAME == "yolov1":
-            kwargs = {
-                "num_classes": NUM_CLASSES,
-            }
-        elif MODEL_NAME == "yolov2":
-            kwargs = {
-                "anchors": self.anchors.to("cpu"),
-            }
-
-        decoded = decode_model_prediction(
-            MODEL_NAME,
-            output,
-            img_h,
-            img_w,
-            **kwargs,
-        )
-
-        detected = yolo_postprocess(
-            decoded,
-            NUM_CLASSES,
-            self.cfg.INFERENCE,
-        )
-
-        return detected
-
     def evaluate_detector(self):
         """evaluate mAP for YOLO"""
         training_cfg = self.get_training_cfg()
@@ -88,7 +55,7 @@ class Evaluator(Controller):
             imgs = imgs.to(self.device)
             batch_size, _, img_h, img_w = imgs.shape
             output = model_predict(self.model, imgs)
-            detections = self.postprocess(output, img_h, img_w)
+            detections = self.postprocess(output, (img_h, img_w))
 
             # recover gt coord in xywh
             labels = build_targets(
@@ -205,16 +172,7 @@ class Evaluator(Controller):
 
     def evaluate(self, weight_paths: List[str], store: bool, description: str):
         """main function for evaluate"""
-        training_cfg = self.get_training_cfg()
-        image_size = training_cfg.IMAGE_SIZE
-
-        if self.network_type == NetworkType.DETECTOR.value:
-            self.load_detector()
-
-        elif self.network_type == NetworkType.CLASSIFIER.value:
-            self.load_classifier(stage=NetworkStage.INFERENCE.value)
-
-        self.set_preprocess(image_size)
+        self.prepare_inference()
         self.load_dataset(OperationMode.TEST.value)
         self.model.eval()
 
