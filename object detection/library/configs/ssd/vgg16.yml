@@ -6,27 +6,17 @@ HARDWARE:
 MODEL:
   NAME: "ssd"
   BACKBONE: "vgg16"
-  NUM_ANCHORS: 2
+  NUM_ANCHORS:
+    - 4
+    - 6
+    - 6
+    - 6
+    - 4
+    - 4
   SCALE: 64
   CLASSIFIER_PATH: ""
   DETECTOR_PATH: ""
-  ANCHORS_PATH: ""
-
-DATA:
-  VOC:
-    ROOT: "D://research/pytorch-implementations/data"
-    CSV_ROOT: "datasets/voc"
-    CLASSES_PATH: "datasets/voc/voc_classes.txt"
-    NUM_CLASSES: 20
-  COCO:
-    ROOT: "D://research/pytorch-implementations/data"
-    CSV_ROOT: "datasets/coco"
-    CLASSES_PATH: "datasets/coco/coco_classes.txt"
-    NUM_CLASSES: 80
-  IMAGENET:
-    ROOT: "D://ILSVRC"
-    CLASSES_PATH: "datasets/imagenet/imagenet_classes.txt"
-    NUM_CLASSES: 1000
+  ANCHORS_PATH: "configs/ssd/anchors.txt"
 
 TRAIN:
   DETECTOR:
@@ -67,7 +57,3 @@ INFERENCE:
   METHOD: "torchvision"
   CONF_THRESH: 0.3
   NMS_THRESH: 0.5
-  PARAMETER:
-    CONFLUENCE_THRESH: 0.5
-    SIGMA: 0.5
-    BETA: 1.2
