@@ -41,8 +41,8 @@ TRAIN:
     END_EPOCH: 100
     FINETUNE:
       EPOCH: 10
-      BATCH_SIZE: 32
       IMAGE_SIZE: 448
+      BATCH_SIZE: 32
     SAVE:
       DIR: ""
       INTERVAL: 1
