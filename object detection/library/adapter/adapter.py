@@ -2,11 +2,11 @@ import torch
 
 # from models.yolov1.detector import Yolov1, Yolov1Resnet
 # from models.yolov2.detector import Yolov2, Yolov2Resnet
-from models.yolov1.loss import YoloLoss
+from models.yolov1.loss import YOLOLoss
 from models.yolov2.loss import YOLOv2Loss, YOLO9000Loss
 from models.ssd.loss import MultiboxLoss
 from configs.schema import Setting, OptimizerCfg
-
+from constants.schema import DetectorContext
 
 # class DetectorAdapter:
 #     def __init__(self, cfg: Setting, device: str):
@@ -29,34 +29,22 @@ from configs.schema import Setting, OptimizerCfg
 
 
 class DetectorLossAdapter:
-    def __init__(self, cfg: Setting, device: str):
-        self.cfg = cfg
-        self.device = device
+    def __init__(self, context: DetectorContext):
+        self.context = context
 
     def get_loss(self):
-        detector_name = self.cfg.MODEL.NAME
+        detector_name = self.context.detector_name
 
-        if detector_name == "yolov1":
-            return YoloLoss(
-                self.device,
-            )
+        loss_class_mapping = {
+            "yolov1": YOLOLoss,
+            "yolov2": YOLOv2Loss,
+            "yolo9000": YOLO9000Loss,
+            "ssd": MultiboxLoss,
+        }
 
-        elif detector_name == "yolov2":
-            return YOLOv2Loss(
-                self.device,
-                self.cfg.MODEL.NUM_ANCHORS,
-            )
+        loss_class = loss_class_mapping.get(detector_name)
 
-        elif detector_name == "yolo9000":
-            return YOLO9000Loss(
-                self.device,
-                self.cfg.MODEL.NUM_ANCHORS,
-            )
-
-        elif detector_name == "ssd":
-            return MultiboxLoss(
-                self.device,
-            )
+        return loss_class(self.context)
 
 
 class OptimizerAdapter:

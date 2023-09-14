@@ -6,4 +6,4 @@ class DetectorContext(BaseModel):
     dataset: str
     device: str
     num_classes: int
-    num_anchors: int
+    num_anchors: int | list[int]

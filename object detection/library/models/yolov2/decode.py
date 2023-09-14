@@ -7,7 +7,6 @@ from utils.inference import generate_grid
 class Decoder:
     def __init__(self, context: DetectorContext):
         self.anchors = PriorBox(context.num_anchors, context.dataset).anchors
-        self.anchors.to(context.device)
 
     def decode(
         self,
@@ -25,7 +24,7 @@ class Decoder:
 
         grid_x, grid_y = generate_grid(fm_w, fm_h)
 
-        bbox_info = []
+        decoded = []
         for a in range(num_anchors):
             # batch_size, 1, grid_size x grid_size
             cx = (
@@ -53,9 +52,9 @@ class Decoder:
             x = cx - w / 2
             y = cy - h / 2
 
-            bbox_info.append(torch.cat([x, y, w, h, conf, prob], 1))
+            decoded.append(torch.cat([x, y, w, h, conf, prob], 1))
 
         # batch_size, grid_size * grid_size * num_anchors, num_classes + 4
-        result = torch.cat(bbox_info, -1).transpose(1, 2)
+        decoded = torch.cat(decoded, -1).transpose(1, 2)
 
-        return result
+        return decoded

@@ -43,8 +43,8 @@ class Trainer(Controller):
                 ],
                 bbox_params=A.BboxParams(
                     format="yolo",
-                    min_area=1024,
-                    min_visibility=0.3,
+                    # min_area=1024,
+                    # min_visibility=0.3,
                 ),
             )
         elif self.network_type == NetworkType.CLASSIFIER.value:

@@ -2,6 +2,35 @@ import torch
 from utils.inference import generate_grid
 from utils.nms import select_best_index
 from constants.schema import DetectorContext
+from configs.schema import InferenceCfg
+
+
+def yolo_postprocess(
+    decoded_output: torch.Tensor,
+    number_class: int,
+    postprocess_config: InferenceCfg,
+) -> list[torch.Tensor]:
+    batch, _, _ = decoded_output.shape
+    decoded_output[:, :, 5:] = decoded_output[:, :, 4:5] * decoded_output[:, :, 5:]
+    cls_index = decoded_output[:, :, 5:].argmax(2)
+
+    processed_result = []
+    for i in range(batch):
+        detection_result = []
+        for class_index in range(number_class):
+            is_this_class = cls_index[i].eq(class_index)
+            if is_this_class.any():
+                this_class_detection = decoded_output[i, is_this_class]
+                best_index = select_best_index(
+                    this_class_detection[:, :4],
+                    this_class_detection[:, 5 + class_index],
+                    postprocess_config,
+                )
+                detection_result.append(this_class_detection[best_index])
+        detection_result = torch.cat(detection_result, 0)
+        processed_result.append(detection_result)
+
+    return processed_result
 
 
 class Decoder:
@@ -49,33 +78,3 @@ class Decoder:
         result = torch.cat(bbox_info, -1).transpose(1, 2)
 
         return result
-
-
-def yolo_postprocess(
-    decoded_output: torch.Tensor,
-    number_class: int,
-    postprocess_config: dict,
-) -> torch.Tensor:
-    batch, _, _ = decoded_output.shape
-    decoded_output[:, :, 5:] = decoded_output[:, :, 4:5] * decoded_output[:, :, 5:]
-    cls_index = decoded_output[:, :, 5:].argmax(2)
-
-    processed_result = []
-    for i in range(batch):
-        detection_result = []
-        for class_index in range(number_class):
-            is_this_class = cls_index[i].eq(class_index)
-            if is_this_class.any():
-                this_class_detection = decoded_output[i, is_this_class]
-                best_index = select_best_index(
-                    this_class_detection[:, :4],
-                    this_class_detection[:, 5 + class_index],
-                    postprocess_config,
-                )
-                detection_result.append(this_class_detection[best_index])
-        detection_result = torch.cat(detection_result, 0)
-        processed_result.append(detection_result)
-
-    # print(processed_result)
-
-    return processed_result

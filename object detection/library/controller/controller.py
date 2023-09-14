@@ -86,7 +86,11 @@ class Controller:
     def get_classifier_class(self) -> nn.Module:
         backbone = self.cfg.MODEL.BACKBONE
 
-        if backbone.startswith("resnet"):
+        if (
+            backbone.startswith("resnet")
+            or backbone.startswith("vgg")
+            or backbone.startswith("mobile")
+        ):
             model_class = getattr(torchvision.models, backbone)
         else:
             classifier_module = import_module(f"models.{self.cfg.MODEL.NAME}.network")
@@ -161,6 +165,12 @@ class Controller:
             self.model = detector_class(
                 number_of_layers,
                 number_of_anchors,
+                number_of_classes,
+                finetune_weight=model_cfg.CLASSIFIER_PATH,
+            )
+
+        elif backbone.startswith("vgg"):
+            self.model = detector_class(
                 number_of_classes,
                 finetune_weight=model_cfg.CLASSIFIER_PATH,
             )

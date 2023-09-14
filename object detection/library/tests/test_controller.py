@@ -1,7 +1,7 @@
 import torch
 from torch.testing import assert_equal
 
-from yolov2.controller import Controller
+from controller.controller import Controller
 
 
 class Test_controller:
