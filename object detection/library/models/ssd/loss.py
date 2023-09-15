@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 import torch
 import torch.nn.functional as F
 from constants.schema import DetectorContext
@@ -68,7 +66,6 @@ class MultiboxLoss(nn.Module):
 
         self.anchors = PriorBox().anchors.to(context.device)
 
-    @lru_cache
     def encode(self, gt: torch.Tensor, anchors: torch.Tensor):
         """encode gt loc information"""
 
@@ -81,7 +78,6 @@ class MultiboxLoss(nn.Module):
 
         return torch.cat([g_cxcy, g_wh], 1)
 
-    @lru_cache
     def match(self, groundtruth: list) -> torch.Tensor:
         """matching between any truths and any priors"""
         # truths: ?,5, xyxy
