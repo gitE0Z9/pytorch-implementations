@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-import torchvision
-from models.ssd.network import Backbone, RegHead
+from models.ssd.network import Backbone
+from models.base.network import RegHead
 
 
 class Ssd(nn.Module):
