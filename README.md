@@ -17,7 +17,7 @@
 
 - [YOLOv1](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)
 
-- [YOLOv2](https://medium.com/@acrocanthosaurus627/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)
+- [YOLOv2](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)
 
 - [YOLO 9000]()
 
