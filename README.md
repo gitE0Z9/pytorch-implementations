@@ -12,19 +12,11 @@
 
 - [ResNet50](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43)
 
-- [EfficientNet]()
-
 **物件偵測**
 
 - [YOLOv1](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)
 
 - [YOLOv2](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)
-
-- [YOLO 9000]()
-
-- [YOLOv3]()
-
-- [SSD]()
 
 **語意分割**
 
