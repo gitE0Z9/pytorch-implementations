@@ -1,5 +1,6 @@
 # Pytorch實作系列
 
+文章同步發布在個人部落格(https://gite0z9.github.io)
 
 **Few shot learning**
 
@@ -80,3 +81,7 @@
 **序列資料**
 
 - [TCN](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d)
+
+**語言模型**
+
+-[Word2vec](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57)
