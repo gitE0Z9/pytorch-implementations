@@ -84,4 +84,4 @@
 
 **語言模型**
 
--[Word2vec](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57)
+- [Word2vec](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57)
