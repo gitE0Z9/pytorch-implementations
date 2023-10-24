@@ -1,2 +1,8 @@
 .vscode
+.ipynb_checkpoints
+
+*.drawio
 *.pth
+artifacts
+models
+data
