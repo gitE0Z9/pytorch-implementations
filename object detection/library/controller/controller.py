@@ -15,6 +15,7 @@ from datasets.coco.datasets import COCODatasetFromCSV
 from utils.config import load_classes, load_config
 from utils.plot import rand_color
 from utils.train import collate_fn
+from torch.utils.data import DataLoader
 
 from constants.enums import NetworkStage, NetworkType, OperationMode
 from constants.schema import DetectorContext
@@ -214,11 +215,12 @@ class Controller:
                 transform=self.data[mode]["preprocess"],
             )
 
-            self.data[mode]["loader"] = torch.utils.data.DataLoader(
+            self.data[mode]["loader"] = DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
                 collate_fn=collate_fn,
                 shuffle=mode == OperationMode.TRAIN.value,
+                drop_last=True,
             )
 
         elif self.dataset_name == "IMAGENET":
@@ -235,7 +237,7 @@ class Controller:
             ):
                 batch //= 2
 
-            self.data[mode]["loader"] = torch.utils.data.DataLoader(
+            self.data[mode]["loader"] = DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
                 shuffle=mode == OperationMode.TRAIN.value,
@@ -249,7 +251,7 @@ class Controller:
                 transform=self.data[mode]["preprocess"],
             )
 
-            self.data[mode]["loader"] = torch.utils.data.DataLoader(
+            self.data[mode]["loader"] = DataLoader(
                 self.data[mode]["dataset"],
                 batch_size=batch,
                 collate_fn=collate_fn,
