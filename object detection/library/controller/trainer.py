@@ -134,7 +134,7 @@ class Trainer(Controller):
         iter_num = start_epoch * dataset_size  # for tensorboard if multiscale enabled
 
         for e in range(start_epoch, end_epoch):
-            print(f"Epoch {e}/{end_epoch}")
+            print(f"Epoch {e+1}/{end_epoch}")
             running_loss = 0.0
 
             # multiscale training in YOLOv2
