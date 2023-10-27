@@ -217,6 +217,8 @@ class Trainer(Controller):
                 if (e + 1) % self.save_interval == 0:
                     self.save_weight(e + 1)
 
+            print(running_loss)
+
         self.writer.close()
 
     def save_weight(self, epoch: int):
