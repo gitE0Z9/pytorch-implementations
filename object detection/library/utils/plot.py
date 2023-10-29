@@ -6,12 +6,12 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+from functools import lru_cache
 
 def rand_color() -> List[int]:
     return random.choices(range(256), k=3)
 
-
+@lru_cache
 def load_image(path: str) -> np.ndarray:
     assert os.path.exists(path), f"Image {path} does't exist."
     img = cv2.imread(path)
