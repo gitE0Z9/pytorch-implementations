@@ -6,3 +6,5 @@
 artifacts
 models
 data
+.data
+reference

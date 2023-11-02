@@ -40,11 +40,11 @@
 
 **風格遷移**
 
-- [Style Transfer](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620)
+- [Neural style transfer](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620)
 
 - [Neural Doodle](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-neural-doodle-80bb55108836)
 
-- [Fast Style Transfer](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)
+- [Fast style transfer](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)
 
 - [AdaIN]()
 
