@@ -6,6 +6,7 @@ import albumentations as A
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 from adapter.adapter import DetectorLossAdapter, OptimizerAdapter
 from albumentations.pytorch.transforms import ToTensorV2
 from constants.enums import NetworkStage, NetworkType, OperationMode
@@ -34,11 +35,11 @@ class Trainer(Controller):
         if self.network_type == NetworkType.DETECTOR.value:
             preprocess = A.Compose(
                 [
-                    A.Resize(input_size, input_size),
                     A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
-                    A.Normalize(mean=(0, 0, 0), std=(1, 1, 1)),
+                    A.RandomSizedBBoxSafeCrop(input_size, input_size),
+                    A.Normalize(),
                     ToTensorV2(),
                 ],
                 bbox_params=A.BboxParams(
@@ -50,11 +51,11 @@ class Trainer(Controller):
         elif self.network_type == NetworkType.CLASSIFIER.value:
             preprocess = A.Compose(
                 [
-                    A.Resize(input_size, input_size),
                     A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
-                    A.Normalize(mean=(0, 0, 0), std=(1, 1, 1)),
+                    A.RandomSizedBBoxSafeCrop(input_size, input_size),
+                    A.Normalize(),
                     ToTensorV2(),
                 ]
             )
@@ -100,28 +101,7 @@ class Trainer(Controller):
 
         training_cfg = self.get_training_cfg()
 
-        if self.network_type == NetworkType.DETECTOR.value:
-            self.load_detector()
-            self.set_preprocess(training_cfg.IMAGE_SIZE)
-
-        elif self.network_type == NetworkType.CLASSIFIER.value:
-            assert self.stage in [
-                NetworkStage.FINETUNE.value,
-                NetworkStage.SCRATCH.value,
-            ], 'CLASSIFIER can be trained with stage ["finetune", "scratch"]'
-            self.load_classifier(stage=self.stage)
-            self.set_preprocess(
-                training_cfg.FINETUNE.IMAGE_SIZE
-                if self.stage == NetworkStage.FINETUNE.value
-                else training_cfg.IMAGE_SIZE,
-            )
-
-        self.load_dataset(OperationMode.TRAIN.value)
-        self.load_loss()
-        self.load_optimizer()
-
-        self.model.train()
-        self.optimizer.zero_grad()
+        self.prepare_train()
 
         start_epoch, end_epoch = training_cfg.START_EPOCH, training_cfg.END_EPOCH
         if self.network_type == NetworkType.CLASSIFIER.value:
@@ -136,31 +116,14 @@ class Trainer(Controller):
         for e in range(start_epoch, end_epoch):
             print(f"Epoch {e+1}/{end_epoch}")
             running_loss = 0.0
+            self.optimizer.zero_grad()
 
             # multiscale training in YOLOv2
             # compare to every 10 batch in paper, we use 10 or 1 epoch
-            if (
-                self.network_type == NetworkType.DETECTOR.value
-                and training_cfg.MULTISCALE
-            ):
-                random_scale = random.randint(10, 19) * self.cfg.MODEL.SCALE
-                self.set_preprocess(random_scale)
-                self.load_dataset(OperationMode.TRAIN.value)
-                if random_scale > training_cfg.IMAGE_SIZE:
-                    self.data[OperationMode.TRAIN.value][
-                        "loader"
-                    ] = torch.utils.data.DataLoader(
-                        self.data[OperationMode.TRAIN.value]["dataset"],
-                        batch_size=training_cfg.BATCH_SIZE // 2,
-                        collate_fn=collate_fn,
-                        shuffle=True,
-                    )
+            self.set_multiscale()
 
-                    self.acc_iter = 64 // training_cfg.BATCH_SIZE
-
-            for i, (imgs, labels) in enumerate(
-                tqdm(self.data[OperationMode.TRAIN.value]["loader"])
-            ):  # think about removing tqdm
+            loader = self.data[OperationMode.TRAIN.value]["loader"]
+            for i, (imgs, labels) in enumerate(tqdm(loader)):
                 iter_num += 1
                 seen += imgs.size(0)
 
@@ -185,14 +148,15 @@ class Trainer(Controller):
                 else:
                     self.scaler.scale(loss).backward()
 
+                # gradient accumulation
                 if i % self.acc_iter == 0:
-                    # gradient accumulation
                     if self.scaler is None:
                         self.optimizer.step()
-                        self.optimizer.zero_grad()
                     else:
                         self.scaler.step(self.optimizer)
                         self.scaler.update()
+
+                    self.optimizer.zero_grad()
 
                 running_loss += loss.item()
 
@@ -203,23 +167,67 @@ class Trainer(Controller):
                 # if not converge
                 assert not np.isnan(running_loss), "loss died"
 
+                # record batch loss
                 self.writer.add_scalar(
                     "training loss",
                     loss.item(),
                     iter_num,
                     summary_description=description,
-                )  # batch loss
+                )
 
-                if self.scheduler:
-                    self.scheduler.step()
+            if self.scheduler:
+                self.scheduler.step()
 
-                # save model every 10 epoch
-                if (e + 1) % self.save_interval == 0:
-                    self.save_weight(e + 1)
+            # save model every 10 epoch
+            if (e + 1) % self.save_interval == 0:
+                self.save_weight(e + 1)
 
             print(running_loss)
 
         self.writer.close()
+
+    def prepare_train(self):
+        training_cfg = self.get_training_cfg()
+   
+        if self.network_type == NetworkType.DETECTOR.value:
+            self.load_detector()
+            self.set_preprocess(training_cfg.IMAGE_SIZE)
+
+        elif self.network_type == NetworkType.CLASSIFIER.value:
+            assert self.stage in [
+                NetworkStage.FINETUNE.value,
+                NetworkStage.SCRATCH.value,
+            ], 'CLASSIFIER can be trained with stage ["finetune", "scratch"]'
+            self.load_classifier(stage=self.stage)
+            self.set_preprocess(
+                training_cfg.FINETUNE.IMAGE_SIZE
+                if self.stage == NetworkStage.FINETUNE.value
+                else training_cfg.IMAGE_SIZE,
+            )
+
+        self.load_dataset(OperationMode.TRAIN.value)
+        self.load_loss()
+        self.load_optimizer()
+
+        self.model.train()
+
+    def set_multiscale(self):
+        training_cfg = self.get_training_cfg()
+
+        if self.network_type == NetworkType.DETECTOR.value and training_cfg.MULTISCALE:
+            random_scale = random.randint(10, 19) * self.cfg.MODEL.SCALE
+            self.set_preprocess(random_scale)
+            self.load_dataset(OperationMode.TRAIN.value)
+            if random_scale > training_cfg.IMAGE_SIZE:
+                loader = DataLoader(
+                    self.data[OperationMode.TRAIN.value]["dataset"],
+                    batch_size=training_cfg.BATCH_SIZE // 2,
+                    collate_fn=collate_fn,
+                    shuffle=True,
+                )
+                self.data[OperationMode.TRAIN.value]["loader"] = loader
+
+                self.acc_iter = 64 // training_cfg.BATCH_SIZE
 
     def save_weight(self, epoch: int):
         file_name = f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{epoch}.pth"
