@@ -54,11 +54,11 @@
 
 - [TextCNN](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c)
 
-**POS Tagging**
+**詞性標注(POS tagging)**
 
 - [biLSTM](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)
 
-**Named Entity Recognition**
+**命名實體辨識(named entity recognition)**
 
 - [biLSTM-CRF](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6)
 
