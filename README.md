@@ -2,29 +2,29 @@
 
 文章同步發布在個人部落格(https://gite0z9.github.io)
 
-**Few shot learning**
+**少樣本學習(few shot learning)**
 
 - [Siamese network](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed)
 
 - [Prototypical network](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)
 
-**圖像分類**
+**圖像分類(image classification)**
 
 - [ResNet50](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43)
 
-**物件偵測**
+**物件偵測(object detection/library)**
 
 - [YOLOv1](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)
 
 - [YOLOv2](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)
 
-**語意分割**
+**語意分割(semantic segmentation)**
 
 - [UNet](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%8D%81-unet-545efa00ad99)
 
 - [FCN](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b)
 
-**圖像生成**
+**圖像生成(image generation)**
 
 - [VAE](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539)
 
@@ -34,11 +34,11 @@
 
 - [pix2pix](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39)
 
-**光學文字辨識**
+**光學文字辨識(optical character recognition)**
 
 - [CRNN](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698)
 
-**風格遷移**
+**風格遷移(style transfer)**
 
 - [Neural style transfer](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620)
 
@@ -48,7 +48,7 @@
 
 - [AdaIN]()
 
-**文本分類**
+**文本分類(text classification)**
 
 - [LSTM](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641)
 
@@ -58,15 +58,15 @@
 
 - [biLSTM](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)
 
-**Named Entity Recognition / Token Classification**
+**Named Entity Recognition**
 
 - [biLSTM-CRF](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6)
 
-**機器翻譯**
+**機器翻譯(machine translation)**
 
 - [Seq2Seq](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)
 
-**增強學習**
+**增強學習(reinforcement learning)**
 
 - [DQN](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337)
 
