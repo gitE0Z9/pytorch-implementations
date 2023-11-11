@@ -100,20 +100,20 @@ class Yolov1Resnet(nn.Module):
         self.backbone = backbone
 
     def forward(self, x: Tensor) -> Tensor:
-        tmp = self.backbone.conv1(x)
-        tmp = self.backbone.bn1(tmp)
-        tmp = self.backbone.relu(tmp)
-        tmp = self.backbone.maxpool(tmp)
-        tmp = self.backbone.layer1(tmp)
-        tmp = self.backbone.layer2(tmp)
-        tmp = self.backbone.layer3(tmp)
-        tmp = self.backbone.layer4(tmp)
+        y = self.backbone.conv1(x)
+        y = self.backbone.bn1(y)
+        y = self.backbone.relu(y)
+        y = self.backbone.maxpool(y)
+        y = self.backbone.layer1(y)
+        y = self.backbone.layer2(y)
+        y = self.backbone.layer3(y)
+        y = self.backbone.layer4(y)
 
-        tmp = self.conv(tmp)
-        tmp = self.conv_out(tmp)
+        y = self.conv(y)
+        y = self.conv_out(y)
 
         #         tmp = torch.flatten(tmp,start_dim=1)
         #         tmp = self.classifier(tmp)
         #         tmp = tmp.reshape(-1,30,7,7)#.contiguous()
 
-        return tmp
+        return y
