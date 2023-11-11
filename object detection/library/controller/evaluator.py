@@ -31,7 +31,7 @@ class Evaluator(Controller):
         preprocess = A.Compose(
             [
                 A.Resize(input_size, input_size),
-                A.Normalize(mean=(0, 0, 0), std=(1, 1, 1)),
+                A.Normalize(),
                 ToTensorV2(),
             ],
         )

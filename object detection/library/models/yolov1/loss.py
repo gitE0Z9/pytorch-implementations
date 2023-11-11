@@ -45,11 +45,15 @@ class YOLOLoss(nn.Module):
         groundtruth: torch.Tensor,
     ) -> torch.Tensor:
         batch_size, channel, grid_y, grid_x = prediction.shape
-        groundtruth = build_targets(
-            groundtruth,
-            (batch_size, 1, channel - 5 * self.num_bboxes + 5, grid_y, grid_x),
-        ).to(self.device)
-        groundtruth = groundtruth.squeeze(1).float()
+        groundtruth = (
+            build_targets(
+                groundtruth,
+                (batch_size, 1, channel - 5 * (self.num_bboxes - 1), grid_y, grid_x),
+            )
+            .float()
+            .squeeze(1)
+            .to(self.device)
+        )
 
         # obj indicator
         obj_here = groundtruth[:, 4:5, :, :]  # [N,1,7,7]
@@ -61,10 +65,9 @@ class YOLOLoss(nn.Module):
         box_pred = torch.zeros_like(prediction[:, :5, :, :])  # N, 5, 7, 7
         for b in range(self.num_bboxes):
             box_pred += best_box.eq(b) * prediction[:, b * 5 : (b + 1) * 5, :, :]
-        wh_pred = (
-            box_pred[:, 2:4, :, :].sign()
-            * (box_pred[:, 2:4, :, :].abs() + self.epsilon).sqrt()
-        )  # sqrt the value then plus sign back
+
+        # sqrt numerical issue
+        wh_pred = box_pred[:, 2:4, :, :].pow(2).add(self.epsilon).sqrt()
 
         # class loss / objecness loss / xywh loss
         # indicator has to be inside the loss function
@@ -89,14 +92,14 @@ class YOLOLoss(nn.Module):
             reduction="sum",
         )
 
-        # not mention in the original papaer, but in aladdin and clean the other bbox block with wrong confidence
+        # clean the other bbox block with wrong confidence
         noobj_loss = 0.0
         for b in range(self.num_bboxes):
             noobj_loss += F.mse_loss(
                 (1 - obj_here) * prediction[:, 4 + 5 * b : 5 + 5 * b, :, :],
                 obj_here * 0,  # all zeros
                 reduction="sum",
-            )  # weird part
+            )
 
         total_loss = (
             cls_loss

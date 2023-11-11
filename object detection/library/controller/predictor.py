@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import List
 
 import albumentations as A
@@ -23,7 +23,7 @@ class Predictor(Controller):
         preprocess = A.Compose(
             [
                 A.Resize(input_size, input_size),
-                A.Normalize(mean=(0, 0, 0), std=(1, 1, 1)),
+                A.Normalize(),
                 ToTensorV2(),
             ],
         )
@@ -32,7 +32,7 @@ class Predictor(Controller):
 
     def detect_single_image(self, image: np.ndarray, transform) -> torch.Tensor:
         img_h, img_w, _ = image.shape
-
+        
         image = transform(image=image)["image"].to(self.device)
         output = model_predict(self.model, image)
         return self.postprocess(output, (img_h, img_w))[0]
@@ -70,13 +70,13 @@ class Predictor(Controller):
                     plt.show()
 
                 if save_dir:
-                    filename = os.path.basename(image_path)
-                    dst = os.path.join(save_dir, filename)
-                    cv2.imwrite(dst, copied_image)
+                    filename = Path(image_path).name
+                    dst = Path(save_dir).with_name(filename)
+                    cv2.imwrite(dst.as_posix(), copied_image[:, :, ::-1])
 
             elif self.network_type == NetworkType.CLASSIFIER.value:
-                output = output.argmax(1)
-                print(image_path, self.class_names[output.item()])
+                cls_idx = cls_idx.argmax(1).item()
+                print(image_path, self.class_names[cls_idx])
 
     def predict_video_file(
         self,
@@ -93,12 +93,12 @@ class Predictor(Controller):
 
         # writing video
         if save_dir:
-            dst = os.path.join(save_dir, os.path.basename(video_path))
-            ext = os.path.basename(video_path).split(".")[-1]
+            dst = Path(save_dir).with_name(Path(video_path).name)
+            ext = Path(video_path).suffix.replace(".", "")
             if ext == "avi":
                 encoder = cv2.VideoWriter_fourcc(*"XVID")
             elif ext == "mp4":
-                encoder = cv2.VideoWriter_fourcc(*"MP4V")
+                encoder = cv2.VideoWriter_fourcc(*"H264")
             else:
                 raise NotImplementedError
             writer = cv2.VideoWriter(

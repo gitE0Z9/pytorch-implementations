@@ -58,21 +58,21 @@ class Yolov1Resnet(nn.Module):
         # as paper suggested, deeper conv layer
         # convhead-512 no first layer and all 512
         self.conv = nn.Sequential(
-            nn.Conv2d(512, 1024, 3, stride=1, padding=1, bias=False),
+            nn.Conv2d(512, 1024, 3, padding=1, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(inplace=True),
             nn.Conv2d(1024, 1024, 3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, 3, stride=1, padding=1, bias=False),
+            nn.Conv2d(1024, 1024, 3, padding=1, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, 3, stride=1, padding=1, bias=False),
+            nn.Conv2d(1024, 1024, 3, padding=1, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(inplace=True),
         )
 
-        #         self.conv = self.backbone._make_layer(BasicBlock, 1024, 2, stride=2)
+        # self.conv = self.backbone._make_layer(BasicBlock, 1024, 2, stride=2)
 
         # too much parameters, over one fourth billion
         #         self.classifier = nn.Sequential(
@@ -82,25 +82,13 @@ class Yolov1Resnet(nn.Module):
         #             nn.Linear(1024,7*7*30),
         #         )
 
-        self.conv_out = nn.Sequential(
-            nn.Conv2d(
-                1024,
-                5 * num_boxes + num_classes,
-                (1, 1),
-                stride=1,
-            )
-        )
+        self.conv_out = nn.Sequential(nn.Conv2d(1024, 5 * num_boxes + num_classes, 1))
 
     def build_backbone(self, layer_number: int) -> nn.Module:
         if layer_number not in [18, 34, 50]:
             raise NotImplementedError
 
-        backbone_class = getattr(torchvision.models, f"resnet{layer_number}")
-        default_weight = getattr(torchvision.models, f"ResNet{layer_number}_Weights")
-
-        backbone = backbone_class(weights=default_weight.DEFAULT)
-
-        return backbone
+        return torchvision.models.get_model(f"resnet{layer_number}", weights="DEFAULT")
 
     def load_backbone(self, layer_number: int, finetune_weight: str = ""):
         backbone = self.build_backbone(layer_number)

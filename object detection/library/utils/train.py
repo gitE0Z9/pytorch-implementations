@@ -77,18 +77,17 @@ def IOU(pred_cbox: torch.Tensor, gt_cbox: torch.Tensor) -> torch.Tensor:
     return intersection
 
 
-def build_targets(groundtruth: list, target_shape: Tuple[int]) -> torch.Tensor:
-    grid_y, grid_x = target_shape[3], target_shape[4]
-    target = np.zeros(target_shape)
+def build_targets(groundtruth_batch: list, target_shape: Tuple[int]) -> torch.Tensor:
+    grid_y, grid_x = target_shape[-2], target_shape[-1]
+    targets = np.zeros(target_shape)
 
-    for batch_idx, boxes in enumerate(groundtruth):
+    for batch_idx, boxes in enumerate(groundtruth_batch):
         for box in boxes:
             cx, cy, w, h, c = box[:5]
             x, y = cx % (1 / grid_x), cy % (1 / grid_y)
             x_ind, y_ind = int(cx * grid_x), int(cy * grid_y)  # cell position
-            target[batch_idx, :, 4, y_ind, x_ind] = 1
-            target[batch_idx, :, 0:4, y_ind, x_ind] = [x, y, w, h]
-            target[batch_idx, :, 5 + int(c), y_ind, x_ind] = 1
+            targets[batch_idx, :, 4, y_ind, x_ind] = 1
+            targets[batch_idx, :, 0:4, y_ind, x_ind] = [x, y, w, h]
+            targets[batch_idx, :, 5 + int(c), y_ind, x_ind] = 1
 
-    target = torch.from_numpy(target)
-    return target
+    return torch.from_numpy(targets)

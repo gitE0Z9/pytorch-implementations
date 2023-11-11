@@ -3,26 +3,10 @@ import random
 import albumentations as A
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from torch.testing import assert_equal
-from tqdm import tqdm
+from torch.testing import assert_close
 from datasets.voc.datasets import VOCDatasetRaw, VOCDatasetFromCSV
 from datasets.coco.datasets import COCODatasetRaw, COCODatasetFromCSV
 from datasets.imagenet.datasets import ImageNetDataset
-from utils.config import load_classes, load_config
-
-cfg = load_config("config/resnet18.yml")
-cls_name = load_classes("config/voc_classes.txt")
-preprocess = A.Compose(
-    [
-        A.Resize(416, 416),
-        A.ColorJitter(),
-        A.HorizontalFlip(),
-        A.ShiftScaleRotate(),
-        A.Normalize(mean=(0, 0, 0), std=(1, 1, 1)),  # changeable
-        ToTensorV2(),
-    ],
-    bbox_params=A.BboxParams(format="yolo", min_area=1024, min_visibility=0.3),
-)
 
 # class TestVOCDatasetRaw():
 
@@ -60,33 +44,44 @@ preprocess = A.Compose(
 #             assert all(isinstance(l[0], float) for l in label)
 
 
-class TestVOCInCSV:
+class TestVOCDatasetFromCSV:    
     def test_get_img(self):
-        trainset = VOCDatasetFromCSV(mode="trainval")
+        dataset = VOCDatasetFromCSV()
 
-        pick = random.randint(0, len(trainset))
-        _, path = trainset.get_label(pick)
-        img = trainset.get_img(path)
+        pick = random.randint(0, len(dataset))
+        _, path = dataset.get_label(pick)
+        img = dataset.get_img(path)
 
         assert img.shape[0] > 0
         assert img.shape[1] > 0
         assert img.shape[2] == 3
 
     def test_get_label(self):
-        trainset = VOCDatasetFromCSV(mode="trainval")
+        dataset = VOCDatasetFromCSV()
 
-        pick = random.randint(0, len(trainset))
-        label, _ = trainset.get_label(pick)
+        pick = random.randint(0, len(dataset))
+        label, _ = dataset.get_label(pick)
 
-        for i in range(6):
-            assert all(isinstance(l[i], float) for l in label)
+        for l in label:
+            assert all(isinstance(l[i], float) for i in range(4))
 
-    def test_getitem(self):
-        trainset = VOCDatasetFromCSV(mode="trainval", transform=preprocess)
+    def test_get_item(self):
+        preprocess = A.Compose(
+            [
+                A.Resize(416, 416),
+                A.ColorJitter(),
+                A.HorizontalFlip(),
+                A.ShiftScaleRotate(),
+                A.Normalize(),
+                ToTensorV2(),
+            ],
+            bbox_params=A.BboxParams(format="yolo"),
+        )
+        dataset = VOCDatasetFromCSV(transform=preprocess)
 
-        pick = random.randint(0, len(trainset))
-        img, label = trainset[pick]
+        pick = random.randint(0, len(dataset))
+        img, label = dataset[pick]
 
-        assert_equal(img.shape, torch.Size([3, 416, 416]))
-        for i in range(6):
-            assert all(isinstance(l[i], float) for l in label)
+        assert_close(img.shape, torch.Size([3, 416, 416]))
+        for l in label:
+            assert all(isinstance(l[i], float) for i in range(4))

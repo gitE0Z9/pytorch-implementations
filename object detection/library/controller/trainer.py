@@ -38,6 +38,7 @@ class Trainer(Controller):
                     A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
+                    A.augmentations.geometric.resize.SmallestMaxSize(input_size),
                     A.RandomSizedBBoxSafeCrop(input_size, input_size),
                     A.Normalize(),
                     ToTensorV2(),
@@ -54,7 +55,8 @@ class Trainer(Controller):
                     A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
-                    A.RandomSizedBBoxSafeCrop(input_size, input_size),
+                    A.augmentations.geometric.resize.SmallestMaxSize(input_size),
+                    A.RandomResizedCrop(input_size, input_size),
                     A.Normalize(),
                     ToTensorV2(),
                 ]
@@ -182,7 +184,7 @@ class Trainer(Controller):
             if (e + 1) % self.save_interval == 0:
                 self.save_weight(e + 1)
 
-            print(running_loss)
+            print(running_loss / dataset_size)
 
         self.writer.close()
 
