@@ -70,9 +70,7 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
     assert total_area.ge(0).all(), "total area should be no less than 0"
 
     # compute iou
-    intersection[intersection.gt(0)] = (
-        intersection[intersection.gt(0)] / total_area[intersection.gt(0)]
-    )
+    intersection[intersection.gt(0)] /= total_area[intersection.gt(0)]
 
     return intersection
 
