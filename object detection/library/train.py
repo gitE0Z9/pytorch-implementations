@@ -2,6 +2,7 @@ import click
 from controller.trainer import Trainer
 from constants.enums import NetworkStage
 
+
 @click.command()
 @click.option(
     "-c",

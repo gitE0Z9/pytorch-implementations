@@ -44,7 +44,7 @@ from datasets.imagenet.datasets import ImageNetDataset
 #             assert all(isinstance(l[0], float) for l in label)
 
 
-class TestVOCDatasetFromCSV:    
+class TestVOCDatasetFromCSV:
     def test_get_img(self):
         dataset = VOCDatasetFromCSV()
 

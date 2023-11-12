@@ -32,7 +32,7 @@ class Predictor(Controller):
 
     def detect_single_image(self, image: np.ndarray, transform) -> torch.Tensor:
         img_h, img_w, _ = image.shape
-        
+
         image = transform(image=image)["image"].to(self.device)
         output = model_predict(self.model, image)
         return self.postprocess(output, (img_h, img_w))[0]

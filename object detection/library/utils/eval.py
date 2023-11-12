@@ -76,15 +76,17 @@ def average_precision(
     """calculate AP"""
     total_gt_num = sum(gt_num for _, _, gt_num in table)
 
-    ious = torch.cat([iou for iou, _, _ in table if iou is not None], 0)
+    ious = [iou for iou, _, _ in table if iou is not None] or [torch.zeros(1, 1)]
+    probs = [prob for _, prob, _ in table if prob is not None] or [torch.zeros(1, 1)]
 
-    probs = torch.cat([prob for _, prob, _ in table if prob is not None], 0)
+    ious = torch.cat(ious, 0)
+    probs = torch.cat(probs, 0)
 
     _, prob_index = probs.sort(descending=True)
 
-    p = ious[prob_index]  # positive samples
+    sorted_ious = ious[prob_index]  # positive samples
 
-    tp = p.gt(iou_thres).cumsum(0)  # true positive
+    tp = sorted_ious.gt(iou_thres).cumsum(0)  # true positive
 
     precision = tp / torch.arange(1, tp.size(0) + 1)
     recall = tp / total_gt_num

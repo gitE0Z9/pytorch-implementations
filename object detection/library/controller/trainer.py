@@ -190,7 +190,7 @@ class Trainer(Controller):
 
     def prepare_train(self):
         training_cfg = self.get_training_cfg()
-   
+
         if self.network_type == NetworkType.DETECTOR.value:
             self.load_detector()
             self.set_preprocess(training_cfg.IMAGE_SIZE)

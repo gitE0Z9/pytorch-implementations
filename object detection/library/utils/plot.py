@@ -8,8 +8,10 @@ import numpy as np
 import torch
 from functools import lru_cache
 
+
 def rand_color() -> List[int]:
     return random.choices(range(256), k=3)
+
 
 @lru_cache
 def load_image(path: str) -> np.ndarray:

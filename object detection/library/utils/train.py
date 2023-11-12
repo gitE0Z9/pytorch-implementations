@@ -55,12 +55,22 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
     converted_gt_box = xywh_to_xyxy(gt_box)  # B, 1, 4, 13, 13
 
     # find intersection
-    x1 = torch.max(converted_pred_box[:, :, 0:1, :, :], converted_gt_box[:, :, 0:1, :, :])
-    y1 = torch.max(converted_pred_box[:, :, 1:2, :, :], converted_gt_box[:, :, 1:2, :, :])
-    x2 = torch.min(converted_pred_box[:, :, 2:3, :, :], converted_gt_box[:, :, 2:3, :, :])
-    y2 = torch.min(converted_pred_box[:, :, 3:4, :, :], converted_gt_box[:, :, 3:4, :, :])
+    x1 = torch.max(
+        converted_pred_box[:, :, 0:1, :, :], converted_gt_box[:, :, 0:1, :, :]
+    )
+    y1 = torch.max(
+        converted_pred_box[:, :, 1:2, :, :], converted_gt_box[:, :, 1:2, :, :]
+    )
+    x2 = torch.min(
+        converted_pred_box[:, :, 2:3, :, :], converted_gt_box[:, :, 2:3, :, :]
+    )
+    y2 = torch.min(
+        converted_pred_box[:, :, 3:4, :, :], converted_gt_box[:, :, 3:4, :, :]
+    )
 
-    intersection = (x2 - x1).clamp(min=0, max=1) * (y2 - y1).clamp(min=0, max=1)  # N, 5, 1, 7, 7
+    intersection = (x2 - x1).clamp(min=0, max=1) * (y2 - y1).clamp(
+        min=0, max=1
+    )  # N, 5, 1, 7, 7
     pred_area = pred_box[:, :, 2:3, :, :] * pred_box[:, :, 3:4, :, :]  # N, 5, 1, 7, 7
     gt_area = gt_box[:, :, 2:3, :, :] * gt_box[:, :, 3:4, :, :]  # N, 1, 1, 7, 7
     total_area = pred_area + gt_area - intersection  # N, 5, 1, 7, 7
@@ -77,7 +87,7 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
 
 def build_targets(groundtruth_batch: list, target_shape: Tuple[int]) -> torch.Tensor:
     grid_y, grid_x = target_shape[-2], target_shape[-1]
-    targets = np.zeros(target_shape)
+    targets = torch.zeros(target_shape)
 
     for batch_idx, boxes in enumerate(groundtruth_batch):
         for box in boxes:
@@ -88,4 +98,4 @@ def build_targets(groundtruth_batch: list, target_shape: Tuple[int]) -> torch.Te
             targets[batch_idx, :, 0:4, y_ind, x_ind] = [x, y, w, h]
             targets[batch_idx, :, 5 + int(c), y_ind, x_ind] = 1
 
-    return torch.from_numpy(targets)
+    return targets.float()
