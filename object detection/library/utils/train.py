@@ -46,10 +46,6 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
     input: x_offset y_offset wh format
     output: iou for each batch and grid cell
     """
-
-    # prevent zero division since most of grid cell are zero area
-    epsilon = 1e-10
-
     # coord_conversion
     converted_pred_box = xywh_to_xyxy(pred_box)  # B, 5, 4, 13, 13
     converted_gt_box = xywh_to_xyxy(gt_box)  # B, 1, 4, 13, 13
@@ -68,9 +64,8 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
         converted_pred_box[:, :, 3:4, :, :], converted_gt_box[:, :, 3:4, :, :]
     )
 
-    intersection = (x2 - x1).clamp(min=0, max=1) * (y2 - y1).clamp(
-        min=0, max=1
-    )  # N, 5, 1, 7, 7
+    # N, 5, 1, 7, 7
+    intersection = (x2 - x1).clamp(min=0, max=1) * (y2 - y1).clamp(min=0, max=1)
     pred_area = pred_box[:, :, 2:3, :, :] * pred_box[:, :, 3:4, :, :]  # N, 5, 1, 7, 7
     gt_area = gt_box[:, :, 2:3, :, :] * gt_box[:, :, 3:4, :, :]  # N, 1, 1, 7, 7
     total_area = pred_area + gt_area - intersection  # N, 5, 1, 7, 7
@@ -94,8 +89,11 @@ def build_targets(groundtruth_batch: list, target_shape: Tuple[int]) -> torch.Te
             cx, cy, w, h, c = box[:5]
             x, y = cx % (1 / grid_x), cy % (1 / grid_y)
             x_ind, y_ind = int(cx * grid_x), int(cy * grid_y)  # cell position
+            targets[batch_idx, :, 0, y_ind, x_ind] = x
+            targets[batch_idx, :, 1, y_ind, x_ind] = y
+            targets[batch_idx, :, 2, y_ind, x_ind] = w
+            targets[batch_idx, :, 3, y_ind, x_ind] = h
             targets[batch_idx, :, 4, y_ind, x_ind] = 1
-            targets[batch_idx, :, 0:4, y_ind, x_ind] = [x, y, w, h]
             targets[batch_idx, :, 5 + int(c), y_ind, x_ind] = 1
 
     return targets.float()

@@ -30,17 +30,14 @@ class YOLOLoss(nn.Module):
         prediction: torch.Tensor,
         groundtruth: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        ious: list[torch.Tensor] = torch.cat([
-            IOU(
-                prediction[:, :, (0 + 5 * b) : (4 + 5 * b), :, :],
-                groundtruth[:, :, 0:4, :, :],
-            )
-            for b in range(self.num_bboxes)
-        ], dim=1) # N, boxes, 1, 7, 7
+        # N, 2, 1, 7, 7
+        ious = IOU(prediction[:, :, 0:4, :, :], groundtruth[:, :, 0:4, :, :])
         max_iou, best_box = ious.max(dim=1, keepdim=True)  # N, 1, 1, 7, 7
-        
-        best_box = torch.cat([best_box.eq(b).int() for b in range(self.num_bboxes)], 1) # N, 2, 1, 7, 7
-        
+
+        # N, 2, 1, 7, 7
+        best_box = torch.zeros_like(ious)
+        best_box = torch.cat([best_box.eq(b).int() for b in range(self.num_bboxes)], 1)
+
         return max_iou, best_box
 
     def forward(
@@ -50,25 +47,24 @@ class YOLOLoss(nn.Module):
     ) -> torch.Tensor:
         batch_size, _, grid_y, grid_x = prediction.shape
         prediction = prediction.unsqueeze(1)
-        groundtruth = (
-            build_targets(
-                groundtruth,
-                (batch_size, 1, 5 + self.num_classes, grid_y, grid_x),
-            )
-            .to(self.device)
+        coord_prediction = prediction[:, :, : self.num_bboxes * 5, :, :].view(
+            batch_size, self.num_bboxes, 5, grid_y, grid_x
         )
+        groundtruth = build_targets(
+            groundtruth,
+            (batch_size, 1, 5 + self.num_classes, grid_y, grid_x),
+        ).to(self.device)
 
         # obj indicator
         obj_here = groundtruth[:, :, 4:5, :, :]  # N, 1, 1, 7, 7
 
         # iou indicator
         # left only 49 predictors
-        ious, best_box = self.responsible_iou(prediction, groundtruth)  # N, 1, 1, 7, 7 | N, 2, 1, 7, 7
-        
+        # N, 1, 1, 7, 7 | N, 2, 1, 7, 7
+        ious, best_box = self.responsible_iou(coord_prediction, groundtruth)
+
         positives = obj_here * best_box
-        
-        coord_prediction = prediction[:, :, :self.num_bboxes * 5, :, :].reshape(batch_size, self.num_bboxes, 5, grid_y, grid_x)
-        
+
         # class loss / objecness loss / xywh loss
         # indicator has to be inside the loss function
         cls_loss = F.mse_loss(
@@ -76,26 +72,25 @@ class YOLOLoss(nn.Module):
             groundtruth[:, :, 5:, :, :],
             reduction="sum",
         )
-        
+
         obj_loss = F.mse_loss(
             positives * coord_prediction[:, :, 4:5, :, :],
             positives * ious,
             reduction="sum",
         )
-        
+
         xy_loss = F.mse_loss(
             positives * coord_prediction[:, :, 0:2, :, :],
             positives * groundtruth[:, :, 0:2, :, :],
             reduction="sum",
         )
-        
+
         # sqrt numerical issue
         wh_loss = F.mse_loss(
             positives * safe_sqrt(coord_prediction[:, :, 2:4, :, :]),
             positives * groundtruth[:, :, 2:4, :, :].sqrt(),
             reduction="sum",
         )
-            
 
         # clean the other bbox block with wrong confidence
         noobj_loss = F.mse_loss(

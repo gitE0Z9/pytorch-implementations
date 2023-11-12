@@ -106,10 +106,12 @@ class Trainer(Controller):
         self.prepare_train()
 
         start_epoch, end_epoch = training_cfg.START_EPOCH, training_cfg.END_EPOCH
-        if self.network_type == NetworkType.CLASSIFIER.value:
-            if self.stage == NetworkStage.FINETUNE.value:
-                start_epoch = end_epoch
-                end_epoch += training_cfg.FINETUNE.EPOCH
+        if (
+            self.network_type == NetworkType.CLASSIFIER.value
+            and self.stage == NetworkStage.FINETUNE.value
+        ):
+            start_epoch = end_epoch
+            end_epoch += training_cfg.FINETUNE.EPOCH
 
         dataset_size = len(self.data[OperationMode.TRAIN.value]["dataset"])
         seen = start_epoch * dataset_size

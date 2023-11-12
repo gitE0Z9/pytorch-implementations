@@ -43,38 +43,38 @@ class Decoder:
         image_size: tuple[int, int],
     ) -> torch.Tensor:
         batch_size, channel_size, fm_h, fm_w = feature_map.shape
+        num_bbox = int((channel_size - self.num_classes) / 5)
+        feature_map = feature_map.view(batch_size, num_bbox, 5, fm_h, fm_w)
+
         input_h, input_w = image_size
         stride_x, stride_y = input_w / fm_w, input_h / fm_h
-        num_bbox = int((channel_size - self.num_classes) / 5)
 
         grid_x, grid_y = generate_grid(fm_w, fm_h)
 
-        bbox_info = []
-        for b in range(num_bbox):
-            # batch_size, 1, grid_size x grid_size
-            cx = (
-                feature_map[:, (0 + 5 * b) : (1 + 5 * b), :, :] * input_w
-                + grid_x * stride_x
-            ).reshape(batch_size, 1, -1)
-            cy = (
-                feature_map[:, (1 + 5 * b) : (2 + 5 * b), :, :] * input_h
-                + grid_y * stride_y
-            ).reshape(batch_size, 1, -1)
-            w = (feature_map[:, (2 + 5 * b) : (3 + 5 * b), :, :] * input_w).reshape(
-                batch_size, 1, -1
-            )
-            h = (feature_map[:, (3 + 5 * b) : (4 + 5 * b), :, :] * input_h).reshape(
-                batch_size, 1, -1
-            )
-            conf = feature_map[:, 4 + 5 * b, :, :].reshape(batch_size, 1, -1)
-            prob = feature_map[:, 5 * num_bbox :, :, :].reshape(
-                batch_size, self.num_classes, -1
-            )
-            x = cx - w / 2
-            y = cy - h / 2
+        # batch_size, 1, boxes * grid_y * grid_x
+        cx = (
+            feature_map[:, :, 0:1, :, :]
+            .multiply(input_w)
+            .add(grid_x * stride_x)
+            .view(batch_size, 1, -1)
+        )
+        cy = (
+            feature_map[:, :, 1:2, :, :]
+            .multiply(input_h)
+            .add(grid_y * stride_y)
+            .view(batch_size, 1, -1)
+        )
 
-            bbox_info.append(torch.cat([x, y, w, h, conf, prob], 1))
+        w = feature_map[:, :, 2:3, :, :].multiply(input_w).view(batch_size, 1, -1)
+        h = feature_map[:, :, 3:4, :, :].multiply(input_h).view(batch_size, 1, -1)
+        conf = feature_map[:, :, 4:5, :, :].view(batch_size, 1, -1)
+        prob = feature_map[:, :, 5 * num_bbox :, :, :].view(
+            batch_size, self.num_classes, -1
+        )
+        x = cx - w / 2
+        y = cy - h / 2
 
-        result = torch.cat(bbox_info, -1).transpose(1, 2)
+        # batch_size, boxes * grid_y * grid_x, 5+C
+        result = torch.cat([x, y, w, h, conf, prob], 1).transpose(1, 2)
 
         return result
