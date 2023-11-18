@@ -8,7 +8,6 @@ from constants.enums import (
     NetworkType,
     OperationMode,
     PRCurveInterpolation,
-    NetworkStage,
 )
 from tensorboardX import SummaryWriter
 from tqdm import tqdm

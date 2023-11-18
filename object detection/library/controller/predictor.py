@@ -39,13 +39,13 @@ class Predictor(Controller):
 
     def predict_image_file(
         self,
-        model_path: str,
+        weight_path: str,
         image_paths: List[str],
         show: bool = False,
         save_dir: str = None,
     ):
         transform = self.prepare_inference()
-        self.load_weight(model_path)
+        self.load_weight(weight_path)
 
         assert isinstance(image_paths, list), "image should be a list."
 

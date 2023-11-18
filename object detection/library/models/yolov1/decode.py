@@ -42,9 +42,12 @@ class Decoder:
         feature_map: torch.Tensor,
         image_size: tuple[int, int],
     ) -> torch.Tensor:
-        batch_size, channel_size, fm_h, fm_w = feature_map.shape
+        feature_map = feature_map.unsqueeze(1)
+        batch_size, _, channel_size, fm_h, fm_w = feature_map.shape
         num_bbox = int((channel_size - self.num_classes) / 5)
-        feature_map = feature_map.view(batch_size, num_bbox, 5, fm_h, fm_w)
+        feature_map_coord = feature_map[:, :, : 5 * num_bbox, :, :].reshape(
+            batch_size, num_bbox, 5, fm_h, fm_w
+        )  # N, 2, 5, 7, 7
 
         input_h, input_w = image_size
         stride_x, stride_y = input_w / fm_w, input_h / fm_h
@@ -53,23 +56,25 @@ class Decoder:
 
         # batch_size, 1, boxes * grid_y * grid_x
         cx = (
-            feature_map[:, :, 0:1, :, :]
+            feature_map_coord[:, :, 0, :, :]
             .multiply(input_w)
             .add(grid_x * stride_x)
-            .view(batch_size, 1, -1)
+            .reshape(batch_size, 1, -1)
         )
         cy = (
-            feature_map[:, :, 1:2, :, :]
+            feature_map_coord[:, :, 1, :, :]
             .multiply(input_h)
             .add(grid_y * stride_y)
-            .view(batch_size, 1, -1)
+            .reshape(batch_size, 1, -1)
         )
 
-        w = feature_map[:, :, 2:3, :, :].multiply(input_w).view(batch_size, 1, -1)
-        h = feature_map[:, :, 3:4, :, :].multiply(input_h).view(batch_size, 1, -1)
-        conf = feature_map[:, :, 4:5, :, :].view(batch_size, 1, -1)
-        prob = feature_map[:, :, 5 * num_bbox :, :, :].view(
-            batch_size, self.num_classes, -1
+        w = feature_map_coord[:, :, 2, :, :].multiply(input_w).reshape(batch_size, 1, -1)
+        h = feature_map_coord[:, :, 3, :, :].multiply(input_h).reshape(batch_size, 1, -1)
+        conf = feature_map_coord[:, :, 4, :, :].reshape(batch_size, 1, -1)
+        prob = (
+            feature_map[:, :, 5 * num_bbox :, :, :]
+            .repeat(1, num_bbox, 1, 1, 1)
+            .reshape(batch_size, self.num_classes, -1)
         )
         x = cx - w / 2
         y = cy - h / 2

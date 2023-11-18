@@ -35,7 +35,6 @@ class YOLOLoss(nn.Module):
         max_iou, best_box = ious.max(dim=1, keepdim=True)  # N, 1, 1, 7, 7
 
         # N, 2, 1, 7, 7
-        best_box = torch.zeros_like(ious)
         best_box = torch.cat([best_box.eq(b).int() for b in range(self.num_bboxes)], 1)
 
         return max_iou, best_box
@@ -64,12 +63,12 @@ class YOLOLoss(nn.Module):
         ious, best_box = self.responsible_iou(coord_prediction, groundtruth)
 
         positives = obj_here * best_box
-
+        
         # class loss / objecness loss / xywh loss
         # indicator has to be inside the loss function
         cls_loss = F.mse_loss(
             obj_here * prediction[:, :, self.num_bboxes * 5 :, :, :],
-            groundtruth[:, :, 5:, :, :],
+            obj_here * groundtruth[:, :, 5:, :, :],
             reduction="sum",
         )
 
@@ -105,5 +104,7 @@ class YOLOLoss(nn.Module):
             + obj_loss
             + self.lambda_coord * (xy_loss + wh_loss)
         )
+        
+        # print(cls_loss, noobj_loss, obj_loss, xy_loss, wh_loss)
 
         return total_loss
