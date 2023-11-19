@@ -32,12 +32,14 @@ class YOLOLoss(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         # N, 2, 1, 7, 7
         ious = IOU(prediction[:, :, 0:4, :, :], groundtruth[:, :, 0:4, :, :])
-        max_iou, best_box = ious.max(dim=1, keepdim=True)  # N, 1, 1, 7, 7
+        
+        # N, 1, 1, 7, 7
+        _, best_box = ious.max(dim=1, keepdim=True)  
 
         # N, 2, 1, 7, 7
         best_box = torch.cat([best_box.eq(b).int() for b in range(self.num_bboxes)], 1)
 
-        return max_iou, best_box
+        return ious, best_box
 
     def forward(
         self,

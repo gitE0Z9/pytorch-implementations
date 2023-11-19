@@ -15,7 +15,7 @@ def greedy_nms(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox = torchvision.ops.box_convert(tmp_bbox, "cxcywh", "xyxy")
+    tmp_bbox = torchvision.ops.box_convert(tmp_bbox, "xywh", "xyxy")
 
     best_index = []
     remove_index = []
@@ -45,7 +45,7 @@ def soft_nms(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox = torchvision.ops.box_convert(bbox, "cxcywh", "xyxy")
+    tmp_bbox = torchvision.ops.box_convert(bbox, "xywh", "xyxy")
     N = tmp_bbox.size(0)
     tmp_score = score.clone()
 
@@ -88,7 +88,7 @@ def diou_nms(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox_xyxy = torchvision.ops.box_convert(tmp_bbox, "cxcywh", "xyxy")
+    tmp_bbox_xyxy = torchvision.ops.box_convert(tmp_bbox, "xywh", "xyxy")
 
     best_index = []
     remove_index = []
@@ -132,7 +132,7 @@ def confluence(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox = torchvision.ops.box_convert(tmp_bbox, "cxcywh", "xyxy")
+    tmp_bbox = torchvision.ops.box_convert(tmp_bbox, "xywh", "xyxy")
 
     best_index = []
     remove_index = []
@@ -192,7 +192,7 @@ def fast_nms(
     conf_thres: float,
 ) -> torch.Tensor:
     c_sort, sort_index = score.sort(descending=True)
-    tmp_bbox = torchvision.ops.box_convert(bbox, "cxcywh", "xyxy")[sort_index]
+    tmp_bbox = torchvision.ops.box_convert(bbox, "xywh", "xyxy")[sort_index]
 
     iou = torchvision.ops.box_iou(tmp_bbox, tmp_bbox).triu_(diagonal=1)
     max_iou, max_iou_index = iou.max(dim=0)
@@ -253,7 +253,7 @@ def select_best_index(
     elif postprocess_method == "network":
         pass
     elif postprocess_method == "torchvision":
-        converted_boxes = box_convert(loc_detections, "cxcywh", "xyxy")
+        converted_boxes = box_convert(loc_detections, "xywh", "xyxy")
         best_index = torchvision.ops.nms(converted_boxes, cls_detections, nms_thresh)
         cls_index = cls_detections.ge(conf_thresh).nonzero().view(-1).tolist()
         best_index = intersect1d(best_index, cls_index)
