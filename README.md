@@ -2,7 +2,7 @@
 
 文章同步發布在個人部落格(https://gite0z9.github.io)
 
-此專案初衷為實現多年來學習的深度學習模型，並提供notebook跟medium文章學習，而非一個專注於特定領域的production-ready庫
+此專案初衷是實作多年來學習的深度學習模型，並提供notebook跟medium文章學習，而非一個專注於特定領域的production-ready庫
 
 接下來的開發方向會往monorepo延伸
 
