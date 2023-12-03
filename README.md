@@ -101,7 +101,7 @@
                 <li><a href='https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-neural-doodle-80bb55108836'>Neural Doodle</a></li>
                 <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395'>Fast style transfer</a></li>
                 <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b'>AdaIN</a></li>
-                <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39'>pix2pix</a></li>
+                <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39'>Pix2pix</a></li>
             </ul>
         </td>
     </tr>
@@ -118,7 +118,7 @@
         <td><b>詞性標注(POS tagging)</b></td>
         <td>
             <ul>
-                <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e'>biLSTM</a></li>
+                <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e'>BiLSTM</a></li>
             </ul>
         </td>
     </tr>
@@ -126,7 +126,7 @@
         <td><b>命名實體辨識(named entity recognition)</b></td>
         <td>
             <ul>
-                <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6'>biLSTM-CRF</a></li>
+                <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6'>BiLSTM-CRF</a></li>
             </ul>
         </td>
     </tr>
