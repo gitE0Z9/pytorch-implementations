@@ -6,6 +6,10 @@
 
 接下來的開發方向會往monorepo延伸
 
+[english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
+
+[chinese-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
+
 <table>
   <tr>
     <th>領域(domain)</th>
