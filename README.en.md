@@ -1,10 +1,10 @@
-# Pytorch實作系列
+# PyTorch Implementations
 
-文章同步發布在個人部落格(https://gite0z9.github.io)
+The articles are simultaneously published on my personal blog (https://gite0z9.github.io).
 
-此專案初衷是實作多年來學習的深度學習模型，並提供notebook跟medium文章學習，而非一個專注於特定領域的production-ready庫
+The original intention of this project is to implement deep learning models I have learned over the years, providing notebooks and Medium articles for learning. This project is not focused on a specific production-ready library but serves as a resource for learning.
 
-接下來的開發方向會往monorepo延伸
+The development direction will extend towards a monorepo.
 
 [english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
 
@@ -12,12 +12,12 @@
 
 <table>
   <tr>
-    <th>領域(domain)</th>
-    <th>模型(model)</th>
+    <th>Domain</th>
+    <th>Model</th>
   </tr>
   <tr>
     <td>
-      <b>少樣本學習(few shot learning)</b>
+      <b>Few shot learning</b>
     </td>
     <td>
       <ul>
@@ -38,7 +38,7 @@
   </tr>
   <tr>
     <td>
-      <b>圖像分類(image classification)</b>
+      <b>Image classification</b>
     </td>
     <td>
       <ul>
@@ -52,7 +52,7 @@
     </td>
   </tr>
   <tr>
-    <td><b>物件偵測(object detection)</b></td>
+    <td><b>Object detection</b></td>
     <td>
       <ul>
         <li>
@@ -71,7 +71,7 @@
     </td>
   </tr>
   <tr>
-        <td><b>語意分割(semantic segmentation)</b></td>
+        <td><b>Semantic segmentation</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%8D%81-unet-545efa00ad99'>UNet</a></li>
@@ -80,7 +80,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>圖像生成(image generation)</b></td>
+        <td><b>Image generation</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539'>VAE</a></li>
@@ -90,7 +90,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>光學文字辨識(optical character recognition)</b></td>
+        <td><b>Optical character recognition</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698'>CRNN</a></li>
@@ -98,7 +98,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>風格遷移(style transfer)</b></td>
+        <td><b>Style transfer</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620'>Neural style transfer</a></li>
@@ -110,7 +110,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>文本分類(text classification)</b></td>
+        <td><b>Text classification</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641'>LSTM</a></li>
@@ -119,7 +119,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>詞性標注(POS tagging)</b></td>
+        <td><b>POS tagging</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e'>BiLSTM</a></li>
@@ -127,7 +127,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>命名實體辨識(named entity recognition)</b></td>
+        <td><b>Named entity recognition</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6'>BiLSTM-CRF</a></li>
@@ -135,7 +135,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>機器翻譯(machine translation)</b></td>
+        <td><b>Machine translation</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4'>Seq2Seq</a></li>
@@ -143,7 +143,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>增強學習(reinforcement learning)</b></td>
+        <td><b>Reinforcement learning</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337'>DQN</a></li>
@@ -151,7 +151,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>序列資料(sequence data)</b></td>
+        <td><b>Sequence data</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d'>TCN</a></li>
@@ -159,7 +159,7 @@
         </td>
     </tr>
     <tr>
-        <td><b>語言模型(language model)</b></td>
+        <td><b>Language model</b></td>
         <td>
             <ul>
                 <li><a href='https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57'>Word2vec</a></li>
