@@ -8,7 +8,7 @@
 
 [english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
 
-[chinese-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
+[中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
 
 <table>
   <tr>
