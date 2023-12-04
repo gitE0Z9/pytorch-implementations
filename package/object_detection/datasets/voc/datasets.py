@@ -1,14 +1,14 @@
 from pathlib import Path
 from xml.etree import cElementTree as etree
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import torch
-from object_detection.utils.plot import load_image
-from tqdm import tqdm
-from object_detection.utils.config import load_config, load_classes
 from object_detection.constants.enums import OperationMode
 from object_detection.datasets.schema import DatasetCfg
+from object_detection.utils.config import load_classes, load_config
+from object_detection.utils.plot import load_image
+from tqdm import tqdm
 
 
 class VOCDatasetRaw(torch.utils.data.Dataset):

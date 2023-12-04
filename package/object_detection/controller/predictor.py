@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from constants.enums import NetworkType, OperationMode
-from utils.inference import model_predict
-from utils.plot import draw_pred, load_image
+from object_detection.constants.enums import NetworkType, OperationMode
+from object_detection.utils.inference import model_predict
+from object_detection.utils.plot import draw_pred, load_image
 
-from controller.controller import Controller
+from object_detection.controller.controller import Controller
 
 
 class Predictor(Controller):
