@@ -4,7 +4,7 @@
 *.drawio
 *.pth
 artifacts
-models
+# models
 data
 .data
 reference

@@ -1,0 +1,7 @@
+pandas
+tensorboard
+tensorboardX
+opencv-python
+opencv-contrib-python
+albumentations
+pydantic
