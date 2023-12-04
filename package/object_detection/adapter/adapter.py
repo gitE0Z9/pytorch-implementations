@@ -1,11 +1,7 @@
-import torch
+from importlib import import_module
 
-# from object_detection.models.yolov1.detector import Yolov1, Yolov1Resnet
-# from object_detection.models.yolov2.detector import Yolov2, Yolov2Resnet
-from object_detection.models.yolov1.loss import YOLOLoss
-from object_detection.models.yolov2.loss import YOLOv2Loss, YOLO9000Loss
-from object_detection.models.ssd.loss import MultiboxLoss
-from object_detection.configs.schema import Setting, OptimizerCfg
+import torch
+from object_detection.configs.schema import OptimizerCfg, Setting
 from object_detection.constants.schema import DetectorContext
 
 # class DetectorAdapter:
@@ -36,13 +32,14 @@ class DetectorLossAdapter:
         detector_name = self.context.detector_name
 
         loss_class_mapping = {
-            "yolov1": YOLOLoss,
-            "yolov2": YOLOv2Loss,
-            "yolo9000": YOLO9000Loss,
-            "ssd": MultiboxLoss,
+            "yolov1": "object_detection.models.yolov1.loss.YOLOLoss",
+            "yolov2": "object_detection.models.yolov2.loss.YOLOv2Loss",
+            "yolo9000": "object_detection.models.yolov2.loss.YOLO9000Loss",
+            "ssd": "object_detection.models.ssd.loss.MultiboxLoss",
         }
 
-        loss_class = loss_class_mapping.get(detector_name)
+        loss_class_name = loss_class_mapping.get(detector_name)
+        loss_class = import_module(loss_class_name)
 
         return loss_class(self.context)
 
