@@ -2,7 +2,7 @@
 
 The articles are simultaneously published on my personal blog (https://gite0z9.github.io).
 
-The original intention of this project is to implement deep learning models I have learned over the years, providing notebooks and Medium articles for learning. This project is not focused on a specific production-ready library but serves as a resource for learning.
+The original intention of this project is to implement deep learning models I have learned over the years, providing notebooks and Medium articles for learning. This project is not a production-ready library for a specific domain but serves as a resource for learning.
 
 The development direction will extend towards a monorepo.
 
@@ -167,3 +167,63 @@ The development direction will extend towards a monorepo.
         </td>
     </tr>
 </table>
+
+## Installation
+
+`pip install .`
+
+## Project structure
+
+`notebooks`: demonstrate how to use torchlake.
+
+`torchlake`: deep learning models composed of different domains.
+
+In general, each domain will have a structure similar to the following:
+
+```
+├───adapter
+├───artifacts
+│   └───model_name
+├───configs
+│   └───model_name
+├───constants
+├───controller
+├───datasets
+│   └───dataset_name
+├───models
+│   ├───base
+│   └───model_name
+│       ├───model.py
+│       ├───network.py
+│       ├───loss.py
+│       └───decode.py
+├───reference
+│   └───model_name
+│       └───paper
+├───runs
+├───scripts
+│   └───debug
+├───tests
+├───utils
+└───requirements.txt
+```
+
+`adapter`: Interface between the controller and other resources (model, model.loss, etc.).
+
+`configs`: Model configuration files, including device definition, model definition, training definition, and inference definition, covering four aspects.
+
+`constants`: Fixed values, including constants and enums.
+
+`controller`: Controller, where controller is a shared base, and trainer, evaluator, predictor are responsible for training, evaluation, and prediction tasks, respectively.
+
+`models`: Model definitions, where network.py represents the model blocks, model.py is the assembled model, and loss.py is the loss function.
+
+`datasets`: Datasets, currently categorized by domain, with raw datasets and CSV datasets. The former reads raw data, while the latter reads processed CSV data (such as normalized coordinates).
+
+`runs`: Folder documenting TensorBoard logs for trainer and evaluator results.
+
+`tests`: Unit tests using pytest.
+
+`utils`: Stores functions with low dependency and high reusability.
+
+Model and dataset configurations are controlled using pydantic.

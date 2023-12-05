@@ -167,3 +167,63 @@
         </td>
     </tr>
 </table>
+
+## 安裝方式
+
+`pip install .`
+
+## 專案結構
+
+`notebooks`: 展示如何使用torchlake.
+
+`torchlake`: 由不同應用領域組成的深度學習包.
+
+每個領域大致上會有如下結構
+
+```
+├───adapter
+├───artifacts
+│   └───model_name
+├───configs
+│   └───model_name
+├───constants
+├───controller
+├───datasets
+│   └───dataset_name
+├───models
+│   ├───base
+│   └───model_name
+│       ├───model.py
+│       ├───network.py
+│       ├───loss.py
+│       └───decode.py
+├───reference
+│   └───model_name
+│       └───paper
+├───runs
+├───scripts
+│   └───debug
+├───tests
+├───utils
+└───requirements.txt
+```
+
+`adapter`: 介接controller和其他資源(model, model.loss, etc.)
+
+`configs`: 模型設定檔，包括裝置定義、模型定義、訓練定義、推論定義，共四個面向
+
+`constants`: 固定的值，包括 constant 和 enum
+
+`controller`: 控制器，`controller`是共用基底，`trainer`、`evaluator`、`predictor`負責訓練、評估、預測三種工作
+
+`models`: 模型定義，`network.py`是模型區塊，`model.py`是最後組裝的模型，`loss.py`是損失函數
+
+`datasets`: 資料集，目前是照領域區分，有分 raw dataset 和 csv dataset，前者是讀取 raw data，後者是讀取處理過的csv(如歸一化座標)
+
+`runs`: 記載`trainer`和`evaluator`的結果的 tensorboard log 資料夾
+
+`tests`: 單元測試，使用 `pytest`
+
+`utils`: 存放依賴性低且復用性高的函式
+
+model 和 dataset 的 config 會用 `pydantic` 控制格式
