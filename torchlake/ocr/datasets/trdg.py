@@ -1,12 +1,13 @@
 import string
+import uuid
+from base64 import b64decode, b64encode
 from pathlib import Path
 
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from trdg.generators import GeneratorFromWikipedia
-import uuid
-from base64 import b64encode, b64decode
+
 
 class SyntheticTextDataset(Dataset):
     def __init__(self, root, transform=None):

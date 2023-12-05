@@ -8,3 +8,6 @@ artifacts
 data
 .data
 reference
+build
+dist
+*egg*

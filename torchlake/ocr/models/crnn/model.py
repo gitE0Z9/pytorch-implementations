@@ -1,7 +1,8 @@
 import torch
-from common.block import ConvBnRelu
-from ocr.models.crnn.network import RecurrnetBlock
 from torch import nn
+from torchlake.common.block import ConvBnRelu
+
+from .network import RecurrnetBlock
 
 
 class Crnn(nn.Module):
