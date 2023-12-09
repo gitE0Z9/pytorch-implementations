@@ -9,10 +9,18 @@ class GruClassifier(nn.Module):
         embed_dim: int,
         hidden_dim: int,
         padding_idx: int | None = None,
+        num_layers: int = 1,
+        bidirectional: bool = False,
     ):
         super(GruClassifier, self).__init__()
         self.embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
-        self.rnn = nn.GRU(embed_dim, hidden_dim, 1, batch_first=True)
+        self.rnn = nn.GRU(
+            embed_dim,
+            hidden_dim,
+            num_layers,
+            batch_first=True,
+            bidirectional=bidirectional,
+        )
         self.fc = nn.Linear(hidden_dim, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
