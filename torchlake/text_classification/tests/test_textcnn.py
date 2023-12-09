@@ -1,12 +1,16 @@
 from unittest import TestCase
 
+import torch
+from torch.testing import assert_close
+from torchlake.text_classification.models import TextCnn
+
 
 class TestModel(TestCase):
-    def test_forward(self):
-        """測試 forward"""
+    def test_output_shape(self):
+        """test output shape"""
+        model = TextCnn(26, 8, 10)
 
-        # for i in train_iter:
-        #     text = i.text[0].cuda()
-        #     output = model(text)
-        #     print(output.shape)
-        #     break
+        x = torch.randint(0, 26, (1, 5))
+        output = model(x)
+
+        assert_close(output.shape, torch.Size(1, 10))
