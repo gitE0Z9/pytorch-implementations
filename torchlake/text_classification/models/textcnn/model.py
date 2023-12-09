@@ -22,7 +22,7 @@ class TextCnn(nn.Module):
         # Batch_size, 1, Seq_len, embed_dim
         y = self.embed(x).unsqueeze(1)
 
-        # Batch_size, filter_number, Width
+        # Batch_size, filter_number
         y = self.pool(y)
 
         y = self.fc(y)
