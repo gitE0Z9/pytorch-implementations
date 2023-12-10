@@ -14,3 +14,4 @@ class NlpContext(BaseModel):
     bos_str: str = "<bos>"
     eos_str: str = "<eos>"
     pad_str: str = "<pad>"
+    special_tokens: list[str] = [unk_str, bos_str, eos_str, pad_str]
