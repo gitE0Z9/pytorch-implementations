@@ -17,7 +17,16 @@ class ConvBnRelu(nn.Module):
         enable_relu: bool = True,
     ):
         super(ConvBnRelu, self).__init__()
-        self.conv = nn.Conv2d(input_channel, output_channel, kernel, stride, padding, dilation, group, bias=not enable_bn)
+        self.conv = nn.Conv2d(
+            input_channel,
+            output_channel,
+            kernel,
+            stride,
+            padding,
+            dilation,
+            group,
+            bias=not enable_bn,
+        )
         self.bn = nn.BatchNorm2d(output_channel) if enable_bn else enable_bn
         self.relu = nn.ReLU(True) if enable_relu else enable_relu
 
@@ -39,14 +48,14 @@ class ImageNormalization(nn.Module):
     ):
         super(ImageNormalization, self).__init__()
         ## C,1,1 shape for broadcasting
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = torch.tensor(mean).view(1, -1, 1, 1)
+        self.std = torch.tensor(std).view(1, -1, 1, 1)
 
     def forward(self, img: torch.Tensor, reverse: bool = False) -> torch.Tensor:
         original_shape = img.size()
 
-        if img.dim() != 3:
-            img = img.reshape(-1, img.size(-2), img.size(-1))
+        if img.dim() == 3:
+            img = img.unsqueeze(0)
 
         if not reverse:
             normalized = (img - self.mean.to(img.device)) / self.std.to(img.device)
