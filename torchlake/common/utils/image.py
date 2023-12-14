@@ -4,7 +4,7 @@ from PIL import Image
 from torchvision import transforms
 
 
-def load_image(path: str, is_numpy: False, is_tensor: bool = False):
+def load_image(path: str, is_numpy: bool = False, is_tensor: bool = False):
     if is_numpy:
         return cv2.imread(path)[:, :, ::-1]
 
