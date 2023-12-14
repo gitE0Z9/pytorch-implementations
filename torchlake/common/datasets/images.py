@@ -31,7 +31,7 @@ class Pix2PixDataset(DatasetBaseMixin, Dataset):
         if self.transform:
             pic = self.transform(pic)
 
-        return pic.split(2, -1)
+        return pic.split(pic.size(-1) // 2, -1)
 
 
 class ImagePairDataset(DatasetBaseMixin, Dataset):
