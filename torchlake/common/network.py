@@ -6,20 +6,20 @@ from .constants import IMAGENET_MEAN, IMAGENET_STD
 class ConvBnRelu(nn.Module):
     def __init__(
         self,
-        in_c: int,
-        out_c: int,
-        k: int,
-        s: int = 1,
-        p: int = 0,
-        d: int = 1,
-        g: int = 1,
-        bn: bool = True,
-        relu: bool = True,
+        input_channel: int,
+        output_channel: int,
+        kernel: int,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        group: int = 1,
+        enable_bn: bool = True,
+        enable_relu: bool = True,
     ):
         super(ConvBnRelu, self).__init__()
-        self.conv = nn.Conv2d(in_c, out_c, k, s, p, d, g, bias=not bn)
-        self.bn = nn.BatchNorm2d(out_c) if bn else bn
-        self.relu = nn.ReLU(True) if relu else relu
+        self.conv = nn.Conv2d(input_channel, output_channel, kernel, stride, padding, dilation, group, bias=not enable_bn)
+        self.bn = nn.BatchNorm2d(output_channel) if enable_bn else enable_bn
+        self.relu = nn.ReLU(True) if enable_relu else enable_relu
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv(x)
