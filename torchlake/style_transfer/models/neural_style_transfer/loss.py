@@ -1,18 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-
-
-def gram_matrix(x: torch.Tensor) -> torch.Tensor:
-    batch_size, num_channel, h, w = x.size()
-
-    # batch_size = 1
-    features = x.view(batch_size * num_channel, h * w)
-
-    G = torch.mm(features, features.t())  # compute the gram product
-
-    # normalize the values of the gram matrix
-    return G / x.numel()
+from ..base.loss import gram_matrix
 
 
 class NeuralStyleTransferLoss(nn.Module):

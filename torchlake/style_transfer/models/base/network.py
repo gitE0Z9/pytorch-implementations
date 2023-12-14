@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torch import nn
 from typing import Literal
-from torchlake.common.network import Normalization
+from torchlake.common.network import ImageNormalization
 from torchlake.common.constants import IMAGENET_MEAN, IMAGENET_STD
 
 
@@ -17,7 +17,7 @@ class FeatureExtractor(nn.Module):
         self.layer_type = layer_type
         self.device = device
 
-        self.normalization = Normalization(IMAGENET_MEAN, IMAGENET_STD)
+        self.normalization = ImageNormalization(IMAGENET_MEAN, IMAGENET_STD)
         self.feature_extractor = self.build_feature_extractor(network_name)
 
     def build_feature_extractor(self, network_name: str) -> nn.Module:

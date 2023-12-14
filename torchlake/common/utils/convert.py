@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def tensor_to_np(tensor: torch.Tensor) -> np.ndarray:
+def img_tensor_to_np(tensor: torch.Tensor) -> np.ndarray:
     if tensor.dim() == 3:
         tensor: torch.Tensor = tensor.unsqueeze(0)
 

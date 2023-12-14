@@ -1,5 +1,18 @@
-from PIL import Image
+import cv2
 import numpy as np
+from PIL import Image
+from torchvision import transforms
+
+
+def load_image(path: str, is_numpy: False, is_tensor: bool = False):
+    if is_numpy:
+        return cv2.imread(path)[:, :, ::-1]
+
+    image = Image.open(path)
+    if is_tensor:
+        image = transforms.ToTensor()(image)
+
+    return image
 
 
 def save_img_array(array: np.ndarray, file_path: str):
@@ -10,5 +23,4 @@ def save_img_array(array: np.ndarray, file_path: str):
     else:
         raise NotImplementedError
 
-    image = Image.fromarray(array)
-    image.save(file_path)
+    cv2.imwrite(file_path, array)
