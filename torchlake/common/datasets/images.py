@@ -1,5 +1,10 @@
+import random
+from functools import lru_cache
 from glob import glob
+from pathlib import Path
 
+import cv2
+import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -44,12 +49,7 @@ class ImagePairDataset(DatasetBaseMixin, Dataset):
 
 
 class ImagePairDataset(torch.utils.data.Dataset):
-    def __init__(
-        self,
-        content_root: str,
-        style_root: str,
-        transform=None,
-    ):
+    def __init__(self, content_root: str, style_root: str, transform=None):
         self.content_root = Path(content_root)
         self.style_root = Path(style_root)
         self.transform = transform
@@ -60,7 +60,7 @@ class ImagePairDataset(torch.utils.data.Dataset):
         # return 30000
         return len(self.contents)  # * len(self.styles)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[np.ndarray]:
         content, _, _ = self.get_content_img(idx)
         style, _, _ = self.get_style_img()
 
@@ -75,13 +75,13 @@ class ImagePairDataset(torch.utils.data.Dataset):
 
         return content, style
 
-    def get_content_img(self, idx: int):
+    def get_content_img(self, idx: int) -> tuple[np.ndarray, int, int]:
         collection = self.contents
         idx = idx % len(self.contents)
 
         return self.get_img(collection[idx].as_posix())
 
-    def get_style_img(self):
+    def get_style_img(self) -> tuple[np.ndarray, int, int]:
         collection = self.styles
         idx = random.randint(0, len(self.styles) - 1)  # idx // len(self.contents)
 
