@@ -41,3 +41,57 @@ class ImagePairDataset(DatasetBaseMixin, Dataset):
             pic = self.transform(pic)
 
         return pic
+
+
+class ImagePairDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        content_root: str,
+        style_root: str,
+        transform=None,
+    ):
+        self.content_root = Path(content_root)
+        self.style_root = Path(style_root)
+        self.transform = transform
+        self.contents = list(self.content_root.glob("**/*.jpg"))
+        self.styles = list(self.style_root.glob("*"))
+
+    def __len__(self) -> int:
+        # return 30000
+        return len(self.contents)  # * len(self.styles)
+
+    def __getitem__(self, idx: int):
+        content, _, _ = self.get_content_img(idx)
+        style, _, _ = self.get_style_img()
+
+        if self.transform:
+            kwargs = dict(image=content)
+            transformed = self.transform(**kwargs)
+            content = transformed["image"]
+
+            kwargs = dict(image=style)
+            transformed = self.transform(**kwargs)
+            style = transformed["image"]
+
+        return content, style
+
+    def get_content_img(self, idx: int):
+        collection = self.contents
+        idx = idx % len(self.contents)
+
+        return self.get_img(collection[idx].as_posix())
+
+    def get_style_img(self):
+        collection = self.styles
+        idx = random.randint(0, len(self.styles) - 1)  # idx // len(self.contents)
+
+        # if not is_content: print(idx)
+
+        return self.get_img(collection[idx].as_posix())
+
+    @lru_cache
+    def get_img(self, filename: str) -> tuple[np.ndarray, int, int]:
+        img = cv2.imread(filename)[:, :, ::-1]
+        h, w, _ = img.shape
+
+        return img, h, w
