@@ -4,3 +4,4 @@ torchinfo
 numpy
 tqdm
 matplotlib
+parameterized
