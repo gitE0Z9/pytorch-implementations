@@ -1,7 +1,7 @@
 from typing import Literal
 import torch
 from torch import nn
-from ..base.network import FeatureExtractor
+from torchlake.common.network import FeatureExtractor
 
 
 class NeuralStyleTransfer(nn.Module):

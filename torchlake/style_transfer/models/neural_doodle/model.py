@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from ..base.network import FeatureExtractor
+from torchlake.common.network import FeatureExtractor
 
 
 class AuxiliaryNetwork(nn.Module):
