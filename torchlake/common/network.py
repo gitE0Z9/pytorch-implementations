@@ -73,22 +73,17 @@ class FeatureExtractor(nn.Module):
     def __init__(
         self,
         network_name: str,
-        layer_type: Literal["conv", "relu"],
-        device: str,
+        layer_type: Literal["conv", "relu", "maxpool"],
     ):
         super(FeatureExtractor, self).__init__()
         self.layer_type = layer_type
-        self.device = device
 
         self.normalization = ImageNormalization(IMAGENET_MEAN, IMAGENET_STD)
         self.feature_extractor = self.build_feature_extractor(network_name)
 
     def build_feature_extractor(self, network_name: str) -> nn.Module:
-        return (
-            getattr(torchvision.models, network_name)(weights="DEFAULT")
-            .features.to(self.device)
-            .eval()
-        )
+        model_class = getattr(torchvision.models, network_name)
+        return model_class(weights="DEFAULT").features.eval()
 
     def forward(
         self,
@@ -99,6 +94,8 @@ class FeatureExtractor(nn.Module):
             layer_class = nn.Conv2d
         elif self.layer_type == "relu":
             layer_class = nn.ReLU
+        elif self.layer_type == "maxpool":
+            layer_class = nn.MaxPool2d
         else:
             raise NotImplementedError
 
@@ -116,7 +113,7 @@ class FeatureExtractor(nn.Module):
                 if layer_name in target_layer_names:
                     features.append(img)
                 layer_count += 1
-            elif isinstance(layer, nn.MaxPool2d):
+            if isinstance(layer, nn.MaxPool2d):
                 block_count += 1
                 layer_count = 1
 
