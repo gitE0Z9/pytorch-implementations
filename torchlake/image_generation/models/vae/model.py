@@ -31,11 +31,7 @@ class Vae(nn.Module):
         mu, logsigma = self.mu_layer(y), self.sigma_layer(y)
         return mu, logsigma
 
-    def reparameterize(
-        self,
-        mu: torch.Tensor,
-        logsigma: torch.Tensor,
-    ) -> torch.Tensor:
+    def reparameterize(self, mu: torch.Tensor, logsigma: torch.Tensor) -> torch.Tensor:
         sigma = torch.exp(logsigma / 2)
         epsilion = torch.normal(
             mean=0.0,
