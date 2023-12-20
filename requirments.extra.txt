@@ -1,2 +1,3 @@
 scikit-learn
-umap
+umap-learn
+pandas-datareader
