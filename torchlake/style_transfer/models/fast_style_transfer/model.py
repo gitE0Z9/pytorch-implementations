@@ -17,7 +17,7 @@ class FastStyleTransfer(nn.Module):
             ConvBlock(32, 3, 9, enable_in=False, enable_relu=False),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.initial_conv(x)
         y = self.res_blocks(y)
         y = self.upsampling(y)
