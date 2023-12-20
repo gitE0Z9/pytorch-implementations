@@ -8,6 +8,7 @@ def plot_grids(
     num_row: int = 1,
     num_col: int = 1,
     figsize: tuple[int] = (8, 8),
+    is_gray_scale: bool = False,
 ):
     plt.figure(figsize=figsize)
 
@@ -17,4 +18,8 @@ def plot_grids(
             title = titles[idx]
             plt.title(title)
         plt.axis("off")
-        plt.imshow(image)
+
+        if is_gray_scale:
+            plt.imshow(image, cmap='gray')
+        else:
+            plt.imshow(image)
