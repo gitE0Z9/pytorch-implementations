@@ -23,11 +23,11 @@ class SiameseNetwork(nn.Module):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         # share embedding
-        y = self.feature_extract(x)
-        y2 = self.feature_extract(y)
+        xprime = self.feature_extract(x)
+        yprime = self.feature_extract(y)
 
         # compare both flatten dimension
-        dif = torch.abs(y - y2)
+        dif = torch.abs(xprime - yprime)
 
         # compute similarity
         dif = self.clf(dif)

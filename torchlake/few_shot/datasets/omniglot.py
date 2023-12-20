@@ -98,7 +98,8 @@ class OmniglotSet(Dataset):
         support_imgs = []
         for char_path in self.char_paths:
             support_img_paths = np.random.choice(
-                list(char_path.glob("*.png")), self.shot_size
+                list(char_path.glob("*.png")),
+                self.shot_size,
             )
             support_img = [
                 load_image(support_img_path) for support_img_path in support_img_paths
@@ -120,7 +121,5 @@ class OmniglotSet(Dataset):
         return (
             query_img,
             support_imgs,
-            torch.arange(0, len(self.char_paths)).repeat(
-                1, self.shot_size, len(self.char_paths)
-            ),
+            torch.Tensor([self.char_paths.index(query_char_path)]).long(),
         )
