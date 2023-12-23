@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class NlpContext(BaseModel):
     device: str = "cuda:0"
-    unk_idex: int = 0
+    unk_idx: int = 0
     bos_idx: int = 1
     eos_idx: int = 2
     padding_idx: int = 3
