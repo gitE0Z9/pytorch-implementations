@@ -179,20 +179,6 @@
   </tr>
   <tr>
     <td>
-      <b>詞性標注(POS tagging)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e">
-            BiLSTM
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
       <b>命名實體辨識(named entity recognition)</b>
     </td>
     <td>
@@ -242,6 +228,11 @@
         <li>
           <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641">
             LSTM
+          </a>
+        </li>
+        <li>
+          <a href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e">
+            BiLSTM
           </a>
         </li>
         <li>
