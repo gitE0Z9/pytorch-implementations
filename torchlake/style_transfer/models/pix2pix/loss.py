@@ -4,10 +4,7 @@ from torch import nn
 
 
 class Pix2PixGeneratorLoss(nn.Module):
-    def __init__(
-        self,
-        lambda_coef: float,
-    ):
+    def __init__(self, lambda_coef: float):
         super(Pix2PixGeneratorLoss, self).__init__()
         self.lambda_coef = lambda_coef
 
