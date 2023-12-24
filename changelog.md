@@ -4,6 +4,7 @@
 
 1. Add CharCnn
 2. Fix typo `unk_indx` to `unk_idx` of NlpContext
+3. Finish model module of `few_shot`
 
 ## 0.1.0
 
