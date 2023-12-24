@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.block import ConvBnRelu
+from torchlake.common.network import ConvBnRelu
 
 from .network import RecurrnetBlock
 
@@ -10,12 +10,12 @@ class Crnn(nn.Module):
         super(Crnn, self).__init__()
 
         self.cnn = nn.Sequential(
-            ConvBnRelu(input_dim, 64, 3, 1, 1, bn=False),  # B, 64, 32, W
+            ConvBnRelu(input_dim, 64, 3, 1, 1, enable_bn=False),  # B, 64, 32, W
             nn.MaxPool2d(2, 2),  # B, 64, 16, W//2
-            ConvBnRelu(64, 128, 3, 1, 1, bn=False),  # B, 128, 16, W//2
+            ConvBnRelu(64, 128, 3, 1, 1, enable_bn=False),  # B, 128, 16, W//2
             nn.MaxPool2d(2, 2),  # B, 128, 8, W//4
-            ConvBnRelu(128, 256, 3, 1, 1, bn=False),  # B, 256, 8, W//4
-            ConvBnRelu(256, 256, 3, 1, 1, bn=False),
+            ConvBnRelu(128, 256, 3, 1, 1, enable_bn=False),  # B, 256, 8, W//4
+            ConvBnRelu(256, 256, 3, 1, 1, enable_bn=False),
             nn.MaxPool2d((2, 1), (2, 1)),  # B, 256, 4, W//4
             ConvBnRelu(256, 512, 3, 1, 1),  # B, 512, 4, W//4
             ConvBnRelu(512, 512, 3, 1, 1),
