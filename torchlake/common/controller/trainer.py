@@ -4,15 +4,10 @@ import torch
 from torch import nn
 from torch.optim.optimizer import Optimizer
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 
 class ClassificationTrainer:
-    def __init__(
-        self,
-        epoches: int,
-        device: torch.device,
-    ):
+    def __init__(self, epoches: int, device: torch.device):
         self.epoches = epoches
         self.device = device
 
