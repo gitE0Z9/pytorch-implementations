@@ -108,18 +108,21 @@ class OmniglotSet(Dataset):
 
         if self.transform:
             query_img = self.transform(query_img)
-            support_imgs = [
-                torch.stack(
-                    [
-                        self.transform(this_class_support_img)
-                        for this_class_support_img in support_img
-                    ]
-                )
-                for support_img in support_imgs
-            ]
+            # num_class, shot_size
+            support_imgs = torch.stack(
+                [
+                    torch.stack(
+                        [
+                            self.transform(this_class_support_img)
+                            for this_class_support_img in support_img
+                        ]
+                    )
+                    for support_img in support_imgs
+                ]
+            )
 
         return (
             query_img,
             support_imgs,
-            torch.Tensor([self.char_paths.index(query_char_path)]).long(),
+            self.char_paths.index(query_char_path),
         )
