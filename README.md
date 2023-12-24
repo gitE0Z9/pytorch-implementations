@@ -169,6 +169,11 @@
             TextCNN
           </a>
         </li>
+        <li>
+          <a href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-charcnn-47020fdc76d4">
+            CharCNN
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
