@@ -10,7 +10,8 @@ class IncrementalConfusionMatrix:
         return str(self.matrix)
 
     def update(self, true_labels: list[int], predicted_labels: list[int]):
-        self.matrix[true_labels, predicted_labels] += 1
+        for true, predicted in zip(true_labels, predicted_labels):
+            self.matrix[true, predicted] += 1
 
     def get_confusion_matrix(self) -> np.ndarray:
         return self.matrix
