@@ -269,6 +269,20 @@ The development direction will extend towards a monorepo.
       </ul>
     </td>
   </tr>
+  <tr>
+    <td>
+      <b>Graph neural network</b>
+    </td>
+    <td>
+      <ul>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf">
+            GCN
+          </a>
+        </li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ## Installation
