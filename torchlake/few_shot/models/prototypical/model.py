@@ -31,7 +31,7 @@ class PrototypicalNetwork(nn.Module):
         y = self.conv_4(y)
 
         # flatten space
-        y = y.view(y.size(0), -1)
+        y = torch.flatten(y, start_dim=1)
 
         return y
 
@@ -42,7 +42,10 @@ class PrototypicalNetwork(nn.Module):
         batch_size, num_class, shot_size, c, h, w = support_set.shape
         support_vectors = self.feature_extract(support_set.reshape(-1, c, h, w))
         support_vectors = support_vectors.reshape(
-            batch_size, num_class, shot_size, query_vector.size(-1)
+            batch_size,
+            num_class,
+            shot_size,
+            query_vector.size(-1),
         )
 
         # batch, class, embed

@@ -16,7 +16,7 @@ class SiameseNetwork(nn.Module):
         y = self.conv_1(x)
         y = self.conv_2(y)
         y = self.conv_3(y)
-        y = y.view(-1, 9 * 9 * 128)
+        y = torch.flatten(y, start_dim=1)
         y = self.linear(y)
 
         return y
