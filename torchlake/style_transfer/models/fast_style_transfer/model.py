@@ -1,4 +1,6 @@
+import torch
 from torch import nn
+
 from .network import ConvBlock, ResidualBlock
 
 
