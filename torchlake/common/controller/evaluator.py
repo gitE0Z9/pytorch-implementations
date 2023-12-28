@@ -1,4 +1,5 @@
 from typing import Iterator
+from matplotlib import pyplot as plt
 
 import numpy as np
 import torch
@@ -45,9 +46,10 @@ class ClassificationEvaluator:
     ) -> float:
         matrix = self.get_matrix(confusion_matrix)
 
-        acc = matrix.diagonal().sum() / matrix.sum()
+        hits = matrix.diagonal().sum()
+        total = matrix.sum()
 
-        return acc
+        return np.where(total == 0, 0, hits / total)
 
     def get_per_class_accuracy(
         self,
@@ -55,9 +57,10 @@ class ClassificationEvaluator:
     ) -> np.ndarray:
         matrix = self.get_matrix(confusion_matrix)
 
-        accs = matrix.diagonal() / matrix.sum(axis=1)
+        hits = matrix.diagonal()
+        total = matrix.sum(axis=1)
 
-        return accs
+        return np.where(total == 0, 0, hits / total)
 
     @staticmethod
     def show_per_class_accuracy(class_names: list[str], per_class_accs: list[float]):
@@ -69,18 +72,23 @@ class ClassificationEvaluator:
         confusion_matrix: IncrementalConfusionMatrix | np.ndarray,
         labels: list[str],
         cmap: str | None = None,
+        annot: bool = True,
+        figsize: tuple[int] = (4, 3),
     ):
         matrix = self.get_matrix(confusion_matrix)
 
-        percentage = matrix / matrix.sum(axis=1).reshape((self.label_size, 1))
+        hits = matrix
+        total = matrix.sum(axis=1).reshape((self.label_size, 1))
+        percentage = np.where(total == 0, 0, hits / total)
 
+        plt.figure(figsize=figsize)
         heatmap(
-            percentage,
+            np.nan_to_num(percentage),
             xticklabels=labels,
             yticklabels=labels,
             vmin=0,
             vmax=1,
             center=0.5,
-            annot=True,
+            annot=annot,
             cmap=cmap,
         )
