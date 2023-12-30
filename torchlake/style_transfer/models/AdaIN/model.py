@@ -45,10 +45,7 @@ class AdaInTrainer(nn.Module):
 
         normalized = torch.zeros_like(content_feature)
         for style_feature, weight in zip(styles_features, weights):
-            adain = AdaIn2d(
-                content_feature,
-                style_feature.unsqueeze(0),
-            )
+            adain = AdaIn2d(content_feature, style_feature.unsqueeze(0))
             normalized += weight * adain(content_feature)
 
         generated = self.decoder(normalized)

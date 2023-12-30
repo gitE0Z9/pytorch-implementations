@@ -46,6 +46,9 @@ class AdaInLoss(nn.Module):
             generated_features[-1],
             normalized_content,
         )
+
         style_loss = self.calc_style_loss(generated_features, style_features)
 
-        return content_loss + self.lambda_coef * style_loss, content_loss, style_loss
+        total_loss = content_loss + self.lambda_coef * style_loss
+
+        return total_loss, content_loss, style_loss

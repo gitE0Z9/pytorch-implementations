@@ -1,6 +1,8 @@
 from pathlib import Path
+
 import cv2
 import numpy as np
+import torch
 from PIL import Image
 from torchvision import transforms
 
@@ -43,3 +45,75 @@ def decode_segmap(image: np.ndarray, colors: np.ndarray) -> np.ndarray:
 
     rgb = np.stack([r, g, b], axis=2)
     return rgb
+
+
+def yiq_transform(x: torch.Tensor) -> torch.Tensor:
+    A = torch.Tensor(
+        [
+            [
+                [0.299, 0.587, 0.114],
+                [0.596, -0.274, -0.322],
+                [0.211, -0.523, 0.312],
+            ]
+        ]
+    ).to(x.device)
+
+    return torch.bmm(A, torch.flatten(x, start_dim=2)).reshape(x.shape)
+
+
+def yiq_inverse_transform(x: torch.Tensor) -> torch.Tensor:
+    A = torch.Tensor(
+        [
+            [
+                [0.299, 0.587, 0.114],
+                [0.596, -0.274, -0.322],
+                [0.211, -0.523, 0.312],
+            ]
+        ]
+    ).to(x.device)
+
+    return torch.bmm(A.inverse(), torch.flatten(x, start_dim=2)).reshape(x.shape)
+
+
+def luminance_transfer(content: torch.Tensor, style: torch.Tensor) -> torch.Tensor:
+    content_yiq = yiq_transform(content)
+    style_yiq = yiq_transform(style)
+
+    content_yiq[:, 1:3, :, :] = style_yiq[:, 1:3, :, :]
+
+    return yiq_inverse_transform(content_yiq)
+
+
+def color_histogram_matching(
+    content: torch.Tensor,
+    style: torch.Tensor,
+) -> torch.Tensor:
+    n, c, _, _ = style.shape
+
+    x, y = torch.flatten(style, start_dim=2), torch.flatten(content, start_dim=2)
+
+    mu_x, mu_y = x.mean(2, keepdim=True), y.mean(2, keepdim=True)
+    cov_x = torch.bmm(x - mu_x, (x - mu_x).transpose(1, 2)) / x.numel()
+    cov_y = torch.bmm(y - mu_y, (y - mu_y).transpose(1, 2)) / y.numel()
+
+    eta_x, eig_x = torch.linalg.eig(cov_x)
+    eta_y, eig_y = torch.linalg.eig(cov_y)
+
+    cov_half_x = torch.bmm(
+        torch.bmm(eig_x, eta_x.diag_embed().sqrt()),
+        eig_x.transpose(1, 2),
+    )
+    cov_half_y = torch.bmm(
+        torch.bmm(eig_y, eta_y.diag_embed().sqrt()),
+        eig_y.transpose(1, 2),
+    )
+
+    A = torch.bmm(cov_half_y, cov_half_x.inverse()).real
+
+    print(A)
+
+    return (
+        torch.bmm(A, x).reshape(style.shape)
+        + mu_y.unsqueeze(3)
+        - torch.bmm(A, mu_x).unsqueeze(3)
+    )

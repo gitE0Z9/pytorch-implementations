@@ -74,16 +74,24 @@ class FeatureExtractor(nn.Module):
         self,
         network_name: str,
         layer_type: Literal["conv", "relu", "maxpool"],
+        trainable: bool = True,
     ):
         super(FeatureExtractor, self).__init__()
         self.layer_type = layer_type
+        self.trainable = trainable
 
         self.normalization = ImageNormalization(IMAGENET_MEAN, IMAGENET_STD)
         self.feature_extractor = self.build_feature_extractor(network_name)
 
     def build_feature_extractor(self, network_name: str) -> nn.Module:
         model_class = getattr(torchvision.models, network_name)
-        return model_class(weights="DEFAULT").features.eval()
+        feature_extractor = model_class(weights="DEFAULT").features.eval()
+
+        if not self.trainable:
+            for param in feature_extractor.parameters():
+                param.requires_grad = False
+
+        return feature_extractor
 
     def forward(
         self,

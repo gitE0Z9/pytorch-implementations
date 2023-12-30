@@ -32,7 +32,11 @@ class AdaInDecoderBlock(nn.Module):
         layers = [
             nn.ReflectionPad2d(1),
             nn.Conv2d(
-                input_ch, input_ch // 2 if drop_channel_first else input_ch, 3, 1, 0
+                input_ch,
+                input_ch // 2 if drop_channel_first else input_ch,
+                3,
+                1,
+                0,
             ),
             nn.ReLU(inplace=True),
         ]
@@ -40,7 +44,11 @@ class AdaInDecoderBlock(nn.Module):
             layers.append(nn.ReflectionPad2d(1))
             layers.append(
                 nn.Conv2d(
-                    input_ch, output_ch if i + 1 == layer_number else input_ch, 3, 1, 0
+                    input_ch,
+                    output_ch if i + 1 == layer_number else input_ch,
+                    3,
+                    1,
+                    0,
                 )
             )
             layers.append(nn.ReLU(inplace=True))
