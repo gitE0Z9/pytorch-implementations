@@ -1,3 +1,4 @@
+from unicodedata import bidirectional
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
@@ -34,7 +35,12 @@ class LstmClassifier(nn.Module):
         self.layer_norm = nn.LayerNorm(hidden_dim * self.factor)
         self.fc = nn.Linear(hidden_dim * self.factor, output_size)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def feature_extract(
+        self,
+        x: torch.Tensor,
+        h: torch.Tensor | None = None,
+        c: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         # batch_size, seq_len, embed_dim
         y = self.embed(x)
 
@@ -49,7 +55,32 @@ class LstmClassifier(nn.Module):
         # ot, (ht, ct)
         # ot: batch_size, seq_len, bidirectional*hidden_dim
         # ht: bidirectional * layer_size, batch_size, hidden_dim
-        ot, (ht, _) = self.rnn(y)
+        state = (h, c) if h is not None or c is not None else None
+
+        return self.rnn(y, state)
+
+    def classify(
+        self,
+        ot: torch.Tensor,
+        ht: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if self.fc.out_features <= 1:
+            # the last layer's hidden state represents the paragraph
+            vector = torch.cat([ht[-2], ht[-1]], -1) if self.factor == 2 else ht[-1]
+            y = self.fc(vector)
+        else:
+            y = self.layer_norm(ot)
+            y = self.fc(y)
+
+        return y
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        h: torch.Tensor | None = None,
+        c: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        ot, (ht, _) = self.feature_extract(x, h, c)
 
         if isinstance(ot, PackedSequence):
             ot, _ = pad_packed_sequence(
@@ -58,11 +89,4 @@ class LstmClassifier(nn.Module):
                 total_length=self.context.max_seq_len,
             )
 
-        if self.fc.out_features <= 1:
-            # the last layer's hidden state represents the paragraph
-            y = self.fc(ht[-1])
-        else:
-            y = self.layer_norm(ot)
-            y = self.fc(y)
-
-        return y
+        return self.classify(ot, ht)

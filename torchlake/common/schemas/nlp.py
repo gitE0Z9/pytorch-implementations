@@ -10,6 +10,7 @@ class NlpContext(BaseModel):
     min_seq_len: int = 5
     max_seq_len: int = 256
     min_frequency: int = 5
+    max_tokens: int | None = None
     unk_str: str = "<unk>"
     bos_str: str = "<bos>"
     eos_str: str = "<eos>"
