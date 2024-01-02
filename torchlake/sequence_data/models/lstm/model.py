@@ -15,10 +15,12 @@ class LstmClassifier(nn.Module):
         num_layers: int = 1,
         bidirectional: bool = False,
         context: NlpContext = NlpContext(),
+        is_token: bool = False,
     ):
         super(LstmClassifier, self).__init__()
         self.factor = 2 if bidirectional else 1
         self.context = context
+        self.is_token = is_token
 
         self.embed = nn.Embedding(
             vocab_size,
@@ -64,13 +66,13 @@ class LstmClassifier(nn.Module):
         ot: torch.Tensor,
         ht: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        if self.fc.out_features <= 1:
+        if self.is_token:
+            y = self.layer_norm(ot)
+            y = self.fc(y)
+        else:
             # the last layer's hidden state represents the paragraph
             vector = torch.cat([ht[-2], ht[-1]], -1) if self.factor == 2 else ht[-1]
             y = self.fc(vector)
-        else:
-            y = self.layer_norm(ot)
-            y = self.fc(y)
 
         return y
 
