@@ -1,6 +1,11 @@
 torch
 torchvision
-torchinfo
+torchtext
 numpy
 tqdm
+pandas
 matplotlib
+opencv-python
+opencv-contrib-python
+albumentations
+pydantic

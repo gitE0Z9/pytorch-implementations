@@ -1,3 +1,6 @@
 scikit-learn
 umap-learn
 pandas-datareader
+tensorboard
+tensorboardX
+torchinfo
