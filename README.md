@@ -276,6 +276,10 @@
   </tr>
 </table>
 
+## 開發環境
+
+`python`: `3.11`
+
 ## 安裝方式
 
 `pip install .`
