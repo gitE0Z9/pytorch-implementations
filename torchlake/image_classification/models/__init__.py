@@ -1,6 +1,6 @@
-from .resnet.model import ResNet50
+from .resnet.model import ResNet
 
 
 __all__ = [
-    "ResNet50",
+    "ResNet",
 ]
