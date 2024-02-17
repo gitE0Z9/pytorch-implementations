@@ -22,14 +22,14 @@ class GcnLayer(nn.Module):
         return a_hat
 
     def forward(self, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
-        """_summary_
+        """Applies a Graph Convolutional Network (GCN) layer.
 
         Args:
-            x (torch.Tensor): shape (Node, in_dim)
-            a (torch.Tensor): shape (Node, Node)
+            x (torch.Tensor): Input features with shape (Node, in_dim)
+            a (torch.Tensor): Adjacency matrix with shape (Node, Node)
 
         Returns:
-            torch.Tensor: shape (Node, out_dim)
+            torch.Tensor: Output features with shape (Node, out_dim)
         """
         H = self.get_topology_transform(a)
 

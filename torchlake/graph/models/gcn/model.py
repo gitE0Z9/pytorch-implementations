@@ -19,9 +19,9 @@ class Gcn(nn.Module):
         return y
 
 
-class GcnResidualVersion(nn.Module):
+class GcnResidual(nn.Module):
     def __init__(self, in_dim: int, hidden_dim: int, out_dim: int):
-        super(GcnResidualVersion, self).__init__()
+        super(GcnResidual, self).__init__()
 
         self.layer1 = GcnLayer(in_dim, hidden_dim)
         self.layer2 = GcnResBlock(hidden_dim, hidden_dim)

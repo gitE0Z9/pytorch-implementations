@@ -1,8 +1,9 @@
 import torch
-from ..models import Gcn
-from ..models.gcn.model import GcnResidualVersion
-from ..models.gcn.network import GcnLayer, GcnResBlock
 from torchlake.common.utils.sparse import eye_matrix
+
+from ..models import Gcn
+from ..models.gcn.model import GcnResidual
+from ..models.gcn.network import GcnLayer, GcnResBlock
 
 
 def test_forward_shape_layer():
@@ -68,7 +69,7 @@ def test_forward_nan_model():
 def test_forward_shape_res_model():
     x = torch.rand((3, 5))
     a = eye_matrix(3)
-    model = GcnResidualVersion(5, 10, 3)
+    model = GcnResidual(5, 10, 3)
 
     output = model(x, a)
 
@@ -78,7 +79,7 @@ def test_forward_shape_res_model():
 def test_forward_nan_res_model():
     x = torch.rand((3, 5))
     a = eye_matrix(3)
-    model = GcnResidualVersion(5, 10, 3)
+    model = GcnResidual(5, 10, 3)
 
     output = model(x, a)
 
