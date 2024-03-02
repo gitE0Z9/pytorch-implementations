@@ -1,4 +1,4 @@
-from object_detection.models.yolov2.anchor import PriorBox
+from .models.yolov2.anchor import PriorBox
 
 prior_box = PriorBox(5, "voc")
 

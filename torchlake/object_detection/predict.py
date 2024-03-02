@@ -2,8 +2,8 @@ from glob import glob
 
 import click
 
-from object_detection.constants.enums import MediaType, NetworkStage
-from object_detection.controller.predictor import Predictor
+from .constants.enums import MediaType, NetworkStage
+from .controller.predictor import Predictor
 
 
 @click.command()

@@ -1,9 +1,10 @@
 import os
-from tqdm import tqdm
-import pandas as pd
 
-from object_detection.controller.predictor import Predictor
-from object_detection.utils.inference import model_predict, yolo_postprocess
+import pandas as pd
+from tqdm import tqdm
+
+from ..controller.predictor import Predictor
+from ..utils.inference import model_predict, yolo_postprocess
 
 if __name__ == "__main__":
     control = Predictor("configs/yolov2/resnet18.yml", "VOC", "DETECTOR", "inference")

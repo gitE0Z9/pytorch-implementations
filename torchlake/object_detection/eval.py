@@ -2,8 +2,8 @@ from glob import glob
 
 import click
 
-from object_detection.constants.enums import NetworkStage
-from object_detection.controller.evaluator import Evaluator
+from .constants.enums import NetworkStage
+from .controller.evaluator import Evaluator
 
 
 @click.command()

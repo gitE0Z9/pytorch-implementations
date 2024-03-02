@@ -1,6 +1,6 @@
 from pprint import pprint
-from object_detection.datasets.voc.datasets import VOCDatasetFromCSV
-from object_detection.utils.config import load_classes
+from ..datasets.voc.datasets import VOCDatasetFromCSV
+from ..utils.config import load_classes
 
 
 def show_gt_num(dataset):

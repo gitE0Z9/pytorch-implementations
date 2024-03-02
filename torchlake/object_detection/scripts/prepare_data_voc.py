@@ -6,7 +6,8 @@ import pandas as pd
 import torch
 from torchvision.ops import box_convert, box_iou
 from tqdm import tqdm
-from object_detection.utils.config import load_anchors, load_classes, load_config
+
+from ..utils.config import load_anchors, load_classes, load_config
 
 dataset_kind = [("2012", "trainval"), ("2007", "trainval"), ("2007", "test")]
 

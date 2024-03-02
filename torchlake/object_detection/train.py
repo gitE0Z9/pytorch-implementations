@@ -1,6 +1,7 @@
 import click
-from object_detection.controller.trainer import Trainer
-from object_detection.constants.enums import NetworkStage
+
+from .constants.enums import NetworkStage
+from .controller.trainer import Trainer
 
 
 @click.command()
