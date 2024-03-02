@@ -1,7 +1,8 @@
-from object_detection.configs.schema import InferenceCfg
-from object_detection.utils.nms import select_best_index
 import torch
 from torch.testing import assert_close
+
+from ..configs.schema import InferenceCfg
+from ..utils.nms import select_best_index
 
 
 class TestNms:

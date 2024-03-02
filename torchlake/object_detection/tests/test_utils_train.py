@@ -1,12 +1,12 @@
 import torch
 from torch.testing import assert_close
 
-from object_detection.utils.train import (
+from ..utils.train import (
+    IOU,
+    build_targets,
+    collate_fn,
     generate_grid_train,
     xywh_to_xyxy,
-    IOU,
-    collate_fn,
-    build_targets,
 )
 
 

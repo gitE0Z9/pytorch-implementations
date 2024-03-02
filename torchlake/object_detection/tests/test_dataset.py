@@ -4,9 +4,9 @@ import albumentations as A
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.testing import assert_close
-from object_detection.datasets.voc.datasets import VOCDatasetRaw, VOCDatasetFromCSV
-from object_detection.datasets.coco.datasets import COCODatasetRaw, COCODatasetFromCSV
-from object_detection.datasets.imagenet.datasets import ImageNetDataset
+from ..datasets.voc.datasets import VOCDatasetRaw, VOCDatasetFromCSV
+from ..datasets.coco.datasets import COCODatasetRaw, COCODatasetFromCSV
+from ..datasets.imagenet.datasets import ImageNetDataset
 
 # class TestVOCDatasetRaw():
 

@@ -1,6 +1,6 @@
-from object_detection.configs.schema import Setting
-from object_detection.utils.config import load_classes, load_config
-from object_detection.datasets.schema import DatasetCfg
+from ..configs.schema import Setting
+from ..utils.config import load_classes, load_config
+from ..datasets.schema import DatasetCfg
 
 
 class TestSSDConfig:

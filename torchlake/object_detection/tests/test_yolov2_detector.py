@@ -1,7 +1,8 @@
 import torch
-from object_detection.models.yolov2.network import Darknet19
-from object_detection.models.yolov2.detector import Yolov2, Yolov2Resnet
-from torch.testing import assert_equal
+from torch.testing import assert_close
+
+from ..models.yolov2.detector import Yolov2, Yolov2Resnet
+from ..models.yolov2.network import Darknet19
 
 
 class TestYOLOv2:
@@ -11,7 +12,7 @@ class TestYOLOv2:
         test_x = torch.rand(2, 3, 416, 416)
 
         output: torch.Tensor = model(test_x)
-        assert_equal(output.shape, torch.Size([2, 125, 13, 13]))
+        assert_close(output.shape, torch.Size([2, 125, 13, 13]))
 
 
 class TestYOLOv2ResNet18:
@@ -20,7 +21,7 @@ class TestYOLOv2ResNet18:
         test_x = torch.rand(2, 3, 416, 416)
 
         output: torch.Tensor = model(test_x)
-        assert_equal(output.shape, torch.Size([2, 125, 13, 13]))
+        assert_close(output.shape, torch.Size([2, 125, 13, 13]))
 
 
 class TestYOLOv2ResNet34:
@@ -29,4 +30,4 @@ class TestYOLOv2ResNet34:
         test_x = torch.rand(2, 3, 416, 416)
 
         output: torch.Tensor = model(test_x)
-        assert_equal(output.shape, torch.Size([2, 125, 13, 13]))
+        assert_close(output.shape, torch.Size([2, 125, 13, 13]))
