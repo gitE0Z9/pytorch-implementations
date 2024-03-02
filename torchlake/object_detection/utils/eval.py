@@ -3,11 +3,11 @@ from typing import List, Tuple
 
 import torch
 import torchvision
+from torchlake.common.utils.image import load_image
 
-from object_detection.utils.inference import model_predict
-from object_detection.utils.nms import greedy_nms
-from object_detection.utils.plot import load_image
-from object_detection.constants.enums import PRCurveInterpolation
+from ..constants.enums import PRCurveInterpolation
+from ..utils.inference import model_predict
+from ..utils.nms import greedy_nms
 
 
 def speed_evaluate(img_path: str, model_path: str):  # TODO: refactor

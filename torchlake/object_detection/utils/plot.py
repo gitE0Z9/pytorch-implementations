@@ -1,4 +1,3 @@
-import os
 import random
 from typing import Dict, List
 
@@ -6,19 +5,10 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from functools import lru_cache
 
 
 def rand_color() -> List[int]:
     return random.choices(range(256), k=3)
-
-
-@lru_cache
-def load_image(path: str) -> np.ndarray:
-    assert os.path.exists(path), f"Image {path} does't exist."
-    img = cv2.imread(path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return img
 
 
 def tensor2np_uint8(img: torch.Tensor) -> np.ndarray:
@@ -66,11 +56,18 @@ def draw_pred(
         cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
 
         if class_show:
-            cv2.rectangle(img, (x, y - 30), (x + w, y), color, -1)
+            x1 = x
+            x2 = x + w
+            y1 = max(y - 30, 0)
+            y2 = y if y1 > 0 else y + 40
+            cv2.rectangle(img, (x1, y1), (x2, y2), color, -1)
+
+            tx = x + 5
+            ty = y - 10 if y1 > 0 else y + 35
             cv2.putText(
                 img,
                 text=class_info,
-                org=(x + 5, y - 10),
+                org=(tx, ty),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.8,
                 color=(255, 255, 255),

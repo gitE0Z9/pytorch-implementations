@@ -2,9 +2,10 @@ from typing import List
 
 import torch
 import torchvision
-from object_detection.configs.schema import InferenceCfg
 from numpy import intersect1d
 from torchvision.ops.boxes import box_convert
+
+from ..configs.schema import InferenceCfg
 
 
 def greedy_nms(
