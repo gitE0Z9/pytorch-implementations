@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from object_detection.constants.schema import DetectorContext
-from object_detection.utils.numerical import safe_sqrt
-from object_detection.utils.train import IOU, build_targets
+from torchlake.object_detection.constants.schema import DetectorContext
+from torchlake.object_detection.utils.numerical import safe_sqrt
+from torchlake.object_detection.utils.train import IOU, build_targets
 
 
 class YOLOLoss(nn.Module):
@@ -31,9 +31,9 @@ class YOLOLoss(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         # N, 2, 1, 7, 7
         ious = IOU(prediction[:, :, 0:4, :, :], groundtruth[:, :, 0:4, :, :])
-        
+
         # N, 1, 1, 7, 7
-        _, best_box = ious.max(dim=1, keepdim=True)  
+        _, best_box = ious.max(dim=1, keepdim=True)
 
         # N, 2, 1, 7, 7
         best_box = torch.cat([best_box.eq(b).int() for b in range(self.num_bboxes)], 1)
@@ -64,7 +64,7 @@ class YOLOLoss(nn.Module):
         ious, best_box = self.responsible_iou(coord_prediction, groundtruth)
 
         positives = obj_here * best_box
-        
+
         # class loss / objecness loss / xywh loss
         # indicator has to be inside the loss function
         cls_loss = F.mse_loss(

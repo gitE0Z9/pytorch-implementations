@@ -1,41 +1,56 @@
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
+from torchlake.common.network import ConvBnRelu
 
 
 class Conv3x3(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, stride=1):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride=1,
+        enable_bn: bool = False,
+        enable_relu: bool = False,
+    ):
         super(Conv3x3, self).__init__()
-        self.conv = nn.Conv2d(
+        self.conv = ConvBnRelu(
             in_channels,
             out_channels,
-            (3, 3),
+            kernel=3,
             stride=stride,
             padding=1,
+            enable_bn=enable_bn,
+            enable_relu=enable_relu,
         )
 
-    #         self.bn = nn.BatchNorm2d(out_channels)
-    #         nn.init.trunc_normal_(self.conv.weight,mean=0.0,std=0.01)
+        if not enable_relu:
+            self.activation = nn.LeakyReLU(0.1, True)
 
     def forward(self, x: Tensor) -> Tensor:
-        tmp = self.conv(x)
-        #         tmp = self.bn(tmp)
-        tmp = F.leaky_relu(tmp, 0.1, inplace=True)
-        return tmp
+        y = self.conv(x)
+        if getattr(self, "activation", None):
+            y = F.leaky_relu(y, 0.1, inplace=True)
+
+        return y
 
 
 class Conv1x1(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super(Conv1x1, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, (1, 1), stride=stride)
-        #         self.bn = nn.BatchNorm2d(out_channels)
-        nn.init.trunc_normal_(self.conv.weight, mean=0.0, std=0.01)
+        self.conv = ConvBnRelu(
+            in_channels,
+            out_channels,
+            kernel=1,
+            stride=stride,
+            enable_bn=False,
+            enable_relu=False,
+        )
 
     def forward(self, x: Tensor) -> Tensor:
-        tmp = self.conv(x)
-        #         tmp = self.bn(tmp)
-        tmp = F.leaky_relu(tmp, 0.1, inplace=True)
-        return tmp
+        y = self.conv(x)
+        y = F.leaky_relu(y, 0.1, inplace=True)
+        return y
 
 
 class Extraction(nn.Module):
@@ -77,18 +92,18 @@ class Extraction(nn.Module):
             Conv3x3(512, 1024),  # end of backbone
         )
 
-        self.classifier = nn.Sequential(
+        self.head = nn.Sequential(
             nn.Linear(7 * 7 * 1024, 1000),
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        tmp = self.conv_1(x)
-        tmp = self.conv_2(tmp)
-        tmp = self.conv_3(tmp)
-        tmp = self.conv_4(tmp)
-        tmp = self.conv_5(tmp)
+        y = self.conv_1(x)
+        y = self.conv_2(y)
+        y = self.conv_3(y)
+        y = self.conv_4(y)
+        y = self.conv_5(y)
 
-        tmp = torch.mean(tmp, (2, 3))
-        tmp = self.classifier(tmp)
+        y = torch.mean(y, (2, 3))
+        y = self.head(y)
 
-        return tmp
+        return y

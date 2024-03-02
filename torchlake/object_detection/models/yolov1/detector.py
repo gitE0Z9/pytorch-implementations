@@ -1,15 +1,16 @@
 import torch
 import torch.nn as nn
 import torchvision
-from object_detection.models.yolov1.network import Conv3x3, Extraction
 from torch import Tensor
+
+from .network import Conv3x3, Extraction
 
 
 class Yolov1(nn.Module):
     def __init__(self):
         super(Yolov1, self).__init__()
         self.backbone = Extraction(pretrained=True)
-        self.backbone.classifier = nn.Identity()
+        self.backbone.head = nn.Identity()
 
         self.conv_6 = nn.Sequential(
             Conv3x3(1024, 1024),
@@ -30,15 +31,15 @@ class Yolov1(nn.Module):
     #         )
 
     def forward(self, x: Tensor) -> Tensor:
-        for i in range(1, 6):
+        for i in range(1, 7):
             x = getattr(self.backbone, f"conv_{i}")(x)
 
         x = self.conv_6(x)
         x = self.conv_out(x)
 
-        #         tmp = torch.flatten(tmp,start_dim=1)
-        #         tmp = self.classifier(tmp)
-        #         tmp = tmp.reshape(-1,30,7,7)#.contiguous()
+        # tmp = torch.flatten(tmp,start_dim=1)
+        # tmp = self.classifier(tmp)
+        # tmp = tmp.reshape(-1,30,7,7)#.contiguous()
 
         return x
 
@@ -58,18 +59,10 @@ class Yolov1Resnet(nn.Module):
         # as paper suggested, deeper conv layer
         # convhead-512 no first layer and all 512
         self.conv = nn.Sequential(
-            nn.Conv2d(512, 1024, 3, padding=1, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, 3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, 3, padding=1, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, 3, padding=1, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.ReLU(inplace=True),
+            Conv3x3(512, 1024, enable_bn=True, enable_relu=True),
+            Conv3x3(1024, 1024, stride=2, enable_bn=True, enable_relu=True),
+            Conv3x3(1024, 1024, enable_bn=True, enable_relu=True),
+            Conv3x3(1024, 1024, enable_bn=True, enable_relu=True),
         )
 
         # self.conv = self.backbone._make_layer(BasicBlock, 1024, 2, stride=2)
@@ -84,14 +77,14 @@ class Yolov1Resnet(nn.Module):
 
         self.conv_out = nn.Sequential(nn.Conv2d(1024, 5 * num_boxes + num_classes, 1))
 
-    def build_backbone(self, layer_number: int) -> nn.Module:
-        if layer_number not in [18, 34, 50]:
+    def build_backbone(self, num_layer: int) -> nn.Module:
+        if num_layer not in [18, 34, 50]:
             raise NotImplementedError
 
-        return torchvision.models.get_model(f"resnet{layer_number}", weights="DEFAULT")
+        return torchvision.models.get_model(f"resnet{num_layer}", weights="DEFAULT")
 
-    def load_backbone(self, layer_number: int, finetune_weight: str = ""):
-        backbone = self.build_backbone(layer_number)
+    def load_backbone(self, num_layer: int, finetune_weight: str = ""):
+        backbone = self.build_backbone(num_layer)
 
         if finetune_weight:
             backbone.load_state_dict(torch.load(finetune_weight))
@@ -112,8 +105,8 @@ class Yolov1Resnet(nn.Module):
         y = self.conv(y)
         y = self.conv_out(y)
 
-        #         tmp = torch.flatten(tmp,start_dim=1)
-        #         tmp = self.classifier(tmp)
-        #         tmp = tmp.reshape(-1,30,7,7)#.contiguous()
+        # tmp = torch.flatten(tmp,start_dim=1)
+        # tmp = self.classifier(tmp)
+        # tmp = tmp.reshape(-1,30,7,7)#.contiguous()
 
         return y
