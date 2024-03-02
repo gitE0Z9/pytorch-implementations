@@ -1,8 +1,9 @@
 from importlib import import_module
 
 import torch
-from object_detection.configs.schema import OptimizerCfg, Setting
-from object_detection.constants.schema import DetectorContext
+
+from ..configs.schema import OptimizerCfg, Setting
+from ..constants.schema import DetectorContext
 
 # class DetectorAdapter:
 #     def __init__(self, cfg: Setting, device: str):
@@ -32,14 +33,18 @@ class DetectorLossAdapter:
         detector_name = self.context.detector_name
 
         loss_class_mapping = {
-            "yolov1": "object_detection.models.yolov1.loss.YOLOLoss",
-            "yolov2": "object_detection.models.yolov2.loss.YOLOv2Loss",
-            "yolo9000": "object_detection.models.yolov2.loss.YOLO9000Loss",
-            "ssd": "object_detection.models.ssd.loss.MultiboxLoss",
+            "yolov1": "yolov1.loss.YOLOLoss",
+            "yolov2": "yolov2.loss.YOLOv2Loss",
+            "yolo9000": "yolov2.loss.YOLO9000Loss",
+            "ssd": "ssd.loss.MultiboxLoss",
         }
 
-        loss_class_name = loss_class_mapping.get(detector_name)
-        loss_class = import_module(loss_class_name)
+        loss_class_path = loss_class_mapping.get(detector_name)
+        module_name, loss_class_name = loss_class_path.rsplit(".", 1)
+        loss_class = getattr(
+            import_module("torchlake.object_detection.models." + module_name),
+            loss_class_name,
+        )
 
         return loss_class(self.context)
 
