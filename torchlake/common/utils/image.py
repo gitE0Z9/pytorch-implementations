@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 
 import cv2
@@ -7,18 +8,40 @@ from PIL import Image
 from torchvision import transforms
 
 
-def load_image(path: str, is_numpy: bool = False, is_tensor: bool = False):
-    if isinstance(path, Path):
-        path = path.as_posix()
+@lru_cache
+def load_image(
+    path: str | Path,
+    is_numpy: bool = False,
+    is_tensor: bool = False,
+) -> np.ndarray | torch.Tensor | Image.Image:
+    """load image to numpy array, torch tensor, PIL image
 
+    Args:
+        path (str | Path): path to image
+        is_numpy (bool, optional): return numpy array. Defaults to False.
+        is_tensor (bool, optional): return torch tensor. Defaults to False.
+
+    Returns:
+        np.ndarray | torch.Tensor | Image.Image: returned type
+    """
+    if isinstance(path, str):
+        path = Path(path)
+    assert path.exists(), f"Image {path} does't exist."
+    path = path.as_posix()
+
+    # numpy array
     if is_numpy:
-        return cv2.imread(path)[:, :, ::-1]
+        img = cv2.imread(path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return img
 
     image = Image.open(path)
-    if is_tensor:
-        image = transforms.ToTensor()(image)
-
-    return image
+    # PIL image
+    if not is_tensor:
+        return image
+    # pytorch tensor
+    else:
+        return transforms.ToTensor()(image)
 
 
 def save_img_array(array: np.ndarray, file_path: str):
