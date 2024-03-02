@@ -5,12 +5,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from object_detection.constants.enums import OperationMode
+from torchlake.common.utils.image import load_image
+from torchlake.object_detection.constants.enums import OperationMode
+from torchlake.object_detection.datasets.schema import DatasetCfg
+from torchlake.object_detection.utils.config import load_classes, load_config
 from tqdm import tqdm
-from object_detection.utils.config import load_classes, load_config
-from object_detection.utils.plot import load_image
-
-from object_detection.datasets.schema import DatasetCfg
 
 
 class COCODatasetRaw(torch.utils.data.Dataset):
@@ -122,7 +121,7 @@ class COCODatasetRaw(torch.utils.data.Dataset):
     def get_img(self, idx: int) -> tuple[np.ndarray, int, int]:
         img_path = self.get_img_filename(idx)
 
-        img = load_image(img_path)
+        img = load_image(img_path, is_numpy=True)
         h, w, _ = img.shape
 
         return img, h, w
@@ -240,7 +239,7 @@ class COCODatasetFromCSV(torch.utils.data.Dataset):
             .as_posix()
         )
 
-        img = load_image(img_path)
+        img = load_image(img_path, is_numpy=True)
 
         return img
 

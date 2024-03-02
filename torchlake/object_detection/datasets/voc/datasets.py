@@ -4,10 +4,10 @@ from xml.etree import cElementTree as etree
 import numpy as np
 import pandas as pd
 import torch
-from object_detection.constants.enums import OperationMode
-from object_detection.datasets.schema import DatasetCfg
-from object_detection.utils.config import load_classes, load_config
-from object_detection.utils.plot import load_image
+from torchlake.common.utils.image import load_image
+from torchlake.object_detection.constants.enums import OperationMode
+from torchlake.object_detection.datasets.schema import DatasetCfg
+from torchlake.object_detection.utils.config import load_classes, load_config
 from tqdm import tqdm
 
 
@@ -20,11 +20,15 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
         class_names: list[str] = [],
         transform=None,
     ):
-        self.config = DatasetCfg(**load_config("datasets/voc/config.yml"))
+        self.config = DatasetCfg(
+            **load_config(Path(__file__).parent.joinpath("config.yml"))
+        )
         self.root = Path(root or self.config.ROOT)
         self.year = year
         self.mode = mode
-        self.class_names = class_names or load_classes(self.config.CLASSES_PATH)
+        self.class_names = class_names or load_classes(
+            Path(__file__).parent.parent.parent.joinpath(self.config.CLASSES_PATH)
+        )
         self.transform = transform
 
         self.labels = []
@@ -83,10 +87,10 @@ class VOCDatasetRaw(torch.utils.data.Dataset):
         )
 
     def get_csv_path(self):
-        return f"datasets/voc/voc_{self.get_mode_filename()}.csv"
+        return Path(__file__).parent.joinpath(f"voc_{self.get_mode_filename()}.csv")
 
     def get_img(self, idx: int):
-        img = load_image(self.get_img_filename(idx))
+        img: np.ndarray = load_image(self.get_img_filename(idx), is_numpy=True)
         h, w, _ = img.shape
 
         return img, h, w
@@ -150,11 +154,15 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
         class_names: list[str] = [],
         transform=None,
     ):
-        self.config = DatasetCfg(**load_config("datasets/voc/config.yml"))
+        self.config = DatasetCfg(
+            **load_config(Path(__file__).parent.joinpath("config.yml"))
+        )
         self.root = Path(root or self.config.ROOT)
         self.csv_root = Path(csv_root or self.config.CSV_ROOT)
         self.mode = mode
-        self.class_names = class_names or load_classes(self.config.CLASSES_PATH)
+        self.class_names = class_names or load_classes(
+            Path(__file__).parent.parent.parent.joinpath(self.config.CLASSES_PATH)
+        )
         self.transform = transform
 
         self.table = pd.read_csv(
@@ -196,7 +204,7 @@ class VOCDatasetFromCSV(torch.utils.data.Dataset):
 
     def get_img(self, path: str) -> np.ndarray:
         img_path = path.replace("Annotations", "JPEGImages").replace("xml", "jpg")
-        img = load_image(img_path)
+        img: np.ndarray = load_image(img_path, is_numpy=True)
 
         return img
 

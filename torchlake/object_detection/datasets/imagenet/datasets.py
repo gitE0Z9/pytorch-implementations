@@ -1,13 +1,12 @@
 import os
-from glob import glob
 from pathlib import Path
 from xml.etree import cElementTree as etree
 
 import torch
-from object_detection.utils.plot import load_image
-from object_detection.constants.enums import OperationMode
-from object_detection.utils.config import load_config, load_classes
-from object_detection.datasets.schema import DatasetCfg
+from torchlake.common.utils.image import load_image
+from torchlake.object_detection.constants.enums import OperationMode
+from torchlake.object_detection.datasets.schema import DatasetCfg
+from torchlake.object_detection.utils.config import load_classes, load_config
 
 
 class ImageNetDataset(torch.utils.data.Dataset):
@@ -59,7 +58,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx: int):
         img_path = self.img_list[idx]
-        img = load_image(img_path)
+        img = load_image(img_path, is_numpy=True)
 
         if self.transform:
             img = self.transform(image=img)["image"]
