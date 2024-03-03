@@ -95,14 +95,14 @@ class YOLOLoss(nn.Module):
         # clean the other bbox block with wrong confidence
         noobj_loss = F.mse_loss(
             (1 - positives) * coord_prediction[:, :, 4:5, :, :],
-            positives * 0,  # all zeros
+            torch.zeros_like(positives),  # all zeros
             reduction="sum",
         )
 
         total_loss = (
             cls_loss
             + self.lambda_noobject * noobj_loss
-            + self.lambda_coord * obj_loss
+            + obj_loss
             + self.lambda_coord * (xy_loss + wh_loss)
         )
 

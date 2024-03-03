@@ -1,24 +1,19 @@
+# import os
+from pathlib import Path
 from typing import List
 
 import albumentations as A
 import pandas as pd
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from object_detection.constants.enums import (
-    NetworkType,
-    OperationMode,
-    PRCurveInterpolation,
-)
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
-from object_detection.utils.eval import average_precision, matched_gt_and_det
-from object_detection.utils.inference import (
-    generate_grid,
-    model_predict,
-)
-from object_detection.utils.train import build_targets
 
-from object_detection.controller.controller import Controller
+from ..constants.enums import NetworkType, OperationMode, PRCurveInterpolation
+from ..controller.controller import Controller
+from ..utils.eval import average_precision, matched_gt_and_det
+from ..utils.inference import generate_grid, model_predict
+from ..utils.train import build_targets
 
 
 class Evaluator(Controller):
@@ -64,7 +59,7 @@ class Evaluator(Controller):
             )
 
             # return w,h
-            labels[:, :, 2:4] = labels[:, :, 2:4] * IMAGE_SIZE
+            labels[:, :, 2:4] *= IMAGE_SIZE
             grid_x, grid_y = generate_grid(GRID_SIZE, GRID_SIZE)
             # return x1
             labels[:, :, 0] = (
@@ -76,16 +71,15 @@ class Evaluator(Controller):
                 labels[:, :, 1] * IMAGE_SIZE + grid_y * SCALE - labels[:, :, 3] / 2
             )
 
-            for i in range(batch_size):
-                # 1, 25, 13, 13
-                single_label = labels[i]
+            for single_label, single_detection in zip(labels, detections):
+                # shape: 1, C+5, 13, 13, shape: N, C+5
+
                 # 169, 25
                 single_label = single_label.view(NUM_CLASSES + 5, -1).transpose(0, 1)
-                # leave exist object
+                # remove empty cell
                 single_label = single_label[single_label[:, 4] == 1]
                 label_count = single_label[:, 5:].sum(0)
 
-                single_detection = detections[i]  # N, C+5
                 cls_prediction = single_detection[:, 5:].argmax(1)
 
                 for class_index, class_name in enumerate(self.class_names):
@@ -143,12 +137,15 @@ class Evaluator(Controller):
                     #     assert tmp_table[2] == 0
 
         # calculate pr curve and auc
-        if self.dataset_name == "VOC":
-            interpolation = PRCurveInterpolation.VOC.value
-        elif self.dataset_name == "COCO":
-            interpolation = PRCurveInterpolation.COCO.value
-        else:
-            interpolation = PRCurveInterpolation.ALL.value
+        interpolation_mapping = {
+            "VOC": PRCurveInterpolation.VOC.value,
+            "COCO": PRCurveInterpolation.COCO.value,
+        }
+
+        interpolation = interpolation_mapping.get(
+            self.dataset_name,
+            PRCurveInterpolation.ALL.value,
+        )
 
         for class_index in AP:
             AP[class_index] = average_precision(
@@ -173,7 +170,13 @@ class Evaluator(Controller):
             accuracy / len(self.data[OperationMode.TEST.value]["dataset"]),
         )
 
-    def evaluate(self, weight_paths: List[str], store: bool, description: str):
+    def evaluate(
+        self,
+        weight_paths: List[str],
+        verbose: bool = True,
+        description: str = "",
+        save_dir: str = None,
+    ):
         """main function for evaluate"""
         self.prepare_inference()
         self.load_dataset(OperationMode.TEST.value)
@@ -195,10 +198,13 @@ class Evaluator(Controller):
                 index=results.keys(),
             )
 
-            print(result_table)
+            if verbose:
+                print(result_table)
 
-            if store:
-                result_table.to_csv("eval.csv")
+            if save_dir:
+                # os.makedirs(save_dir, exist_ok=True)
+                dst = Path(save_dir).joinpath("eval.csv")
+                result_table.to_csv(dst.as_posix())
 
             if description:
                 self.writer = SummaryWriter()

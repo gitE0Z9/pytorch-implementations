@@ -6,16 +6,16 @@ import albumentations as A
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from object_detection.adapter.adapter import DetectorLossAdapter, OptimizerAdapter
 from albumentations.pytorch.transforms import ToTensorV2
-from object_detection.constants.enums import NetworkStage, NetworkType, OperationMode
 from tensorboardX import SummaryWriter
 from torch.cuda.amp import autocast
+from torch.utils.data import DataLoader
 from tqdm import tqdm
-from object_detection.utils.train import collate_fn
 
-from object_detection.controller.controller import Controller
+from ..adapter.adapter import DetectorLossAdapter, OptimizerAdapter
+from ..constants.enums import NetworkStage, NetworkType, OperationMode
+from ..controller.controller import Controller
+from ..utils.train import collate_fn
 
 
 class Trainer(Controller):
@@ -38,15 +38,16 @@ class Trainer(Controller):
                     A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
-                    A.augmentations.geometric.resize.SmallestMaxSize(input_size),
-                    A.RandomSizedBBoxSafeCrop(input_size, input_size),
+                    A.Resize(input_size, input_size),
+                    # A.augmentations.geometric.resize.SmallestMaxSize(input_size),
+                    # A.RandomSizedBBoxSafeCrop(input_size, input_size),
                     A.Normalize(),
                     ToTensorV2(),
                 ],
                 bbox_params=A.BboxParams(
                     format="yolo",
-                    # min_area=1024,
-                    # min_visibility=0.3,
+                    min_area=1024,
+                    min_visibility=0.3,
                 ),
             )
         elif self.network_type == NetworkType.CLASSIFIER.value:
@@ -55,14 +56,32 @@ class Trainer(Controller):
                     A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
-                    A.augmentations.geometric.resize.SmallestMaxSize(input_size),
-                    A.RandomResizedCrop(input_size, input_size),
+                    # A.augmentations.geometric.resize.SmallestMaxSize(input_size),
+                    # A.RandomResizedCrop(input_size, input_size),
                     A.Normalize(),
                     ToTensorV2(),
                 ]
             )
 
         self.data[OperationMode.TRAIN.value]["preprocess"] = preprocess
+
+    def set_multiscale(self):
+        training_cfg = self.get_training_cfg()
+
+        if self.network_type == NetworkType.DETECTOR.value and training_cfg.MULTISCALE:
+            random_scale = random.randint(10, 19) * self.cfg.MODEL.SCALE
+            self.set_preprocess(random_scale)
+            self.load_dataset(OperationMode.TRAIN.value)
+            if random_scale > training_cfg.IMAGE_SIZE:
+                loader = DataLoader(
+                    self.data[OperationMode.TRAIN.value]["dataset"],
+                    batch_size=training_cfg.BATCH_SIZE // 2,
+                    collate_fn=collate_fn,
+                    shuffle=True,
+                )
+                self.data[OperationMode.TRAIN.value]["loader"] = loader
+
+                self.acc_iter = 64 // training_cfg.BATCH_SIZE
 
     def load_loss(self):
         """
@@ -85,10 +104,6 @@ class Trainer(Controller):
     def load_optimizer(self):
         """Load optimizer, only adam & sgd provided."""
         optimizer_cfg = self.get_training_cfg().OPTIM
-        self.lr = optimizer_cfg.LR
-        self.decay = optimizer_cfg.DECAY
-        self.momentum = optimizer_cfg.MOMENTUM
-
         adapter = OptimizerAdapter(optimizer_cfg)
         self.optimizer = adapter.get_optimizer(self.model.parameters())
 
@@ -96,6 +111,33 @@ class Trainer(Controller):
         """load scaler if amp enabled."""
         if self.cfg.HARDWARE.AMP:
             self.scaler = torch.cuda.amp.GradScaler()
+
+    def prepare_train(self):
+        training_cfg = self.get_training_cfg()
+
+        if self.network_type == NetworkType.DETECTOR.value:
+            self.load_detector()
+            self.set_preprocess(training_cfg.IMAGE_SIZE)
+
+        elif self.network_type == NetworkType.CLASSIFIER.value:
+            assert self.stage in [
+                NetworkStage.FINETUNE.value,
+                NetworkStage.SCRATCH.value,
+            ], 'CLASSIFIER can be trained with stage ["finetune", "scratch"]'
+            self.load_classifier(stage=self.stage)
+            self.set_preprocess(
+                (
+                    training_cfg.FINETUNE.IMAGE_SIZE
+                    if self.stage == NetworkStage.FINETUNE.value
+                    else training_cfg.IMAGE_SIZE
+                ),
+            )
+
+        self.load_dataset(OperationMode.TRAIN.value)
+        self.load_loss()
+        self.load_optimizer()
+
+        self.model.train()
 
     def train(self, description: str):
         """main function for train"""
@@ -189,49 +231,6 @@ class Trainer(Controller):
             print(running_loss / dataset_size)
 
         self.writer.close()
-
-    def prepare_train(self):
-        training_cfg = self.get_training_cfg()
-
-        if self.network_type == NetworkType.DETECTOR.value:
-            self.load_detector()
-            self.set_preprocess(training_cfg.IMAGE_SIZE)
-
-        elif self.network_type == NetworkType.CLASSIFIER.value:
-            assert self.stage in [
-                NetworkStage.FINETUNE.value,
-                NetworkStage.SCRATCH.value,
-            ], 'CLASSIFIER can be trained with stage ["finetune", "scratch"]'
-            self.load_classifier(stage=self.stage)
-            self.set_preprocess(
-                training_cfg.FINETUNE.IMAGE_SIZE
-                if self.stage == NetworkStage.FINETUNE.value
-                else training_cfg.IMAGE_SIZE,
-            )
-
-        self.load_dataset(OperationMode.TRAIN.value)
-        self.load_loss()
-        self.load_optimizer()
-
-        self.model.train()
-
-    def set_multiscale(self):
-        training_cfg = self.get_training_cfg()
-
-        if self.network_type == NetworkType.DETECTOR.value and training_cfg.MULTISCALE:
-            random_scale = random.randint(10, 19) * self.cfg.MODEL.SCALE
-            self.set_preprocess(random_scale)
-            self.load_dataset(OperationMode.TRAIN.value)
-            if random_scale > training_cfg.IMAGE_SIZE:
-                loader = DataLoader(
-                    self.data[OperationMode.TRAIN.value]["dataset"],
-                    batch_size=training_cfg.BATCH_SIZE // 2,
-                    collate_fn=collate_fn,
-                    shuffle=True,
-                )
-                self.data[OperationMode.TRAIN.value]["loader"] = loader
-
-                self.acc_iter = 64 // training_cfg.BATCH_SIZE
 
     def save_weight(self, epoch: int):
         file_name = f"{self.cfg.MODEL.NAME}.{self.cfg.MODEL.BACKBONE}.{epoch}.pth"

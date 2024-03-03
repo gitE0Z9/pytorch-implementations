@@ -23,10 +23,10 @@ TRAIN:
       DECAY: 0.0005
       MOMENTUM: 0.9
     START_EPOCH: 0
-    END_EPOCH: 10
+    END_EPOCH: 150
     MULTISCALE: false
     SAVE:
-      DIR: "artifacts/yolov1/resnet18/test2"
+      DIR: "artifacts/yolov1/resnet18"
       INTERVAL: 10
   CLASSIFIER:
     IMAGE_SIZE: 224

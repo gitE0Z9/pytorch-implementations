@@ -20,7 +20,7 @@ def tensor2np_uint8(img: torch.Tensor) -> np.ndarray:
 def draw_label(img: np.ndarray, label: torch.Tensor, width: int, height: int):
     """draw detection label"""
 
-    for x, y, w, h, c in label:
+    for x, y, w, h, _ in label:
         x, y, w, h = x * width, y * height, w * width, h * height
         x1, y1, x2, y2 = (
             int(x - w / 2),

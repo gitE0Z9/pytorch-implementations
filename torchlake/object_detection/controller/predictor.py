@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from object_detection.constants.enums import NetworkType, OperationMode
-from object_detection.utils.inference import model_predict
-from object_detection.utils.plot import draw_pred, load_image
+from torchlake.common.utils.image import load_image
 
-from object_detection.controller.controller import Controller
+from ..constants.enums import NetworkType, OperationMode
+from ..controller.controller import Controller
+from ..utils.inference import model_predict
+from ..utils.plot import draw_pred
 
 
 class Predictor(Controller):
@@ -30,7 +31,7 @@ class Predictor(Controller):
 
         self.data[OperationMode.TEST.value]["preprocess"] = preprocess
 
-    def detect_single_image(self, image: np.ndarray, transform) -> torch.Tensor:
+    def detect_single_image(self, image: np.ndarray, transform) -> list[torch.Tensor]:
         img_h, img_w, _ = image.shape
 
         image = transform(image=image)["image"].to(self.device)
@@ -50,7 +51,7 @@ class Predictor(Controller):
         assert isinstance(image_paths, list), "image should be a list."
 
         for image_path in image_paths:
-            original_image = load_image(image_path)
+            original_image = load_image(image_path, is_numpy=True)
             detections = self.detect_single_image(original_image, transform)
 
             if self.network_type == NetworkType.DETECTOR.value:
@@ -71,7 +72,7 @@ class Predictor(Controller):
 
                 if save_dir:
                     filename = Path(image_path).name
-                    dst = Path(save_dir).with_name(filename)
+                    dst = Path(save_dir).joinpath(filename)
                     cv2.imwrite(dst.as_posix(), copied_image[:, :, ::-1])
 
             elif self.network_type == NetworkType.CLASSIFIER.value:
@@ -93,7 +94,8 @@ class Predictor(Controller):
 
         # writing video
         if save_dir:
-            dst = Path(save_dir).with_name(Path(video_path).name)
+            filename = Path(video_path).name
+            dst = Path(save_dir).joinpath(filename)
             ext = Path(video_path).suffix.replace(".", "")
             if ext == "avi":
                 encoder = cv2.VideoWriter_fourcc(*"XVID")

@@ -1,26 +1,23 @@
-from importlib import import_module
+from pathlib import Path
 import platform
+from importlib import import_module
 
 import torch
 import torch.nn as nn
 import torchvision
-from object_detection.configs.schema import (
-    ClassifierTrainingCfg,
-    DetectorTrainingCfg,
-    Setting,
-)
-from object_detection.datasets.schema import DatasetCfg
-from object_detection.datasets.imagenet.datasets import ImageNetDataset
-from object_detection.datasets.voc.datasets import VOCDatasetFromCSV
-from object_detection.datasets.coco.datasets import COCODatasetFromCSV
-from object_detection.utils.config import load_classes, load_config
-from object_detection.utils.plot import rand_color
-from object_detection.utils.train import collate_fn
 from torch.utils.data import DataLoader
 
-from object_detection.constants.enums import NetworkStage, NetworkType, OperationMode
-from object_detection.constants.schema import DetectorContext
-from object_detection.models.yolov1.decode import yolo_postprocess
+from ..configs.schema import ClassifierTrainingCfg, DetectorTrainingCfg, Setting
+from ..constants.enums import NetworkStage, NetworkType, OperationMode
+from ..constants.schema import DetectorContext
+from ..datasets.coco.datasets import COCODatasetFromCSV
+from ..datasets.imagenet.datasets import ImageNetDataset
+from ..datasets.schema import DatasetCfg
+from ..datasets.voc.datasets import VOCDatasetFromCSV
+from ..models.yolov1.decode import yolo_postprocess
+from ..utils.config import load_classes, load_config
+from ..utils.plot import rand_color
+from ..utils.train import collate_fn
 
 
 class Controller:
@@ -45,7 +42,9 @@ class Controller:
         self.dataset_name = dataset_name.upper()
 
         dataset_cfg = self.get_dataset_cfg()
-        self.class_names = load_classes(dataset_cfg.CLASSES_PATH)
+        self.class_names = load_classes(
+            Path(__file__).parent.parent.absolute().joinpath(dataset_cfg.CLASSES_PATH)
+        )
 
         self.model = None
         self.data = {
@@ -82,9 +81,13 @@ class Controller:
 
     def get_dataset_cfg(self) -> DatasetCfg:
         return DatasetCfg(
-            **load_config(f"datasets/{self.dataset_name.lower()}/config.yml")
+            **load_config(
+                Path(__file__).parent.parent.joinpath(
+                    f"datasets/{self.dataset_name.lower()}/config.yml"
+                )
+            )
         )
-        
+
     def get_num_workers(self) -> int:
         if platform.system() == "Windows":
             return 0
@@ -101,7 +104,9 @@ class Controller:
         ):
             model_class = getattr(torchvision.models, backbone)
         else:
-            classifier_module = import_module(f"models.{self.cfg.MODEL.NAME}.network")
+            classifier_module = import_module(
+                f"torchlake.object_detection.models.{self.cfg.MODEL.NAME}.network"
+            )
             model_class = getattr(
                 classifier_module, self.cfg.MODEL.BACKBONE.capitalize()
             )
@@ -116,7 +121,9 @@ class Controller:
         else:
             class_name = f"{self.cfg.MODEL.NAME.capitalize()}"
 
-        detector_module = import_module(f"models.{self.cfg.MODEL.NAME}.detector")
+        detector_module = import_module(
+            f"torchlake.object_detection.models.{self.cfg.MODEL.NAME}.detector"
+        )
         model_class = getattr(detector_module, class_name)
 
         return model_class
@@ -129,6 +136,9 @@ class Controller:
             num_classes=self.get_dataset_cfg().NUM_CLASSES,
             num_anchors=self.cfg.MODEL.NUM_ANCHORS,
         )
+
+    def set_preprocess(self):
+        raise NotImplementedError
 
     def load_classifier(self, stage: str):
         """Load classifier with corresponding network stage."""
@@ -200,9 +210,14 @@ class Controller:
 
         self.model = self.model.to(self.device)
 
-    def load_weight(self, weight_path: str):
+    def load_weight(self, weight_path: str | Path):
         """Load weight"""
-        assert weight_path, "Please provide weight path."
+        assert weight_path and isinstance(
+            weight_path, str | Path
+        ), "Please provide weight path."
+
+        if isinstance(weight_path, Path):
+            weight_path = weight_path.as_posix()
 
         self.model.load_state_dict(torch.load(weight_path))
 
@@ -215,33 +230,31 @@ class Controller:
 
         """
         num_workers = self.get_num_workers()
-        
-        if self.dataset_name == "VOC":
-            batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
 
-            self.data[mode]["dataset"] = VOCDatasetFromCSV(
-                mode=mode,
-                transform=self.data[mode]["preprocess"],
-            )
+        dataset_mapping = {
+            "VOC": VOCDatasetFromCSV,
+            "IMAGENET": ImageNetDataset,
+            "COCO": COCODatasetFromCSV,
+        }
 
+        dataset_class = dataset_mapping.get(self.dataset_name)
+        self.data[mode]["dataset"] = dataset_class(
+            mode=mode,
+            transform=self.data[mode]["preprocess"],
+        )
+
+        if self.dataset_name in ["VOC", "COCO"]:
             self.data[mode]["loader"] = DataLoader(
                 self.data[mode]["dataset"],
-                batch_size=batch,
+                batch_size=self.cfg.TRAIN.DETECTOR.BATCH_SIZE,
                 collate_fn=collate_fn,
                 shuffle=mode == OperationMode.TRAIN.value,
-                drop_last=True,
+                # drop_last=True,
                 num_workers=num_workers,
                 pin_memory=True,
             )
-
-        elif self.dataset_name == "IMAGENET":
+        elif self.dataset_name in ["IMAGENET"]:
             batch = self.cfg.TRAIN.CLASSIFIER.BATCH_SIZE
-
-            self.data[mode]["dataset"] = ImageNetDataset(
-                mode=mode,
-                transform=self.data[mode]["preprocess"],
-            )
-
             if (
                 mode == OperationMode.TRAIN.value
                 and self.stage == NetworkStage.FINETUNE.value
@@ -255,37 +268,20 @@ class Controller:
                 num_workers=num_workers,
                 pin_memory=True,
             )
-
-        elif self.dataset_name == "COCO":
-            batch = self.cfg.TRAIN.DETECTOR.BATCH_SIZE
-
-            self.data[mode]["dataset"] = COCODatasetFromCSV(
-                mode=mode,
-                transform=self.data[mode]["preprocess"],
-            )
-
-            self.data[mode]["loader"] = DataLoader(
-                self.data[mode]["dataset"],
-                batch_size=batch,
-                collate_fn=collate_fn,
-                shuffle=mode == OperationMode.TRAIN.value,
-                num_workers=num_workers,
-                pin_memory=True,
-            )
         else:
             raise NotImplementedError
 
     def load_decoder(self, context: DetectorContext):
         MODEL_NAME = self.cfg.MODEL.NAME
 
-        module = import_module(f"models.{MODEL_NAME}.decode")
+        module = import_module(f"torchlake.object_detection.models.{MODEL_NAME}.decode")
 
         self.decoder = getattr(module, "Decoder")(context)
 
     def prepare_inference(self):
         training_cfg = self.get_training_cfg()
 
-        # implement in each controller
+        # TODO: implement in each child class
         self.set_preprocess(training_cfg.IMAGE_SIZE)
 
         transform = self.data[OperationMode.TEST.value]["preprocess"]
@@ -303,7 +299,7 @@ class Controller:
         self,
         output: torch.Tensor,
         img_size: tuple[int, int],
-    ) -> torch.Tensor:
+    ) -> list[torch.Tensor]:
         dataset_cfg = self.get_dataset_cfg()
 
         MODEL_NAME = self.cfg.MODEL.NAME
