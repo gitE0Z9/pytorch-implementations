@@ -17,10 +17,26 @@ def tensor2np_uint8(img: torch.Tensor) -> np.ndarray:
 
 
 # labels
-def draw_label(img: np.ndarray, label: torch.Tensor, width: int, height: int):
-    """draw detection label"""
+def draw_label(
+    img: np.ndarray,
+    label: torch.Tensor,
+    class_names: List[str],
+    class_show: bool = True,
+    class_colors: Dict[str, List[int]] = None,
+):
+    """draw detection label
 
-    for x, y, w, h, _ in label:
+    Args:
+        img (np.ndarray): image
+        label (torch.Tensor): scaled x,y,w,h coordinates and class index
+        class_name (List[str]): class names
+        class_show (bool, optional): show class and score. Defaults to True.
+        verbose (bool, optional): print out class and score. Defaults to True.
+        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to None.
+    """
+    height, width, _ = img.shape
+
+    for x, y, w, h, c in label:
         x, y, w, h = x * width, y * height, w * width, h * height
         x1, y1, x2, y2 = (
             int(x - w / 2),
@@ -28,30 +44,62 @@ def draw_label(img: np.ndarray, label: torch.Tensor, width: int, height: int):
             int(x + w / 2),
             int(y + h / 2),
         )
-        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        class_name = class_names[c]
+        class_info = f"{class_name}"
+        color = class_colors.get(class_name, (0, 0, 255))
+
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+
+        if class_show:
+            x1 = x1
+            x2 = int(x1 + w)
+            y1 = max(y1 - 30, 0)
+            y2 = y1 if y1 > 0 else y1 + 40
+            cv2.rectangle(img, (x1, y1), (x2, y2), color, -1)
+
+            tx = x1 + 5
+            ty = y1 - 10 if y1 > 0 else y1 + 35
+            cv2.putText(
+                img,
+                text=class_info,
+                org=(tx, ty),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.8,
+                color=(255, 255, 255),
+                thickness=1,
+            )
 
 
 def draw_pred(
     img: np.ndarray,
     bboxes: torch.Tensor,
-    class_name: List[str],
+    class_names: List[str],
     class_show: bool = True,
     verbose: bool = True,
-    class_color: Dict[str, List[int]] = None,
+    class_colors: Dict[str, List[int]] = None,
 ):
-    """draw predicted bbox"""
+    """draw predicted bbox
+
+    Args:
+        img (np.ndarray): image
+        bboxes (torch.Tensor): decoded bounding boxes
+        class_name (List[str]): class names
+        class_show (bool, optional): show class and score. Defaults to True.
+        verbose (bool, optional): print out class and score. Defaults to True.
+        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to None.
+    """
 
     for bbox in bboxes:
         x, y, w, h, _ = bbox[:5]
         x, y, w, h = int(x), int(y), int(w), int(h)
         prob, cls_index = bbox[5:].max(0)
         prob = prob.numpy().round(2)
-        cls_name = class_name[cls_index.item()]
-        class_info = f"{cls_name}: {prob :.2f}"
+        class_name = class_names[cls_index.item()]
+        class_info = f"{class_name}: {prob :.2f}"
         if verbose:
             print(class_info)
 
-        color = class_color.get(cls_name, (0, 0, 255))
+        color = class_colors.get(class_name, (0, 0, 255))
 
         cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
 

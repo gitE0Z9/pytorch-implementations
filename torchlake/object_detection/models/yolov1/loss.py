@@ -24,7 +24,7 @@ class YOLOLoss(nn.Module):
         self.epsilon = 1e-5
         self.iou_threshold = iou_threshold
 
-    def responsible_iou(
+    def match(
         self,
         prediction: torch.Tensor,
         groundtruth: torch.Tensor,
@@ -61,9 +61,9 @@ class YOLOLoss(nn.Module):
         # iou indicator
         # left only 49 predictors
         # N, 1, 1, 7, 7 | N, 2, 1, 7, 7
-        ious, best_box = self.responsible_iou(coord_prediction, groundtruth)
+        ious, best_box = self.match(coord_prediction, groundtruth)
 
-        positives = obj_here * best_box
+        positives = best_box * obj_here
 
         # class loss / objecness loss / xywh loss
         # indicator has to be inside the loss function

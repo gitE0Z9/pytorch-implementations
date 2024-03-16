@@ -64,7 +64,7 @@ class Decoder:
         """
         num_anchors = self.context.num_anchors
         num_classes = self.context.num_classes
-        batch_size, channel_size, fm_h, fm_w = feature_map.shape
+        batch_size, _, fm_h, fm_w = feature_map.shape
 
         # batch_size, boxes, 5, grid_y, grid_x
         feature_map_coord = feature_map[:, : 5 * num_anchors, :, :].reshape(
