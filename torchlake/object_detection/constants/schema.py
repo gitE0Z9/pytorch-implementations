@@ -7,3 +7,4 @@ class DetectorContext(BaseModel):
     device: str
     num_classes: int
     num_anchors: int | list[int]
+    anchors_path: str = ""

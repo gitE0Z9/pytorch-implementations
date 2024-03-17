@@ -1,5 +1,43 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
+
+from torchlake.common.network import ConvBnRelu
+
+
+class ConvBlock(nn.Module):
+    """ConvBNReLU block"""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        stride: int = 1,
+        enable_bn: bool = True,
+        enable_relu: bool = False,
+    ):
+        super(ConvBlock, self).__init__()
+
+        self.conv = ConvBnRelu(
+            in_channels,
+            out_channels,
+            (kernel, kernel),
+            padding=kernel // 2,
+            stride=stride,
+            enable_bn=enable_bn,
+            enable_relu=enable_relu,
+        )
+
+        if not enable_relu:
+            self.activation = nn.LeakyReLU(0.1, True)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.conv(x)
+        if getattr(self, "activation", None):
+            y = self.activation(y)
+
+        return y
 
 
 class RegHead(nn.Module):

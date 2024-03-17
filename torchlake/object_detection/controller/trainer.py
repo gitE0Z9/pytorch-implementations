@@ -35,19 +35,19 @@ class Trainer(Controller):
         if self.network_type == NetworkType.DETECTOR.value:
             preprocess = A.Compose(
                 [
-                    A.ColorJitter(p=0.5),
+                    # A.ColorJitter(p=0.5),
                     A.HorizontalFlip(p=0.5),
                     A.ShiftScaleRotate(p=0.5, rotate_limit=0),
                     A.Resize(input_size, input_size),
                     # A.augmentations.geometric.resize.SmallestMaxSize(input_size),
                     # A.RandomSizedBBoxSafeCrop(input_size, input_size),
-                    A.Normalize(),
+                    A.Normalize(mean=0, std=1),
                     ToTensorV2(),
                 ],
                 bbox_params=A.BboxParams(
                     format="yolo",
-                    min_area=1024,
-                    min_visibility=0.3,
+                    # min_area=1024,
+                    # min_visibility=0.3,
                 ),
             )
         elif self.network_type == NetworkType.CLASSIFIER.value:
@@ -136,6 +136,7 @@ class Trainer(Controller):
         self.load_dataset(OperationMode.TRAIN.value)
         self.load_loss()
         self.load_optimizer()
+        self.load_scaler()
 
         self.model.train()
 
@@ -181,11 +182,10 @@ class Trainer(Controller):
                 with autocast(enabled=self.cfg.HARDWARE.AMP):
                     output: torch.Tensor = self.model(imgs)
 
+                    kwargs = {}
                     if self.network_type == NetworkType.DETECTOR.value:
                         kwargs = self.get_detector_loss_kwargs(seen)
-                        loss: torch.Tensor = self.loss(output, labels, **kwargs)
-                    elif self.network_type == NetworkType.CLASSIFIER.value:
-                        loss: torch.Tensor = self.loss(output, labels)
+                    loss: torch.Tensor = self.loss(output, labels, **kwargs)
 
                     loss = loss / self.acc_iter
 

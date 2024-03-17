@@ -157,6 +157,21 @@ A library for object detection.
 
 * `save_dir`: directory to save results.
 
+## Weights
+
+### Yolov1's backbone Extraction
+
+```sh
+curl -o extraction.weights https://pjreddie.com/media/files/extraction.weights
+```
+
+```py
+from torchlake.object_detection.utils.convert_darknet import convert_weight
+
+conver_weight('extraction.weights', 'extraction.pth')
+
+```
+
 ## TODO
 
 [] cfg inherit

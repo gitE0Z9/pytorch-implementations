@@ -6,7 +6,7 @@ HARDWARE:
 MODEL:
   NAME: "yolov1"
   BACKBONE: "extraction"
-  NUM_ANCHORS: 2
+  NUM_ANCHORS: 3
   SCALE: 64
   CLASSIFIER_PATH: ""
   DETECTOR_PATH: ""
@@ -18,7 +18,7 @@ TRAIN:
     BATCH_SIZE: 16
     ACC_ITER: 4
     OPTIM:
-      TYPE: "adam"
+      TYPE: "sgd"
       LR: 0.0001
       DECAY: 0.0005
       MOMENTUM: 0.9

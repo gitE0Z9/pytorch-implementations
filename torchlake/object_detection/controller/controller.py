@@ -135,6 +135,7 @@ class Controller:
             device=self.device,
             num_classes=self.get_dataset_cfg().NUM_CLASSES,
             num_anchors=self.cfg.MODEL.NUM_ANCHORS,
+            anchors_path=self.cfg.MODEL.ANCHORS_PATH,
         )
 
     def set_preprocess(self):
@@ -142,25 +143,22 @@ class Controller:
 
     def load_classifier(self, stage: str):
         """Load classifier with corresponding network stage."""
-
         model_cfg = self.cfg.MODEL
-
+        classifier_path = model_cfg.CLASSIFIER_PATH
         model_class = self.get_classifier_class()
 
-        # load trained weight
-        if stage == NetworkStage.INFERENCE.value:
-            self.model: nn.Module = model_class()
-            self.load_weight(model_cfg.CLASSIFIER_PATH)
-        # load imagenet weight
+        kwargs = {}
+        if model_cfg.BACKBONE.startswith("resnet"):
+            kwargs["weights"] = True
+        self.model: nn.Module = model_class(**kwargs)
+
+        # load trained weight, imagenet weight
+        if stage == NetworkStage.INFERENCE.value and classifier_path:
+            self.load_weight(classifier_path)
         elif stage == NetworkStage.FINETUNE.value:
-            if model_cfg.BACKBONE.startswith("resnet"):
-                self.model = model_class(weights=True)
-            else:
-                self.model: nn.Module = model_class()
-                self.load_weight(model_cfg.CLASSIFIER_PATH)
-        # load random weight
-        elif stage == NetworkStage.SCRATCH.value:
-            self.model: nn.Module = model_class()
+            self.load_weight(classifier_path)
+        else:
+            print("random classifier weight from scratch")
 
         self.model = self.model.to(self.device)
 
@@ -288,10 +286,9 @@ class Controller:
 
         if self.network_type == NetworkType.DETECTOR.value:
             self.load_detector()
+            self.load_decoder(self.get_detector_context())
         elif self.network_type == NetworkType.CLASSIFIER.value:
             self.load_classifier(stage=NetworkStage.INFERENCE.value)
-
-        self.load_decoder(self.get_detector_context())
 
         return transform
 

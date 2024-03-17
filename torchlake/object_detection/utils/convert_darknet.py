@@ -1,10 +1,12 @@
 import re
+from typing import Literal
 import torch
 import torch.nn as nn
 import numpy as np
 import os
-from models.yolov1.network import Extraction
-from models.yolov2.network import Darknet19, ConvBlock, BottleNeck
+from ..models.yolov1.network import Extraction
+from ..models.yolov2.network import Darknet19, BottleNeck
+from torchlake.object_detection.models.base.network import ConvBlock
 
 
 def parse_config(cfg_path: str):
@@ -35,7 +37,10 @@ def parse_config(cfg_path: str):
     return output
 
 
-def convert_weight(model_name: str, weight_path: str):
+def convert_weight(
+    model_name: Literal["extraction"] | Literal["darknet19"],
+    weight_path: str,
+):
     assert model_name in ["extraction", "darknet19"]
 
     if model_name == "darknet19":
@@ -52,76 +57,82 @@ def convert_weight(model_name: str, weight_path: str):
         if isinstance(network_module, nn.Sequential):
             for layer in network_module:
                 if isinstance(layer, ConvBlock):
-                    bb = np.fromfile(
-                        weight_handle,
-                        count=layer.bn.bias.numel(),
-                        dtype=np.float32,
-                    )
-                    bw = np.fromfile(
-                        weight_handle,
-                        count=layer.bn.weight.numel(),
-                        dtype=np.float32,
-                    )
-                    bm = np.fromfile(
-                        weight_handle,
-                        count=layer.bn.running_mean.numel(),
-                        dtype=np.float32,
-                    )
-                    bv = np.fromfile(
-                        weight_handle,
-                        count=layer.bn.running_var.numel(),
-                        dtype=np.float32,
-                    )
+                    block = layer.conv
+
+                    if block.bn:
+                        bb = np.fromfile(
+                            weight_handle,
+                            count=block.bn.bias.numel(),
+                            dtype=np.float32,
+                        )
+                        bw = np.fromfile(
+                            weight_handle,
+                            count=block.bn.weight.numel(),
+                            dtype=np.float32,
+                        )
+                        bm = np.fromfile(
+                            weight_handle,
+                            count=block.bn.running_mean.numel(),
+                            dtype=np.float32,
+                        )
+                        bv = np.fromfile(
+                            weight_handle,
+                            count=block.bn.running_var.numel(),
+                            dtype=np.float32,
+                        )
                     cw = np.fromfile(
                         weight_handle,
-                        count=layer.conv.weight.numel(),
+                        count=block.conv.weight.numel(),
                         dtype=np.float32,
                     )
-                    layer.bn.bias.data.copy_(torch.from_numpy(bb))
-                    layer.bn.weight.data.copy_(torch.from_numpy(bw))
-                    layer.bn.running_mean.data.copy_(torch.from_numpy(bm))
-                    layer.bn.running_var.data.copy_(torch.from_numpy(bv))
-                    layer.conv.weight.data.copy_(
-                        torch.from_numpy(cw).reshape(layer.conv.weight.shape)
+
+                    if block.bn:
+                        block.bn.bias.data.copy_(torch.from_numpy(bb))
+                        block.bn.weight.data.copy_(torch.from_numpy(bw))
+                        block.bn.running_mean.data.copy_(torch.from_numpy(bm))
+                        block.bn.running_var.data.copy_(torch.from_numpy(bv))
+                    block.conv.weight.data.copy_(
+                        torch.from_numpy(cw).reshape(block.conv.weight.shape)
                     )
                     print("a")
                 elif isinstance(layer, BottleNeck):
                     for g in layer.conv:
                         if isinstance(g, ConvBlock):
+                            block = g.conv
                             bb = np.fromfile(
                                 weight_handle,
-                                count=g.bn.bias.numel(),
+                                count=block.bn.bias.numel(),
                                 dtype=np.float32,
                             )
                             bw = np.fromfile(
                                 weight_handle,
-                                count=g.bn.weight.numel(),
+                                count=block.bn.weight.numel(),
                                 dtype=np.float32,
                             )
                             bm = np.fromfile(
                                 weight_handle,
-                                count=g.bn.running_mean.numel(),
+                                count=block.bn.running_mean.numel(),
                                 dtype=np.float32,
                             )
                             bv = np.fromfile(
                                 weight_handle,
-                                count=g.bn.running_var.numel(),
+                                count=block.bn.running_var.numel(),
                                 dtype=np.float32,
                             )
                             cw = np.fromfile(
                                 weight_handle,
-                                count=g.conv.weight.numel(),
+                                count=block.conv.weight.numel(),
                                 dtype=np.float32,
                             )
-                            g.bn.bias.data.copy_(torch.from_numpy(bb))
-                            g.bn.weight.data.copy_(torch.from_numpy(bw))
-                            g.bn.running_mean.data.copy_(torch.from_numpy(bm))
-                            g.bn.running_var.data.copy_(torch.from_numpy(bv))
-                            g.conv.weight.data.copy_(
-                                torch.from_numpy(cw).reshape(g.conv.weight.shape)
+                            block.bn.bias.data.copy_(torch.from_numpy(bb))
+                            block.bn.weight.data.copy_(torch.from_numpy(bw))
+                            block.bn.running_mean.data.copy_(torch.from_numpy(bm))
+                            block.bn.running_var.data.copy_(torch.from_numpy(bv))
+                            block.conv.weight.data.copy_(
+                                torch.from_numpy(cw).reshape(block.conv.weight.shape)
                             )
                             print("b")
-                elif isinstance(layer, nn.Conv2d):
+                elif isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
                     b = np.fromfile(
                         weight_handle,
                         count=layer.bias.numel(),

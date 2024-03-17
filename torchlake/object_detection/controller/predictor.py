@@ -24,7 +24,7 @@ class Predictor(Controller):
         preprocess = A.Compose(
             [
                 A.Resize(input_size, input_size),
-                A.Normalize(),
+                A.Normalize(mean=0, std=1),
                 ToTensorV2(),
             ],
         )
@@ -36,7 +36,11 @@ class Predictor(Controller):
 
         image = transform(image=image)["image"].to(self.device)
         output = model_predict(self.model, image)
-        return self.postprocess(output, (img_h, img_w))[0]
+
+        if self.network_type == NetworkType.DETECTOR.value:
+            return self.postprocess(output, (img_h, img_w))[0]
+        else:
+            return output
 
     def predict_image_file(
         self,
@@ -59,9 +63,9 @@ class Predictor(Controller):
                 draw_pred(
                     copied_image,
                     detections,
-                    class_name=self.class_names,
+                    class_names=self.class_names,
                     class_show=True,
-                    class_color=self.palette,
+                    class_colors=self.palette,
                 )
 
                 print(image_path, len(detections))
@@ -76,7 +80,7 @@ class Predictor(Controller):
                     cv2.imwrite(dst.as_posix(), copied_image[:, :, ::-1])
 
             elif self.network_type == NetworkType.CLASSIFIER.value:
-                cls_idx = cls_idx.argmax(1).item()
+                cls_idx = detections.argmax(1).item()
                 print(image_path, self.class_names[cls_idx])
 
     def predict_video_file(
@@ -122,9 +126,9 @@ class Predictor(Controller):
             draw_pred(
                 copied_image,
                 detections,
-                class_name=self.class_names,
+                class_names=self.class_names,
                 class_show=True,
-                class_color=self.palette,
+                class_colors=self.palette,
             )
 
             if show:
