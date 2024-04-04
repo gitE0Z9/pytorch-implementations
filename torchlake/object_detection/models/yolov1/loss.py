@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchlake.common.utils.numerical import safe_sqrt
 from torchlake.object_detection.constants.schema import DetectorContext
-from torchlake.object_detection.utils.numerical import safe_sqrt
 from torchlake.object_detection.utils.train import IOU, build_targets
 
 
@@ -86,8 +86,9 @@ class YOLOLoss(nn.Module):
         )
 
         # sqrt numerical issue
+        wh = coord_prediction[:, :, 2:4, :, :]
         wh_loss = F.mse_loss(
-            positives * safe_sqrt(coord_prediction[:, :, 2:4, :, :]),
+            positives * wh.sign() * safe_sqrt(wh),
             positives * groundtruth[:, :, 2:4, :, :].sqrt(),
             reduction="sum",
         )

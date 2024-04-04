@@ -41,11 +41,17 @@ class ConvBlock(nn.Module):
 
 
 class RegHead(nn.Module):
-    def __init__(self, input_channel: int, num_classes: int, num_priors: int):
+    def __init__(
+        self,
+        input_channel: int,
+        num_classes: int,
+        num_priors: int,
+        coord_dims: int = 4,
+    ):
         super(RegHead, self).__init__()
         self.loc = nn.Conv2d(
             input_channel,
-            num_priors * 4,
+            num_priors * coord_dims,
             kernel_size=3,
             padding=1,
         )

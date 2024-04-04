@@ -42,6 +42,8 @@ class Extraction(nn.Module):
         )
 
         self.head = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
             nn.Linear(1024, 1000),
         )
 
@@ -52,7 +54,6 @@ class Extraction(nn.Module):
         y = self.conv_4(y)
         y = self.conv_5(y)
 
-        y = y.mean((2, 3))
         y = self.head(y)
 
         return y

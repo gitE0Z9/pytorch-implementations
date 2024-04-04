@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-import torchvision
 from torch import Tensor
 
+from ..base.detector import DetectorBase
 from ..base.network import ConvBlock
-from .network import Extraction
 
 
 class Yolov1(nn.Module):
@@ -35,6 +34,13 @@ class Yolov1(nn.Module):
             nn.Linear(256, 7 * 7 * (num_classes + num_boxes * 5)),
         )
 
+        for layer in self.conv_6.children():
+            torch.nn.init.kaiming_normal_(layer.conv.conv.weight)
+
+        for layer in self.head.children():
+            torch.nn.init.kaiming_normal_(layer.conv.conv.weight)
+            break
+
     def load_backbone(self, backbone: nn.Module, finetune_weight: str = ""):
         if finetune_weight:
             backbone.load_state_dict(torch.load(finetune_weight))
@@ -53,43 +59,33 @@ class Yolov1(nn.Module):
         return y
 
 
-class Yolov1Resnet(nn.Module):
+class Yolov1Resnet(DetectorBase):
     def __init__(
         self,
-        layer_number: int,
+        num_layer: int,
         num_boxes: int,
         num_classes: int,
         finetune_weight: str = "",
     ):
-        super(Yolov1Resnet, self).__init__()
+        self.assert_num_layer(num_layer)
+        super(Yolov1Resnet, self).__init__(
+            finetune_weight,
+            {"name": f"resnet{num_layer}"},
+        )
 
-        self.load_backbone(layer_number, finetune_weight)
-
-        # as paper suggested, deeper conv layer
-        # convhead-512 no first layer and all 512
+        # like paper, add 4 convs after backbone
         self.conv = nn.Sequential(
-            ConvBlock(512, 1024, 3, enable_relu=True),
-            ConvBlock(1024, 1024, 3, stride=2, enable_relu=True),
-            ConvBlock(1024, 1024, 3, enable_relu=True),
-            ConvBlock(1024, 1024, 3, enable_relu=True),
+            ConvBlock(512, 1024, 3, enable_relu=False),
+            ConvBlock(1024, 1024, 3, stride=2, enable_relu=False),
+            ConvBlock(1024, 1024, 3, enable_relu=False),
+            ConvBlock(1024, 1024, 3, enable_relu=False),
         )
 
         self.head = nn.Sequential(nn.Conv2d(1024, 5 * num_boxes + num_classes, 1))
 
-    def build_backbone(self, num_layer: int) -> nn.Module:
+    def assert_num_layer(self, num_layer: int) -> nn.Module:
         if num_layer not in [18, 34, 50]:
             raise NotImplementedError
-
-        return torchvision.models.get_model(f"resnet{num_layer}", weights="DEFAULT")
-
-    def load_backbone(self, num_layer: int, finetune_weight: str = ""):
-        backbone = self.build_backbone(num_layer)
-
-        if finetune_weight:
-            backbone.load_state_dict(torch.load(finetune_weight))
-        backbone.fc = nn.Identity()
-
-        self.backbone = backbone
 
     def forward(self, x: Tensor) -> Tensor:
         y = self.backbone.conv1(x)

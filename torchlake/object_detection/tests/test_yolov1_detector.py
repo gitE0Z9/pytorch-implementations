@@ -2,11 +2,12 @@ import torch
 from torch.testing import assert_close
 
 from ..models.yolov1.detector import Yolov1, Yolov1Resnet
+from ..models.yolov1.network import Extraction
 
 
 class TestYolov1:
     def test_output_shape(self):
-        model = Yolov1(2, 30)
+        model = Yolov1(Extraction(), 2, 30)
         test_x = torch.rand(2, 3, 448, 448)
 
         output: torch.Tensor = model(test_x)

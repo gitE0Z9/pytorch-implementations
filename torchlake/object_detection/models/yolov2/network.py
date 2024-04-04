@@ -1,30 +1,6 @@
-from torch import nn
-import torch.nn.functional as F
-from torch import Tensor
+from torch import Tensor, nn
 
-
-class ConvBlock(nn.Module):
-    """ConvBNReLU block"""
-
-    def __init__(
-        self, in_channels: int, out_channels: int, kernel: int, stride: int = 1
-    ):
-        super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(
-            in_channels,
-            out_channels,
-            (kernel, kernel),
-            padding=kernel // 2,
-            stride=stride,
-            bias=False,
-        )
-        self.bn = nn.BatchNorm2d(out_channels)
-
-    def forward(self, x: Tensor) -> Tensor:
-        tmp = self.conv(x)
-        tmp = self.bn(tmp)
-        tmp = F.leaky_relu(tmp, 0.1, inplace=True)
-        return tmp
+from ..base.network import ConvBlock
 
 
 class BottleNeck(nn.Module):
@@ -35,20 +11,20 @@ class BottleNeck(nn.Module):
     def __init__(self, channel: int, block_num: int):
         super(BottleNeck, self).__init__()
         self.conv = []
-        for b in range(block_num):
-            tmp = [channel // 2, channel]
-            k = 3
-            if b % 2 != 0:
-                tmp.reverse()
-                k = 1
-            in_channels, out_channels = tmp
-            self.conv += [ConvBlock(in_channels, out_channels, k)]
+        for block_idx in range(block_num):
+            channels = [channel // 2, channel]
+            kernel = 3
+            if block_idx % 2 != 0:
+                channels.reverse()
+                kernel = 1
+            in_channels, out_channels = channels
+            self.conv += [ConvBlock(in_channels, out_channels, kernel)]
 
         self.conv = nn.Sequential(*self.conv)
 
     def forward(self, x: Tensor) -> Tensor:
-        tmp = self.conv(x)
-        return tmp
+        y = self.conv(x)
+        return y
 
 
 class ReorgLayer(nn.Module):
@@ -99,19 +75,19 @@ class Darknet19(nn.Module):
             nn.MaxPool2d((2, 2), stride=2),
             BottleNeck(1024, 5),
         )
-        self.head = nn.Sequential(nn.Conv2d(1024, 1000, (1, 1)))
+        self.head = nn.Sequential(nn.Linear(1024, 1000))
 
     def forward(self, x: Tensor) -> Tensor:
         # 112 x 112 x 32 # conv stride 2 will reduce hw 2 times too
-        tmp = self.conv_1(x)
-        tmp = self.conv_2(tmp)  # 56 X 56 X 64
-        tmp = self.conv_3(tmp)  # 28 x 28 x 128
-        tmp = self.conv_4(tmp)  # 14 x 14 x 256
-        # 7 x 7 x 512 # conv stride 2 will reduce hw 2 times too
-        tmp = self.conv_5(tmp)
-        tmp = self.conv_6(tmp)  # 7 x 7 x 1024
+        y = self.conv_1(x)
+        y = self.conv_2(y)  # 64 x 56 x 56
+        y = self.conv_3(y)  # 128 x 28 x 28
+        y = self.conv_4(y)  # 256 x 14 x 14
+        # 512 x 7 x 7 # conv stride 2 will reduce hw 2 times too
+        y = self.conv_5(y)
+        y = self.conv_6(y)  # 1024 x 7 x 7
 
-        tmp = self.head(tmp)
-        tmp = tmp.mean(dim=(2, 3))
+        y = y.mean(dim=(2, 3))  # 1000
+        y = self.head(y)
 
-        return tmp
+        return y

@@ -1,12 +1,16 @@
 import torch
-from object_detection.constants.schema import DetectorContext
-from object_detection.models.yolov2.anchor import PriorBox
-from object_detection.utils.inference import generate_grid
+from torchlake.object_detection.constants.schema import DetectorContext
+from torchlake.object_detection.models.yolov2.anchor import PriorBox
+from torchlake.object_detection.utils.inference import generate_grid
 
 
 class Decoder:
     def __init__(self, context: DetectorContext):
-        self.anchors = PriorBox(context.num_anchors, context.dataset).anchors
+        self.anchors = PriorBox(
+            context.num_anchors,
+            context.dataset,
+            context.anchors_path,
+        ).anchors
 
     def decode(
         self,
@@ -24,37 +28,51 @@ class Decoder:
 
         grid_x, grid_y = generate_grid(fm_w, fm_h)
 
-        decoded = []
-        for a in range(num_anchors):
-            # batch_size, 1, grid_size x grid_size
-            cx = (
-                feature_map[:, a, 0:1, :, :].sigmoid() * input_w + grid_x * stride_x
-            ).reshape(batch_size, 1, -1)
-            cy = (
-                feature_map[:, a, 1:2, :, :].sigmoid() * input_h + grid_y * stride_y
-            ).reshape(batch_size, 1, -1)
-            w = (
-                feature_map[:, a, 2:3, :, :].exp()
-                * self.anchors[:, a, 0:1, :, :]
-                * input_w
-            ).reshape(batch_size, 1, -1)
-            h = (
-                feature_map[:, a, 3:4, :, :].exp()
-                * self.anchors[:, a, 1:2, :, :]
-                * input_h
-            ).reshape(batch_size, 1, -1)
-            conf = feature_map[:, a, 4:5, :, :].sigmoid().reshape(batch_size, 1, -1)
-            prob = (
-                feature_map[:, a, 5:, :, :]
-                .softmax(1)
-                .reshape(batch_size, num_classes, -1)
-            )
-            x = cx - w / 2
-            y = cy - h / 2
+        cx = (
+            feature_map[:, :, 0:1, :, :]
+            .sigmoid()
+            .multiply(input_w)
+            .add(grid_x * stride_x)
+            .transpose(1, 2)
+            .reshape(batch_size, 1, -1)
+        )
+        cy = (
+            feature_map[:, :, 1:2, :, :]
+            .sigmoid()
+            .multiply(input_h)
+            .add(grid_y * stride_y)
+            .transpose(1, 2)
+            .reshape(batch_size, 1, -1)
+        )
+        w = (
+            feature_map[:, :, 2:3, :, :]
+            .exp()
+            .multiply(self.anchors[:, :, 0:1, :, :])
+            .multiply(input_w)
+            .transpose(1, 2)
+            .reshape(batch_size, 1, -1)
+        )
+        h = (
+            feature_map[:, :, 3:4, :, :]
+            .exp()
+            .multiply(self.anchors[:, :, 1:2, :, :])
+            .multiply(input_h)
+            .transpose(1, 2)
+            .reshape(batch_size, 1, -1)
+        )
+        conf = (
+            feature_map[:, :, 4:5, :, :]
+            .sigmoid()
+            .transpose(1, 2)
+            .reshape(batch_size, 1, -1)
+        )
+        prob = (
+            feature_map[:, :, 5:, :, :]
+            .softmax(1)
+            .transpose(1, 2)
+            .reshape(batch_size, num_classes, -1)
+        )
+        x = cx - w / 2
+        y = cy - h / 2
 
-            decoded.append(torch.cat([x, y, w, h, conf, prob], 1))
-
-        # batch_size, grid_size * grid_size * num_anchors, num_classes + 4
-        decoded = torch.cat(decoded, -1).transpose(1, 2)
-
-        return decoded
+        return torch.cat([x, y, w, h, conf, prob], 1)

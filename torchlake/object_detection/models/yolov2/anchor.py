@@ -2,9 +2,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from object_detection.constants.enums import OperationMode
-from object_detection.datasets.coco.datasets import COCODatasetFromCSV
-from object_detection.datasets.voc.datasets import VOCDatasetFromCSV
+from torchlake.object_detection.constants.enums import OperationMode
+from torchlake.object_detection.datasets.coco.datasets import COCODatasetFromCSV
+from torchlake.object_detection.datasets.voc.datasets import VOCDatasetFromCSV
 
 
 def dist_metric(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
@@ -69,13 +69,15 @@ def kmeans(
 
 
 class PriorBox:
-    def __init__(self, num_anchors: int, dataset: str):
+    def __init__(self, num_anchors: int, dataset: str, anchors_path: str = ""):
         self.num_anchors = num_anchors
         self.dataset = dataset
-        self.anchors_path = f"configs/yolov2/anchors.{dataset.lower()}.txt"
+        self.anchors_path = anchors_path
 
         if Path(self.anchors_path).exists():
             self.anchors = self.load_anchors()
+        else:
+            print("Can't find anchor file to path %s" % (self.anchors_path))
 
     def load_anchors(self) -> torch.Tensor:
         anchors = np.loadtxt(self.anchors_path, delimiter=",")
@@ -91,37 +93,11 @@ class PriorBox:
 
         # comment lines of raw data
         dataset = dataset_class_mapping.get(self.dataset.upper())(
-            mode=OperationMode.TRAIN.value,
-            # transform=A.Compose(
-            #     [
-            #         A.Resize(100, 100),
-            #         A.Normalize(mean=(0, 0, 0), std=(1, 1, 1)),
-            #         ToTensorV2(),
-            #     ]
-            # ),
+            mode=OperationMode.TRAIN.value
         )
 
-        # dataloader = torch.utils.data.DataLoader(
-        #     dataset,
-        #     batch_size=32,
-        #     collate_fn=collate_fn,
-        #     shuffle=False,
-        # )
-
         wh = torch.from_numpy(dataset.table[["w", "h"]].to_numpy())
-
-        # wh = torch.cat(
-        #     [
-        #         torch.Tensor(label)[:, 2:4]
-        #         for _, labels in tqdm(dataloader)
-        #         for label in labels
-        #     ],
-        #     0,
-        # )
         print("gt shape: ", wh.shape)
-
-        # debug
-        # wh = torch.rand(100,2)
 
         group_indices, anchors = kmeans(wh, self.num_anchors)
 

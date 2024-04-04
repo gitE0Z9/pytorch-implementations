@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torchvision
-from object_detection.models.yolov2.network import ConvBlock, ReorgLayer
+
+from .network import ConvBlock, ReorgLayer
 
 
 class Yolov2(nn.Module):
@@ -34,24 +35,21 @@ class Yolov2(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        f_list = []
+        features = []
         for i in range(6):
-            c = getattr(self.backbone, f"conv_{i+1}")
-            x = c(x)
+            conv_layer = getattr(self.backbone, f"conv_{i+1}")
+            x = conv_layer(x)
             if i + 1 in [5, 6]:
-                f_list.append(x)
+                features.append(x)
 
-        skip, x = f_list
-
-        x = self.conv1(x)  # 13 x 13 x 1024
-
+        skip, x = features
         skip = self.passthrough(skip)  # 13 x 13 x 64*4
 
-        x = torch.cat([x, skip], dim=1)  # 13 x 13 x 1280
+        y = self.conv1(x)  # 13 x 13 x 1024
+        y = torch.cat([y, skip], dim=1)  # 13 x 13 x 1280
+        y = self.head(y)  # 13 x 13 x C+5
 
-        x = self.head(x)
-
-        return x
+        return y
 
 
 class Yolov2Resnet(nn.Module):
@@ -63,7 +61,6 @@ class Yolov2Resnet(nn.Module):
         finetune_weight: str = "",
     ):
         super(Yolov2Resnet, self).__init__()
-
         self.load_backbone(layer_number, finetune_weight)
 
         in_ch = 512 if layer_number != 50 else 2048
@@ -89,9 +86,7 @@ class Yolov2Resnet(nn.Module):
             raise NotImplementedError
 
         backbone_class = getattr(torchvision.models, f"resnet{layer_number}")
-        default_weight = getattr(torchvision.models, f"ResNet{layer_number}_Weights")
-
-        backbone = backbone_class(weights=default_weight.DEFAULT)
+        backbone = backbone_class(weights="DEFAULT")
 
         return backbone
 
@@ -105,19 +100,19 @@ class Yolov2Resnet(nn.Module):
         self.backbone = backbone
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        tmp = self.backbone.conv1(x)
-        tmp = self.backbone.bn1(tmp)
-        tmp = self.backbone.relu(tmp)
-        tmp = self.backbone.maxpool(tmp)
-        tmp = self.backbone.layer1(tmp)
-        tmp = self.backbone.layer2(tmp)
-        tmp = self.backbone.layer3(tmp)  # 26 x 26 x 256
+        y = self.backbone.conv1(x)
+        y = self.backbone.bn1(y)
+        y = self.backbone.relu(y)
+        y = self.backbone.maxpool(y)
+        y = self.backbone.layer1(y)
+        y = self.backbone.layer2(y)
+        y = self.backbone.layer3(y)  # 26 x 26 x 256
 
-        skip = self.passthrough(tmp)  # 13 x 13 x 32*4
+        skip = self.passthrough(y)  # 13 x 13 x 32*4
 
-        tmp = self.backbone.layer4(tmp)  # 13 x 13 x 512
-        tmp = self.conv1(tmp)  # 13 x 13 x 1024
-        tmp = torch.cat([tmp, skip], dim=1)  # 13 x 13 x 1152
-        tmp = self.head(tmp)
+        y = self.backbone.layer4(y)  # 13 x 13 x 512
+        y = self.conv1(y)  # 13 x 13 x 1024
+        y = torch.cat([y, skip], dim=1)  # 13 x 13 x 1152
+        y = self.head(y)
 
-        return tmp
+        return y
