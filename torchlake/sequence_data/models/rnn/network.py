@@ -44,4 +44,7 @@ class RnnLayer(nn.Module):
             outputs.append(o)
             hidden_states.append(h)
 
-        return torch.cat(outputs, 1), torch.cat(hidden_states, 1)
+        outputs = torch.stack(outputs, 0).transpose(0, 1)
+        hidden_states = torch.stack(hidden_states, 0).transpose(0, 1)
+
+        return outputs, hidden_states
