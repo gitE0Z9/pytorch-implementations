@@ -1,4 +1,3 @@
-from unicodedata import bidirectional
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
@@ -70,9 +69,9 @@ class LstmClassifier(nn.Module):
             y = self.layer_norm(ot)
             y = self.fc(y)
         else:
-            # the last layer's hidden state represents the paragraph
-            vector = torch.cat([ht[-2], ht[-1]], -1) if self.factor == 2 else ht[-1]
-            y = self.fc(vector)
+            # the deepest layer's hidden state recept the whole sequence
+            y = torch.cat([ht[-2], ht[-1]], -1) if self.factor == 2 else ht[-1]
+            y = self.fc(y)
 
         return y
 
