@@ -42,8 +42,7 @@ class SequenceModelWrapper(nn.Module):
     def feature_extract(
         self,
         x: torch.Tensor,
-        h: torch.Tensor | None = None,
-        c: torch.Tensor | None = None,
+        *hidden_state: tuple[torch.Tensor],
     ) -> torch.Tensor:
         # batch_size, seq_len, embed_dim
         y = self.embed(x)
@@ -59,32 +58,34 @@ class SequenceModelWrapper(nn.Module):
         # ot, (ht, ct)
         # ot: batch_size, seq_len, bidirectional*hidden_dim
         # ht: bidirectional * layer_size, batch_size, hidden_dim
-        state = (h, c) if h is not None or c is not None else None
+
+        state = hidden_state if len(hidden_state) else None
 
         return self.rnn(y, state)
 
     def classify(
         self,
-        ot: torch.Tensor,
+        ot: torch.Tensor | None = None,
         ht: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        assert (
+            ot is not None or ht is not None
+        ), " Must provide either output or hidden state"
+
         if self.is_token:
             y = self.layer_norm(ot)
-            y = self.fc(y)
         else:
             # the deepest layer's hidden state recept the whole sequence
             y = torch.cat([ht[-2], ht[-1]], -1) if self.factor == 2 else ht[-1]
-            y = self.fc(y)
 
-        return y
+        return self.fc(y)
 
     def forward(
         self,
         x: torch.Tensor,
-        h: torch.Tensor | None = None,
-        c: torch.Tensor | None = None,
+        *hidden_state: torch.Tensor | None,
     ) -> torch.Tensor:
-        ot, (ht, _) = self.feature_extract(x, h, c)
+        ot, states = self.feature_extract(x, *hidden_state)
 
         if isinstance(ot, PackedSequence):
             ot, _ = pad_packed_sequence(
@@ -93,4 +94,6 @@ class SequenceModelWrapper(nn.Module):
                 total_length=self.context.max_seq_len,
             )
 
-        return self.classify(ot, ht)
+        h = states[0] if isinstance(states, tuple) else states
+
+        return self.classify(ot, h)
