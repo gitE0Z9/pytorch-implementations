@@ -1,7 +1,24 @@
 import pytest
 import torch
 
+from ..models.lstm.network import LstmCell, LstmLayer
 from ..models import LstmClassifier
+
+
+def test_forward_shape_cell():
+    batch_size = 2
+    embed_dim = 16
+    latent_dim = 8
+    x = torch.randn(batch_size, embed_dim)
+    h = torch.randn(batch_size, latent_dim)
+    c = torch.randn(batch_size, latent_dim)
+
+    model = LstmCell(embed_dim, latent_dim)
+
+    h, c = model(x, h, c)
+
+    assert h.shape == torch.Size((batch_size, latent_dim))
+    assert c.shape == torch.Size((batch_size, latent_dim))
 
 
 @pytest.mark.parametrize(

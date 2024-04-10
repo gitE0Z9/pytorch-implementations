@@ -1,7 +1,22 @@
 import pytest
 import torch
 
+from ..models.rnn.network import RnnCell, RnnLayer
 from ..models import RnnClassifier
+
+
+def test_forward_shape_cell():
+    batch_size = 2
+    embed_dim = 16
+    latent_dim = 8
+    x = torch.randn(batch_size, embed_dim)
+    h = torch.randn(batch_size, latent_dim)
+
+    model = RnnCell(embed_dim, latent_dim)
+
+    y = model(x, h)
+
+    assert y.shape == torch.Size((batch_size, latent_dim))
 
 
 @pytest.mark.parametrize(

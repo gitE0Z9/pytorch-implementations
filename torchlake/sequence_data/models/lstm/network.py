@@ -5,15 +5,13 @@ from torch import nn
 class LstmCell(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int):
         super(LstmCell, self).__init__()
-        self.input_gate_x = nn.Linear(input_dim, latent_dim)
-        self.memory_gate_x = nn.Linear(input_dim, latent_dim)
-        self.forgot_gate_x = nn.Linear(input_dim, latent_dim)
-        self.output_gate_x = nn.Linear(input_dim, latent_dim)
+        concat_dim = input_dim + latent_dim
 
-        self.input_gate_h = nn.Linear(latent_dim, latent_dim)
-        self.memory_gate_h = nn.Linear(latent_dim, latent_dim)
-        self.forgot_gate_h = nn.Linear(latent_dim, latent_dim)
-        self.output_gate_h = nn.Linear(latent_dim, latent_dim)
+        # fused input_gate, forgot_gate, output_gate
+        self.w = nn.Linear(concat_dim, 3 * latent_dim)
+
+        # fused memory_gate
+        self.memory_gate = nn.Linear(concat_dim, latent_dim)
 
     def forward(
         self,
@@ -21,10 +19,11 @@ class LstmCell(nn.Module):
         h: torch.Tensor,
         c: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        hidden_state = torch.sigmoid(self.input_gate_x(x) + self.input_gate_h(h))
-        forgot_state = torch.sigmoid(self.memory_gate_x(x) + self.memory_gate_h(h))
-        memory_state = torch.tanh(self.memory_gate_x(x) + self.memory_gate_h(h))
-        output_state = torch.sigmoid(self.output_gate_x(x) + self.output_gate_h(h))
+        h_tilde = torch.cat([x, h], dim=-1)
+
+        fused_state = self.w(h_tilde).sigmoid()
+        memory_state = self.memory_gate(h_tilde).tanh()
+        hidden_state, forgot_state, output_state = fused_state.chunk(3, -1)
 
         c = forgot_state * c + hidden_state * memory_state
         h = output_state * torch.tanh(c)

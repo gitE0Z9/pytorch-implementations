@@ -1,7 +1,22 @@
 import pytest
 import torch
 
+from ..models.gru.network import GruCell, GruLayer
 from ..models import GruClassifier
+
+
+def test_forward_shape_cell():
+    batch_size = 2
+    embed_dim = 16
+    latent_dim = 8
+    x = torch.randn(batch_size, embed_dim)
+    h = torch.randn(batch_size, latent_dim)
+
+    model = GruCell(embed_dim, latent_dim)
+
+    h = model(x, h)
+
+    assert h.shape == torch.Size((batch_size, latent_dim))
 
 
 @pytest.mark.parametrize(

@@ -5,18 +5,20 @@ from torch import nn
 class GruCell(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int):
         super(GruCell, self).__init__()
-        self.input_gate_x = nn.Linear(input_dim, latent_dim)
-        self.memory_gate_x = nn.Linear(input_dim, latent_dim)
-        self.output_gate_x = nn.Linear(input_dim, latent_dim)
+        concat_dim = input_dim + latent_dim
 
-        self.input_gate_h = nn.Linear(latent_dim, latent_dim)
+        # fused input_gate, output_gate
+        self.w = nn.Linear(concat_dim, 2 * latent_dim)
+
+        self.memory_gate_x = nn.Linear(input_dim, latent_dim)
         self.memory_gate_h = nn.Linear(latent_dim, latent_dim)
-        self.output_gate_h = nn.Linear(latent_dim, latent_dim)
 
     def forward(self, x: torch.Tensor, h: torch.Tensor) -> torch.Tensor:
-        hidden_state = torch.sigmoid(self.input_gate_x(x) + self.input_gate_h(h))
+        h_tilde = torch.cat([x, h], dim=-1)
+
+        fused_state = self.w(h_tilde).sigmoid()
+        hidden_state, output_state = fused_state.chunk(2, -1)
         memory_state = self.memory_gate_x(x) + hidden_state * self.memory_gate_h(h)
-        output_state = torch.sigmoid(self.output_gate_x(x) + self.output_gate_h(h))
 
         h = output_state * h + (1 - output_state) * torch.tanh(memory_state)
         return h
