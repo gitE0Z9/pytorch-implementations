@@ -3,16 +3,16 @@ from torch import nn
 
 
 class RnnCell(nn.Module):
+
     def __init__(self, input_dim: int, latent_dim: int):
         super(RnnCell, self).__init__()
-        concat_dim = input_dim + latent_dim
 
         # fused input date & memory gate
-        self.w = nn.Linear(concat_dim, latent_dim)
+        self.w = nn.Linear(input_dim + latent_dim, latent_dim)
 
     def forward(self, x: torch.Tensor, h: torch.Tensor) -> torch.Tensor:
         h_tilde = torch.cat([x, h], dim=-1)
-        return torch.relu(self.w(h_tilde))
+        return self.w(h_tilde).relu()
 
 
 class RnnLayer(nn.Module):

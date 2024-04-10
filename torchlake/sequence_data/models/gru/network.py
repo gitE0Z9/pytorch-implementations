@@ -20,7 +20,7 @@ class GruCell(nn.Module):
         hidden_state, output_state = fused_state.chunk(2, -1)
         memory_state = self.memory_gate_x(x) + hidden_state * self.memory_gate_h(h)
 
-        h = output_state * h + (1 - output_state) * torch.tanh(memory_state)
+        h = output_state * h + (1 - output_state) * memory_state.tanh()
         return h
 
 
