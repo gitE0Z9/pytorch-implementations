@@ -12,10 +12,10 @@ class SequenceModelWrapper(nn.Module):
         hidden_dim: int,
         output_size: int = 1,
         num_layers: int = 1,
-        model_class: nn.Module | None = None,
         bidirectional: bool = False,
         context: NlpContext = NlpContext(),
         is_token: bool = False,
+        model_class: nn.Module | None = None,
     ):
         super(SequenceModelWrapper, self).__init__()
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
@@ -43,11 +43,11 @@ class SequenceModelWrapper(nn.Module):
         self,
         x: torch.Tensor,
         *hidden_state: tuple[torch.Tensor],
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # batch_size, seq_len, embed_dim
         y = self.embed(x)
 
-        if self.embed.padding_idx is not None:
+        if self.embed.padding_idx is not None and y.size(1) > 1:
             y = pack_padded_sequence(
                 y,
                 x.ne(self.embed.padding_idx).sum(dim=1).long().detach().cpu(),
@@ -59,9 +59,18 @@ class SequenceModelWrapper(nn.Module):
         # ot: batch_size, seq_len, bidirectional*hidden_dim
         # ht: bidirectional * layer_size, batch_size, hidden_dim
 
-        state = hidden_state if len(hidden_state) else None
+        states = hidden_state if len(hidden_state) else None
 
-        return self.rnn(y, state)
+        ot, states = self.rnn(y, states)
+
+        if isinstance(ot, PackedSequence):
+            ot, _ = pad_packed_sequence(
+                ot,
+                batch_first=True,
+                total_length=self.context.max_seq_len,
+            )
+
+        return ot, states
 
     def classify(
         self,
@@ -84,16 +93,13 @@ class SequenceModelWrapper(nn.Module):
         self,
         x: torch.Tensor,
         *hidden_state: torch.Tensor | None,
+        output_state: bool = False,
     ) -> torch.Tensor:
         ot, states = self.feature_extract(x, *hidden_state)
 
-        if isinstance(ot, PackedSequence):
-            ot, _ = pad_packed_sequence(
-                ot,
-                batch_first=True,
-                total_length=self.context.max_seq_len,
-            )
-
         h = states[0] if isinstance(states, tuple) else states
 
-        return self.classify(ot, h)
+        if output_state:
+            return self.classify(ot, h), states
+        else:
+            return self.classify(ot, h)
