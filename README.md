@@ -282,7 +282,7 @@
 
 ## 安裝方式
 
-`pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake`
+```pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake```
 
 ## 專案結構
 
