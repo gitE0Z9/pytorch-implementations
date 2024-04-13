@@ -22,7 +22,7 @@ def test_forward_shape_cell():
 
 
 @pytest.mark.parametrize(
-    "name,label_size,target_shape,num_layers,bidirectional,is_token",
+    "name,label_size,target_shape,num_layers,bidirectional,is_sequence",
     [
         ("single_class", 1, torch.Size((2, 1)), 1, False, False),
         ("multi_class", 3, torch.Size((2, 3)), 1, False, False),
@@ -62,7 +62,7 @@ def test_forward_shape(
     target_shape: torch.Size,
     num_layers: int,
     bidirectional: bool,
-    is_token: bool,
+    is_sequence: bool,
 ) -> None:
     batch_size, vocab_size = 2, 10
     latent_dim = 8
@@ -75,7 +75,7 @@ def test_forward_shape(
         label_size,
         num_layers=num_layers,
         bidirectional=bidirectional,
-        is_token=is_token,
+        is_sequence=is_sequence,
     )
 
     y = model(x)

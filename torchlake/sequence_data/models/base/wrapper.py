@@ -14,7 +14,7 @@ class SequenceModelWrapper(nn.Module):
         num_layers: int = 1,
         bidirectional: bool = False,
         context: NlpContext = NlpContext(),
-        is_token: bool = False,
+        is_sequence: bool = False,
         model_class: nn.Module | None = None,
     ):
         super(SequenceModelWrapper, self).__init__()
@@ -22,7 +22,7 @@ class SequenceModelWrapper(nn.Module):
 
         self.factor = 2 if bidirectional else 1
         self.context = context
-        self.is_token = is_token
+        self.is_sequence = is_sequence
 
         self.embed = nn.Embedding(
             vocab_size,
@@ -81,7 +81,7 @@ class SequenceModelWrapper(nn.Module):
             ot is not None or ht is not None
         ), " Must provide either output or hidden state"
 
-        if self.is_token:
+        if self.is_sequence:
             y = self.layer_norm(ot)
         else:
             # the deepest layer's hidden state recept the whole sequence
