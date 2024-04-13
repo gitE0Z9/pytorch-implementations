@@ -1,14 +1,14 @@
 # Pytorch 實作系列
 
+[english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
+
+[中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
+
 文章同步發布在個人部落格(https://gite0z9.github.io)
 
 此專案初衷是實作多年來學習的深度學習模型，並提供 notebook 跟 medium 文章學習，而非一個專注於特定領域的 production-ready 庫
 
 接下來的開發方向會往 monorepo 延伸
-
-[english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
-
-[中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
 
 <table>
   <tr>

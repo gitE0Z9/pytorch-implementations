@@ -1,14 +1,14 @@
 # PyTorch Implementations
 
+[english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
+
+[中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
+
 The articles are simultaneously published on my personal blog (https://gite0z9.github.io).
 
 The original intention of this project is to implement deep learning models I have learned over the years, providing notebooks and Medium articles for learning. This project is not a production-ready library for a specific domain but serves as a resource for learning.
 
 The development direction will extend towards a monorepo.
-
-[english-version](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.en.md)
-
-[中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
 
 <table>
   <tr>
