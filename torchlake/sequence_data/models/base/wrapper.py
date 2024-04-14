@@ -59,7 +59,9 @@ class SequenceModelWrapper(nn.Module):
         # ot: batch_size, seq_len, bidirectional*hidden_dim
         # ht: bidirectional * layer_size, batch_size, hidden_dim
 
-        states = hidden_state if len(hidden_state) else None
+        states = (
+            hidden_state if len(hidden_state) and hidden_state[0] is not None else None
+        )
 
         ot, states = self.rnn(y, states)
 
