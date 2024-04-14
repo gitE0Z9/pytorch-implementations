@@ -228,7 +228,7 @@ def test_attend_hidden_state_shape_model(
     hs = torch.rand((2, 256, 16 * factor))
     ht = torch.rand((factor, 2, 16))
     ct = torch.rand((factor, 2, 16))
-    encoder = Seq2SeqEncoder(
+    encoder = Seq2SeqAttentionEncoder(
         100,
         16,
         16,

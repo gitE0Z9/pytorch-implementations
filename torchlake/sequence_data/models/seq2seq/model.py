@@ -114,3 +114,53 @@ class Seq2Seq(nn.Module):
             input_seq = proposed_next_token
 
         return outputs
+
+        # return self.predict(
+        #     x,
+        #     internal_state,
+        #     y,
+        #     topk,
+        #     teacher_forcing_ratio,
+        #     target_shape,
+        # )
+
+        # def predict(
+        #     self,
+        #     x: torch.Tensor,
+        #     internal_state: torch.Tensor,
+        #     y: torch.Tensor | None = None,
+        #     topk: int = 1,
+        #     teacher_forcing_ratio: float = 0.5,
+        #     target_shape: tuple[int] = (),
+        # ) -> torch.Tensor:
+        #     """predict sequence with beam search
+
+        #     Args:
+        #         x (torch.Tensor): source sequence, shape in (seq,)
+        #         topk (int, optional): beam search size. Defaults to 1.
+
+        #     Returns:
+        #         torch.Tensor: output sequence
+        #     """
+
+        # first input to the decoder is the <sos> tokens
+
+        # first input to the decoder is the <sos> tokens
+        # seq_length, index, prob
+        # hypotheses = torch.full(
+        #     (topk, 1, 1),
+        #     float(self.context.bos_idx),
+        # ).to(self.context.device)
+        # while 1:
+        #     candidates = torch.zeros((topk, y_vocab_size)).to(self.context.device)
+        #     for k in range(topk):
+        #         candidates[k] = self.decoder(hypotheses, internal_state)
+        #     hypotheses = torch.cat([hypotheses, candidates.topk(topk, 1)], 1)
+
+        #     if (
+        #         hypotheses == self.context.eos_idx
+        #         or hypotheses.size(1) == self.context.max_seq_len
+        #     ):
+        #         break
+
+        # y = hypotheses.product(-1).argmax(-1)

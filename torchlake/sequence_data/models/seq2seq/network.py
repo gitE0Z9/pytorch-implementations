@@ -3,6 +3,7 @@ from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
 import torch.nn.functional as F
 from ..lstm.model import LstmClassifier
+from ..base.wrapper import SequenceModelFullFeatureExtractor
 
 
 # https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
@@ -303,7 +304,6 @@ class Seq2SeqAttentionEncoder(nn.Module):
         vocab_size: int,
         embed_dim: int,
         hidden_dim: int,
-        output_size: int = 1,
         num_layers: int = 1,
         bidirectional: bool = False,
         context: NlpContext = NlpContext(),
@@ -312,57 +312,19 @@ class Seq2SeqAttentionEncoder(nn.Module):
         將欲翻譯句子轉為隱向量
         """
         super(Seq2SeqAttentionEncoder, self).__init__()
-
         # separate each single layer of lstm to get all t and all layer hidden state
-        self.rnns = nn.ModuleList(
-            [
-                LstmClassifier(
-                    vocab_size,
-                    embed_dim,
-                    hidden_dim,
-                    output_size,
-                    num_layers=1,
-                    bidirectional=bidirectional,
-                    context=context,
-                )
-                for _ in range(num_layers)
-            ]
+        self.rnns = SequenceModelFullFeatureExtractor(
+            vocab_size,
+            embed_dim,
+            hidden_dim,
+            num_layers=num_layers,
+            bidirectional=bidirectional,
+            context=context,
+            model_class=nn.LSTM,
         )
 
-        # remove output layer
-        for layer in self.rnns:
-            layer.fc = None
-
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor]:
-        features = []
-        states_placeholder = []
-
-        states = ()
-        for i, layer in enumerate(self.rnns):
-            ot, states = layer.feature_extract(x, *states)
-            features.append(ot)
-
-            is_multiple_state = isinstance(states, tuple)
-            if not is_multiple_state:
-                states_placeholder.append(states)
-            # for RNN variant has more than one hidden state
-            else:
-                # to init
-                if i == 0:
-                    for _ in range(len(states)):
-                        states_placeholder.append([])
-                for placeholder, state in zip(states_placeholder, states):
-                    placeholder.append(state)
-
-        # collect hidden state
-        if not is_multiple_state:
-            states_placeholder = torch.cat(states_placeholder, 0)
-        else:
-            for i, placeholder in enumerate(states_placeholder):
-                states_placeholder[i] = torch.cat(placeholder, 0)
-            states_placeholder = tuple(states_placeholder)
-
-        return torch.cat(features, -1), states_placeholder
+        return self.rnns(x)
 
 
 class Seq2SeqDecoder(nn.Module):

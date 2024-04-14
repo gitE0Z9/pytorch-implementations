@@ -39,6 +39,31 @@ class SequenceModelWrapper(nn.Module):
         self.layer_norm = nn.LayerNorm(hidden_dim * self.factor)
         self.fc = nn.Linear(hidden_dim * self.factor, output_size)
 
+    def pack_sequence(
+        self,
+        y: torch.Tensor,
+        seq_lengths: torch.Tensor,
+    ) -> PackedSequence | torch.Tensor:
+        if self.embed.padding_idx is not None and y.size(1) > 1:
+            y = pack_padded_sequence(
+                y,
+                seq_lengths,
+                batch_first=True,
+                enforce_sorted=False,
+            )
+
+        return y
+
+    def unpack_sequence(self, ot: PackedSequence) -> torch.Tensor:
+        if isinstance(ot, PackedSequence):
+            ot, _ = pad_packed_sequence(
+                ot,
+                batch_first=True,
+                total_length=self.context.max_seq_len,
+            )
+
+        return ot
+
     def feature_extract(
         self,
         x: torch.Tensor,
@@ -47,17 +72,14 @@ class SequenceModelWrapper(nn.Module):
         # batch_size, seq_len, embed_dim
         y = self.embed(x)
 
-        if self.embed.padding_idx is not None and y.size(1) > 1:
-            y = pack_padded_sequence(
-                y,
-                x.ne(self.embed.padding_idx).sum(dim=1).long().detach().cpu(),
-                batch_first=True,
-                enforce_sorted=False,
-            )
+        y = self.pack_sequence(
+            y,
+            x.ne(self.embed.padding_idx).sum(dim=1).long().detach().cpu(),
+        )
 
         # ot, (ht, ct)
-        # ot: batch_size, seq_len, bidirectional*hidden_dim
-        # ht: bidirectional * layer_size, batch_size, hidden_dim
+        # ot: batch_size, seq_len, bidirectional * num_layers * hidden_dim
+        # ht: bidirectional * num_layers, batch_size, hidden_dim
 
         states = (
             hidden_state if len(hidden_state) and hidden_state[0] is not None else None
@@ -65,12 +87,7 @@ class SequenceModelWrapper(nn.Module):
 
         ot, states = self.rnn(y, states)
 
-        if isinstance(ot, PackedSequence):
-            ot, _ = pad_packed_sequence(
-                ot,
-                batch_first=True,
-                total_length=self.context.max_seq_len,
-            )
+        ot = self.unpack_sequence(ot)
 
         return ot, states
 
@@ -105,3 +122,139 @@ class SequenceModelWrapper(nn.Module):
             return self.classify(ot, h), states
         else:
             return self.classify(ot, h)
+
+
+class SequenceModelFullFeatureExtractor(nn.Module):
+    def __init__(
+        self,
+        vocab_size: int,
+        embed_dim: int,
+        hidden_dim: int,
+        num_layers: int = 1,
+        bidirectional: bool = False,
+        context: NlpContext = NlpContext(),
+        model_class: nn.Module | None = None,
+    ):
+        super(SequenceModelFullFeatureExtractor, self).__init__()
+        assert issubclass(model_class, nn.Module), "model class is not a nn.module"
+
+        self.factor = 2 if bidirectional else 1
+        self.context = context
+        self.hidden_dim = hidden_dim
+
+        self.embed = nn.Embedding(
+            vocab_size,
+            embed_dim,
+            padding_idx=context.padding_idx,
+        )
+        self.rnns = nn.ModuleList(
+            [
+                model_class(
+                    embed_dim,
+                    hidden_dim,
+                    num_layers=1,
+                    bidirectional=bidirectional,
+                    batch_first=True,
+                ),
+                *[
+                    model_class(
+                        hidden_dim,
+                        hidden_dim,
+                        num_layers=1,
+                        bidirectional=bidirectional,
+                        batch_first=True,
+                    )
+                    for _ in range(num_layers - 1)
+                ],
+            ]
+        )
+
+    def pack_sequence(
+        self,
+        y: torch.Tensor,
+        seq_lengths: torch.Tensor,
+    ) -> PackedSequence | torch.Tensor:
+        if self.embed.padding_idx is not None and y.size(1) > 1:
+            y = pack_padded_sequence(
+                y,
+                seq_lengths,
+                batch_first=True,
+                enforce_sorted=False,
+            )
+
+        return y
+
+    def unpack_sequence(self, ot: PackedSequence) -> torch.Tensor:
+        if isinstance(ot, PackedSequence):
+            ot, _ = pad_packed_sequence(
+                ot,
+                batch_first=True,
+                total_length=self.context.max_seq_len,
+            )
+
+        return ot
+
+    def _rnn_forward(
+        self,
+        x: torch.Tensor | PackedSequence,
+        states: tuple[torch.Tensor] | None = None,
+        seq_lengths: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor]:
+        features = []
+        states_placeholder = []
+
+        ot = x
+        for i, layer in enumerate(self.rnns):
+            ot, states = layer(ot, states)
+            features.append(ot)
+            if self.factor == 2:
+                ot = self.unpack_sequence(ot)[:, :, self.hidden_dim :]
+                ot = self.pack_sequence(ot, seq_lengths)
+
+            # collect hidden states between cells
+            is_multiple_state = isinstance(states, tuple)
+            if not is_multiple_state:
+                states_placeholder.append(states)
+            # for RNN variant has more than one hidden state
+            else:
+                # to init
+                if i == 0:
+                    for _ in range(len(states)):
+                        states_placeholder.append([])
+                for placeholder, state in zip(states_placeholder, states):
+                    placeholder.append(state)
+
+        # collect output state
+        features = [self.unpack_sequence(feature) for feature in features]
+
+        # collect hidden state
+        if not is_multiple_state:
+            states_placeholder = torch.cat(states_placeholder, 0)
+        else:
+            # XXX: placeholder directly assign not work @@
+            for i, placeholder in enumerate(states_placeholder):
+                states_placeholder[i] = torch.cat(placeholder, 0)
+            states_placeholder = tuple(states_placeholder)
+
+        return torch.cat(features, -1), states_placeholder
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        hidden_state: tuple[torch.Tensor] | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        seq_lengths = x.ne(self.embed.padding_idx).sum(dim=1).long().detach().cpu()
+        # batch_size, seq_len, embed_dim
+        y = self.embed(x)
+
+        y = self.pack_sequence(y, seq_lengths)
+
+        # ot, (ht, ct)
+        # ot: batch_size, seq_len, bidirectional * num_layers * hidden_dim
+        # ht: bidirectional * num_layers, batch_size, hidden_dim
+
+        ot, hidden_state = self._rnn_forward(y, hidden_state, seq_lengths)
+
+        ot = self.unpack_sequence(ot)
+
+        return ot, hidden_state
