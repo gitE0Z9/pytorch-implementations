@@ -15,7 +15,7 @@ def safe_negative_factorial(
 
 
 def safe_sqrt(x: torch.Tensor, epsilon: float = 1e-5) -> torch.Tensor:
-    return x.pow(2).add(epsilon).sqrt()
+    return x.abs().add(epsilon).sqrt()
 
 
 def safe_std(
