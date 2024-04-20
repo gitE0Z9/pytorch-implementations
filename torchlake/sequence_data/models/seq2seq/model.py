@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
+from torchlake.sequence_data.utils.decode import beam_search
 
 from .network import (
     Seq2SeqDecoder,
@@ -63,104 +64,118 @@ class Seq2Seq(nn.Module):
 
         return internal_state
 
-    def forward(
+    def loss_forward(
         self,
         x: torch.Tensor,
-        y: torch.Tensor | None = None,
-        topk: int = 1,
+        y: torch.Tensor,
         teacher_forcing_ratio: float = 0.5,
     ) -> torch.Tensor:
-        hs, internal_state = self.encode(x)
-
         batch_size = x.size(0)
-        y_seq_len = y.size(1)
+        seq_len = y.size(1)
         y_vocab_size = self.decoder.rnn.embed.num_embeddings
-
-        # tensor to store decoder outputs
-        outputs = torch.full(
-            (batch_size, y_seq_len, y_vocab_size),
-            float(self.context.bos_idx),
-        ).to(self.context.device)
 
         # decide if we are going to use teacher forcing or not
         enable_teacher_force = (
-            torch.rand((batch_size, y_seq_len, 1))
+            torch.rand((batch_size, seq_len - 1, 1))
             .lt(teacher_forcing_ratio)
             .to(self.context.device)
         )
 
-        #  attention
-        internal_state = self.attend_hidden_state(hs, internal_state)
+        # encoding
+        hs, internal_state = self.encode(x)
 
+        # tensor to store decoder outputs
+        outputs = torch.full((batch_size, seq_len, y_vocab_size), -1e-4).to(
+            self.context.device
+        )
+        outputs[:, 0, self.context.bos_idx] = 0
         # next token prediction
-        input_seq = outputs[:, 0:1, 0]
-        for t in range(y_seq_len):
+        input_seq = torch.full((batch_size, 1), self.context.bos_idx).to(
+            self.context.device
+        )
+        for t in range(1, seq_len, 1):
+            #  attention
+            internal_state = self.attend_hidden_state(hs, internal_state)
+
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
-            output, internal_state = self.decoder(input_seq.int(), *internal_state)
-            internal_state = self.attend_hidden_state(hs, internal_state)
+            output, internal_state = self.decoder(input_seq, *internal_state)
 
             # place predictions in a tensor holding predictions for each token
             outputs[:, t] = output
 
-            # get the highest predicted token from our predictions
-            top1 = output.argmax(-1, keepdim=True)
-
-            # if teacher forcing, use actual next token as next input
-            # if not, use predicted token
-            proposed_next_token = torch.where(
-                enable_teacher_force[:, t], y[:, t + 1 : t + 2], top1
+            # 1506.03099: teacher forcing
+            # use actual next token as next input
+            # if not, use the highest predicted token
+            input_seq = torch.where(
+                enable_teacher_force[:, t - 1],
+                y[:, t : t + 1],
+                output.argmax(-1, keepdim=True),
             )
-            input_seq = proposed_next_token
 
         return outputs
 
-        # return self.predict(
-        #     x,
-        #     internal_state,
-        #     y,
-        #     topk,
-        #     teacher_forcing_ratio,
-        #     target_shape,
-        # )
+    def predict(self, x: torch.Tensor, topk: int = 1) -> torch.Tensor:
+        """predict sequence with beam search
 
-        # def predict(
-        #     self,
-        #     x: torch.Tensor,
-        #     internal_state: torch.Tensor,
-        #     y: torch.Tensor | None = None,
-        #     topk: int = 1,
-        #     teacher_forcing_ratio: float = 0.5,
-        #     target_shape: tuple[int] = (),
-        # ) -> torch.Tensor:
-        #     """predict sequence with beam search
+        Args:
+            x (torch.Tensor): source sequence, shape in (seq,)
+            topk (int, optional): beam search size. Defaults to 1.
 
-        #     Args:
-        #         x (torch.Tensor): source sequence, shape in (seq,)
-        #         topk (int, optional): beam search size. Defaults to 1.
+        Returns:
+            torch.Tensor: output sequence
+        """
+        if topk < 1:
+            raise NotImplementedError("Top k should be at least 1")
 
-        #     Returns:
-        #         torch.Tensor: output sequence
-        #     """
+        is_beam_search = topk > 1
+        is_greedy = topk > 1
 
-        # first input to the decoder is the <sos> tokens
+        batch_size = x.size(0)
+        seq_len = self.context.max_seq_len
 
-        # first input to the decoder is the <sos> tokens
-        # seq_length, index, prob
-        # hypotheses = torch.full(
-        #     (topk, 1, 1),
-        #     float(self.context.bos_idx),
-        # ).to(self.context.device)
-        # while 1:
-        #     candidates = torch.zeros((topk, y_vocab_size)).to(self.context.device)
-        #     for k in range(topk):
-        #         candidates[k] = self.decoder(hypotheses, internal_state)
-        #     hypotheses = torch.cat([hypotheses, candidates.topk(topk, 1)], 1)
+        # encoding
+        hs, internal_state = self.encode(x)
 
-        #     if (
-        #         hypotheses == self.context.eos_idx
-        #         or hypotheses.size(1) == self.context.max_seq_len
-        #     ):
-        #         break
+        # beam search forward
+        hypotheses = []
+        input_seq = torch.full((batch_size, 1), self.context.bos_idx).to(
+            self.context.device
+        )
 
-        # y = hypotheses.product(-1).argmax(-1)
+        if is_greedy:
+            hypotheses.append(input_seq)
+
+        for _ in range(1, seq_len, 1):
+            # attention
+            internal_state = self.attend_hidden_state(hs, internal_state)
+
+            # insert input token embedding, previous hidden and previous cell states
+            # receive output tensor (predictions) and new hidden and cell states
+            output, internal_state = self.decoder(input_seq, *internal_state)
+
+            # B, 1, topk
+            if is_beam_search:
+                topk_values, topk_indices = output.topk(topk, dim=-1)
+                hypotheses.append((topk_values, topk_indices))
+
+                # topk * B, 1
+                input_seq = (topk_indices % topk).permute(2, 0, 1).reshape(-1, seq_len)
+                # TODO: internal state repeat k times
+            elif is_greedy:
+                # B, 1
+                input_seq = output.argmax(-1)
+                hypotheses.append(input_seq)
+
+        if is_beam_search:
+            # beam search backward
+            # B, S
+            return beam_search(
+                hypotheses,
+                batch_size,
+                topk,
+                self.context,
+            )
+        elif is_greedy:
+            # B, S
+            return torch.cat(hypotheses, -1)
