@@ -239,6 +239,7 @@ class HierarchicalSoftmax(nn.Module):
         # N
         paths = itemgetter(*target.flatten().tolist())(self.paths)
 
+        # TODO: optimize
         pred = []
         for i, path in enumerate(paths):
             # h, ? * h => ?
