@@ -18,7 +18,7 @@ class ConvBnRelu(nn.Module):
         dilation: int = 1,
         group: int = 1,
         enable_bn: bool = True,
-        enable_relu: bool = True,
+        activation: nn.Module | None = nn.ReLU(True),
     ):
         super(ConvBnRelu, self).__init__()
         self.conv = nn.Conv2d(
@@ -32,16 +32,14 @@ class ConvBnRelu(nn.Module):
             bias=not enable_bn,
         )
         self.bn = nn.BatchNorm2d(output_channel) if enable_bn else enable_bn
-        self.relu = nn.ReLU(True) if enable_relu else enable_relu
+        self.activation = activation or nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv(x)
         if self.bn:
             y = self.bn(y)
-        if self.relu:
-            y = self.relu(y)
 
-        return y
+        return self.activation(y)
 
 
 class ImageNormalization(nn.Module):

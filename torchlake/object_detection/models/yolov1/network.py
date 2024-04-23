@@ -48,12 +48,7 @@ class Extraction(nn.Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        y = self.conv_1(x)
-        y = self.conv_2(y)
-        y = self.conv_3(y)
-        y = self.conv_4(y)
-        y = self.conv_5(y)
+        for i in range(1, 6):
+            x = getattr(self, f"conv_{i}")(x)
 
-        y = self.head(y)
-
-        return y
+        return self.head(x)

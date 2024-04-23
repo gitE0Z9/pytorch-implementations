@@ -12,32 +12,26 @@ class ConvBlock(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        kernel: int,
-        stride: int = 1,
+        kernel: int | tuple[int],
+        stride: int | tuple[int] = 1,
         enable_bn: bool = True,
-        enable_relu: bool = False,
+        activation: nn.Module | None = nn.LeakyReLU(0.1),
     ):
         super(ConvBlock, self).__init__()
-
         self.conv = ConvBnRelu(
             in_channels,
             out_channels,
-            (kernel, kernel),
-            padding=kernel // 2,
+            kernel,
+            padding=(
+                (k // 2 for k in kernel) if hasattr(kernel, "__iter__") else kernel // 2
+            ),
             stride=stride,
             enable_bn=enable_bn,
-            enable_relu=enable_relu,
+            activation=activation,
         )
 
-        if not enable_relu:
-            self.activation = nn.LeakyReLU(0.1, True)
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv(x)
-        if getattr(self, "activation", None):
-            y = self.activation(y)
-
-        return y
+        return self.conv(x)
 
 
 class RegHead(nn.Module):

@@ -23,7 +23,10 @@ class BottleNeck(nn.Module):
             ConvBnRelu(input_channel, block_base_channel, 1),
             ConvBnRelu(block_base_channel, block_base_channel, 3, padding=1),
             ConvBnRelu(
-                block_base_channel, block_base_channel * 4, 1, enable_relu=False
+                block_base_channel,
+                block_base_channel * 4,
+                1,
+                activation=None,
             ),
         )
 

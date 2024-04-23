@@ -34,6 +34,9 @@ class Yolov1(nn.Module):
             nn.Linear(256, 7 * 7 * (num_classes + num_boxes * 5)),
         )
 
+        self.init_weight()
+
+    def init_weight(self):
         for layer in self.conv_6.children():
             torch.nn.init.kaiming_normal_(layer.conv.conv.weight)
 
@@ -52,11 +55,9 @@ class Yolov1(nn.Module):
         for i in range(1, 6):
             x = getattr(self.backbone, f"conv_{i}")(x)
 
-        y = self.conv_6(x)
-        y: torch.Tensor = self.head(y)
-        y = y.reshape(*self.output_size)
-
-        return y
+        x = self.conv_6(x)
+        x: torch.Tensor = self.head(x)
+        return x.view(*self.output_size)
 
 
 class Yolov1Resnet(DetectorBase):
@@ -75,13 +76,13 @@ class Yolov1Resnet(DetectorBase):
 
         # like paper, add 4 convs after backbone
         self.conv = nn.Sequential(
-            ConvBlock(512, 1024, 3, enable_relu=False),
-            ConvBlock(1024, 1024, 3, stride=2, enable_relu=False),
-            ConvBlock(1024, 1024, 3, enable_relu=False),
-            ConvBlock(1024, 1024, 3, enable_relu=False),
+            ConvBlock(512, 1024, 3),
+            ConvBlock(1024, 1024, 3, stride=2),
+            ConvBlock(1024, 1024, 3),
+            ConvBlock(1024, 1024, 3),
         )
 
-        self.head = nn.Sequential(nn.Conv2d(1024, 5 * num_boxes + num_classes, 1))
+        self.head = nn.Conv2d(1024, 5 * num_boxes + num_classes, 1)
 
     def assert_num_layer(self, num_layer: int) -> nn.Module:
         if num_layer not in [18, 34, 50]:
