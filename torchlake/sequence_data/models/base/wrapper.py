@@ -17,6 +17,19 @@ class SequenceModelWrapper(nn.Module):
         is_sequence: bool = False,
         model_class: nn.Module | None = None,
     ):
+        """_summary_
+
+        Args:
+            vocab_size (int): size of vocabulary
+            embed_dim (int): dimension of embedding vector
+            hidden_dim (int): dimension of hidden layer
+            output_size (int, optional): number of features of output. Defaults to 1.
+            num_layers (int, optional): number of layers. Defaults to 1.
+            bidirectional (bool, optional): is bidirectional layer. Defaults to False.
+            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            is_sequence (bool, optional): is output tensor a sequence. Defaults to False.
+            model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer . Defaults to None.
+        """
         super(SequenceModelWrapper, self).__init__()
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
 

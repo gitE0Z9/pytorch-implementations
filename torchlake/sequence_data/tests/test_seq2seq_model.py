@@ -1,14 +1,15 @@
 import pytest
 import torch
+
 from torchlake.common.schemas.nlp import NlpContext
 
 from ..models.seq2seq.model import Seq2Seq
 from ..models.seq2seq.network import (
-    Seq2SeqDecoder,
-    Seq2SeqEncoder,
-    Seq2SeqAttentionEncoder,
     GlobalAttention,
     LocalAttention,
+    Seq2SeqAttentionEncoder,
+    Seq2SeqDecoder,
+    Seq2SeqEncoder,
 )
 
 
