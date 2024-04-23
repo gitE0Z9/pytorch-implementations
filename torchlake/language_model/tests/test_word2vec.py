@@ -19,220 +19,232 @@ WORD_FREQS = torch.rand((VOCAB_SIZE))
 WORD_COUNTS = torch.randint(0, TOP_WORD_COUNT, (VOCAB_SIZE,))
 
 
-#
-# Word2Vec
-#
+class TestWord2Vec:
+    def test_cbow_forward_shape(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        model = Word2Vec(
+            VOCAB_SIZE, EMBED_SIZE, CONTEXT_SIZE, model_type=ModelType.CBOW
+        )
+        y = model(x)
+
+        assert y.shape == torch.Size((BATCH_SIZE, VOCAB_SIZE, 1, SUBSEQ_LEN))
+
+    def test_skipgram_forward_shape(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
+        model = Word2Vec(VOCAB_SIZE, EMBED_SIZE, CONTEXT_SIZE, ModelType.SKIP_GRAM)
+        y = model(x)
+
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, VOCAB_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN)
+        )
+
+    def test_word2vec_subsampling(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        p = torch.randn(VOCAB_SIZE).softmax(0)
+        y = Word2Vec.subsampling(x, p)
+
+        assert y.shape == torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
 
-def test_cbow_forward_shape():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    model = Word2Vec(VOCAB_SIZE, EMBED_SIZE, CONTEXT_SIZE, model_type=ModelType.CBOW)
-    y = model(x)
+class TestNegativeSampling:
+    def test_ns_get_distribution_shape(self):
+        criterion = NegativeSampling(
+            WORD_FREQS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
 
-    assert y.shape == torch.Size((BATCH_SIZE, VOCAB_SIZE, 1, SUBSEQ_LEN))
+        assert criterion.distribution.shape == torch.Size((VOCAB_SIZE,))
 
+    def test_ns_sample_shape(self):
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        criterion = NegativeSampling(
+            WORD_FREQS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        y = criterion.sample(y)
 
-def test_skipgram_forward_shape():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-    model = Word2Vec(VOCAB_SIZE, EMBED_SIZE, CONTEXT_SIZE, ModelType.SKIP_GRAM)
-    y = model(x)
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, NEGATIVE_RATIO)
+        )
 
-    assert y.shape == torch.Size((BATCH_SIZE, VOCAB_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+    def test_ns_forward(self):
+        x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
+        criterion = NegativeSampling(
+            WORD_FREQS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(x, y)
 
-def test_word2vec_subsampling():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    p = torch.randn(VOCAB_SIZE).softmax(0)
-    y = Word2Vec.subsampling(x, p)
+        assert not torch.isnan(loss)
 
-    assert y.shape == torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+    def test_ns_backward(self):
+        x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
+        criterion = NegativeSampling(
+            WORD_FREQS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(x, y)
+        loss.backward()
 
-#
-# Negative Sampling
-#
+        assert not torch.isnan(criterion.fc.grad).any()
 
+    def test_cbow_ns_forward(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
+        model = Word2Vec(
+            VOCAB_SIZE,
+            EMBED_SIZE,
+            CONTEXT_SIZE,
+            ModelType.CBOW,
+            loss_type=LossType.NS,
+        )
+        yhat = model(x)
 
-def test_ns_get_distribution_shape():
-    criterion = NegativeSampling(
-        WORD_FREQS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
+        criterion = NegativeSampling(
+            WORD_FREQS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(yhat, y)
 
-    assert criterion.distribution.shape == torch.Size((VOCAB_SIZE,))
+        assert not torch.isnan(loss)
 
+    def test_sg_ns_forward(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        model = Word2Vec(
+            VOCAB_SIZE,
+            EMBED_SIZE,
+            CONTEXT_SIZE,
+            ModelType.SKIP_GRAM,
+            loss_type=LossType.NS,
+        )
+        yhat = model(x)
 
-def test_ns_sample_shape():
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    criterion = NegativeSampling(
-        WORD_FREQS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    y = criterion.sample(y)
+        criterion = NegativeSampling(
+            WORD_FREQS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(yhat, y)
 
-    assert y.shape == torch.Size(
-        (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, NEGATIVE_RATIO)
-    )
-
-
-def test_ns_forward():
-    x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-
-    criterion = NegativeSampling(
-        WORD_FREQS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    loss = criterion(x, y)
-
-    assert not torch.isnan(loss)
-
-
-def test_cbow_ns_forward():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-    model = Word2Vec(
-        VOCAB_SIZE,
-        EMBED_SIZE,
-        CONTEXT_SIZE,
-        ModelType.CBOW,
-        loss_type=LossType.NS,
-    )
-    yhat = model(x)
-
-    criterion = NegativeSampling(
-        WORD_FREQS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    loss = criterion(yhat, y)
-
-    assert not torch.isnan(loss)
-
-
-def test_sg_ns_forward():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    model = Word2Vec(
-        VOCAB_SIZE,
-        EMBED_SIZE,
-        CONTEXT_SIZE,
-        ModelType.SKIP_GRAM,
-        loss_type=LossType.NS,
-    )
-    yhat = model(x)
-
-    criterion = NegativeSampling(
-        WORD_FREQS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    loss = criterion(yhat, y)
-
-    assert not torch.isnan(loss)
+        assert not torch.isnan(loss)
 
 
-#
-# Hierarchical Softmax
-#
+class TestHierarchicalSoftmax:
+    def test_hs_build_tree(self):
+        criterion = HierarchicalSoftmax(
+            WORD_COUNTS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        root = criterion.build_tree()
 
+        assert isinstance(root, HuffmanNode)
+        assert root.internal_index > 0
+        assert root.left is not None
+        assert root.right is not None
 
-def test_hs_build_tree():
-    criterion = HierarchicalSoftmax(
-        WORD_COUNTS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    root = criterion.build_tree()
+    def test_hs_build_huffman_path(self):
+        criterion = HierarchicalSoftmax(
+            WORD_COUNTS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        root = criterion.build_tree()
+        paths = criterion.build_huffman_path(root)
 
-    assert isinstance(root, HuffmanNode)
-    assert root.internal_index > 0
-    assert root.left is not None
-    assert root.right is not None
+        assert len(paths.keys()) == VOCAB_SIZE
+        for node_value, path in paths.items():
+            assert isinstance(node_value, int)
+            assert path["code"].size(0) <= VOCAB_SIZE
+            assert path["indices"].size(0) <= VOCAB_SIZE
 
+    def test_hs_forward(self):
+        x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
-def test_hs_build_huffman_path():
-    criterion = HierarchicalSoftmax(
-        WORD_COUNTS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    root = criterion.build_tree()
-    paths = criterion.build_huffman_path(root)
+        criterion = HierarchicalSoftmax(
+            WORD_COUNTS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(x, y)
 
-    assert len(paths.keys()) == VOCAB_SIZE
-    for node_value, path in paths.items():
-        assert isinstance(node_value, int)
-        assert path["code"].size(0) <= VOCAB_SIZE
-        assert path["indices"].size(0) <= VOCAB_SIZE
+        assert not torch.isnan(loss)
 
+    def test_hs_backward(self):
+        x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
-def test_hs_forward():
-    x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        criterion = HierarchicalSoftmax(
+            WORD_COUNTS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(x, y)
+        loss.backward()
 
-    criterion = HierarchicalSoftmax(
-        WORD_COUNTS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    loss = criterion(x, y)
+        assert not torch.isnan(criterion.fc.grad).any()
 
-    assert not torch.isnan(loss)
+    def test_cbow_hs_forward(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
+        model = Word2Vec(
+            VOCAB_SIZE,
+            EMBED_SIZE,
+            CONTEXT_SIZE,
+            ModelType.CBOW,
+            loss_type=LossType.HS,
+        )
+        yhat = model(x)
 
+        criterion = HierarchicalSoftmax(
+            WORD_COUNTS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(yhat, y)
 
-def test_cbow_hs_forward():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-    model = Word2Vec(
-        VOCAB_SIZE,
-        EMBED_SIZE,
-        CONTEXT_SIZE,
-        ModelType.CBOW,
-        loss_type=LossType.HS,
-    )
-    yhat = model(x)
+        assert not torch.isnan(loss)
 
-    criterion = HierarchicalSoftmax(
-        WORD_COUNTS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    loss = criterion(yhat, y)
+    def test_sg_hs_forward(self):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
+        model = Word2Vec(
+            VOCAB_SIZE,
+            EMBED_SIZE,
+            CONTEXT_SIZE,
+            ModelType.SKIP_GRAM,
+            loss_type=LossType.HS,
+        )
+        yhat = model(x)
 
-    assert not torch.isnan(loss)
+        criterion = HierarchicalSoftmax(
+            WORD_COUNTS,
+            EMBED_SIZE,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+        loss = criterion(yhat, y)
 
-
-def test_sg_hs_forward():
-    x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-    y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-    model = Word2Vec(
-        VOCAB_SIZE,
-        EMBED_SIZE,
-        CONTEXT_SIZE,
-        ModelType.SKIP_GRAM,
-        loss_type=LossType.HS,
-    )
-    yhat = model(x)
-
-    criterion = HierarchicalSoftmax(
-        WORD_COUNTS,
-        EMBED_SIZE,
-        VOCAB_SIZE,
-        context=CONTEXT,
-    )
-    loss = criterion(yhat, y)
-
-    assert not torch.isnan(loss)
+        assert not torch.isnan(loss)

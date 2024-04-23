@@ -34,6 +34,7 @@ class NegativeSampling(nn.Module):
         self.power = power
         self.word_freqs = word_freqs
         self.distribution = self.get_distribution().to(context.device)
+        self.vocab_size = self.distribution.numel()
         self.fc = nn.Parameter(torch.rand((vocab_size, embed_dim)))
 
         assert negative_ratio > 0, "negative ratio should be higher than 0"
@@ -51,21 +52,20 @@ class NegativeSampling(nn.Module):
         """negative sampling by noise distribution
 
         Args:
-            target (torch.Tensor): target
+            target (torch.Tensor): shape(batch_size, 1 or neighbor_size, #subsequence)
 
         Returns:
             torch.Tensor: sampled token by noise distribution, shape is (B, context-1, subseq, #neg)
         """
-        vocab_size = self.distribution.numel()
-        mask = one_hot(target, vocab_size)
-
         # (B, context-1, subseq), #neg
         return (
             self.distribution.repeat(*target.shape, 1)
-            .mul(1 - mask)  # remove positive vocab
-            .reshape(-1, vocab_size)  # only 2 dim supported
+            .masked_fill(
+                one_hot(target, self.vocab_size).bool(), 0
+            )  # remove positive vocab
+            .view(-1, self.vocab_size)  # only 2 dim supported
             .multinomial(self.negative_ratio)  # last dim for dist
-            .reshape(*target.shape, self.negative_ratio)
+            .view(*target.shape, self.negative_ratio)
         )
 
     def forward(self, embedding: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -85,7 +85,7 @@ class NegativeSampling(nn.Module):
         positive_sample = torch.einsum(
             "bcsh, bcsh -> bcs",
             embedding,
-            self.fc[target, :],
+            self.fc[target],
         )
 
         # B, context-1, subseq, #negative
@@ -95,7 +95,7 @@ class NegativeSampling(nn.Module):
         negative_sample = torch.einsum(
             "bcsh, bcsnh -> bcsn",
             embedding,
-            self.fc[negative_target, :],
+            self.fc[negative_target],
         )
 
         positive_loss = binary_cross_entropy_with_logits(
@@ -233,18 +233,29 @@ class HierarchicalSoftmax(nn.Module):
             torch.Tensor: loss
         """
         # (N = B * c * #subseq), h
-        embedding = embedding.flatten(end_dim=-2)
+        embedding = embedding.view(-1, embedding.size(-1))
 
         # target mapping and concat
         # N
         paths = itemgetter(*target.flatten().tolist())(self.paths)
 
-        # TODO: optimize
-        pred = []
+        # indices, shape is ?
+        internal_indices = torch.cat([path["indices"] for path in paths])
+
+        # index of sample
+        # for example return 1, 1, 2, 3
+        # if sample 1 with tree depth 2, sample 2 and 3 with tree depth 1
+        sample_indices = []
         for i, path in enumerate(paths):
-            # h, ? * h => ?
-            pred.append(embedding[i] @ self.fc[path["indices"]].T)
-        pred = torch.cat(pred)
+            sample_indices.extend(path["indices"].size(0) * [i])
+        sample_indices = torch.LongTensor(sample_indices).to(self.context.device)
+
+        # ?
+        pred = torch.einsum(
+            "xh, xh -> x",
+            embedding[sample_indices],
+            self.fc[internal_indices],
+        )
 
         # ?
         target = torch.cat([path["code"] for path in paths])
