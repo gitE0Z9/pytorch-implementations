@@ -11,8 +11,8 @@ class Gat(nn.Module):
         in_dim: int,
         latent_dim: int,
         out_dim: int,
-        num_heads: int = 3,
-        num_layer: int = 4,
+        num_heads: int = 4,
+        num_layer: int = 3,
         version: 1 | 2 = 1,
     ):
         """Graph attention network
@@ -33,17 +33,19 @@ class Gat(nn.Module):
         layer_class = mapping.get(version)
         assert layer_class, "Layer version not supported."
 
-        self.layers = nn.Sequential(
-            *[
+        self.dropout = nn.Dropout(p=0.6)
+        self.activation = nn.ELU()
+
+        self.layers = nn.ModuleList(
+            [
                 layer_class(
                     in_dim if index == 0 else num_heads * latent_dim,
-                    latent_dim,
+                    out_dim if index == num_layer - 1 else latent_dim,
                     num_heads,
                 )
-                for index in range(num_layer - 1)
+                for index in range(num_layer)
             ]
         )
-        self.fc = layer_class(num_heads * latent_dim, out_dim, num_heads)
 
     def forward(self, x: torch.Tensor, edges: torch.Tensor) -> torch.Tensor:
         """forward
@@ -55,7 +57,10 @@ class Gat(nn.Module):
         Returns:
             torch.Tensor: output tensor, shape is (#node, out_dim)
         """
-        for layer in self.layers:
-            x = layer(x, edges, False)
+        for i in range(len(self.layers) - 1):
+            layer = self.layers[i]
+            x = self.dropout(x)
+            x = layer(x, edges, predict=False)
+            x = self.activation(x)
 
-        return self.fc(x, edges, True)
+        return self.layers[-1](x, edges, predict=True)

@@ -55,10 +55,10 @@ class GatLayer(nn.Module):
         """
         if predict:
             # #node, #latent_dim
-            y = h.mean(dim=0).sigmoid()
+            y = h.mean(dim=0)
         else:
             # #head, #node, #latent_dim
-            y = h.permute(1, 0, 2).reshape(h.size(1), -1).sigmoid()
+            y = h.permute(1, 0, 2).reshape(h.size(1), -1)
 
         return y
 
@@ -80,20 +80,24 @@ class GatLayer(nn.Module):
         """
         # #head, #node, latent_dim
         h = torch.einsum("hif, ni -> hnf", self.input_layer, x)
-        # #head, #edge, 2 * latent_dim
+        # #head, #edge, 2, latent_dim
         h = h[:, edges]
-        h = h.view(h.size(0), h.size(1), 2 * h.size(-1))
+        # #head, #edge, 2 * latent_dim
+        num_head, num_edge, _, latent_dim = h.shape
+        h_concat = h.reshape(num_head, num_edge, 2 * latent_dim)
 
         node_indices = edges[:, 0]
 
         # #head, #edge
-        attention_weight = self.get_attention_weight(h, node_indices)
-        # #head, #edge, latent_dim
-        _, h_j = torch.chunk(h, 2, -1)
+        attention_weight = self.get_attention_weight(h_concat, node_indices)
 
         # #head, #edge, 1 x  #head, #edge, latent_dim => #head, #edge, latent_dim
         # #head, #edge, latent_dim => #head, #node, latent_dim
-        h = scatter_add(attention_weight.unsqueeze(-1) * h_j, node_indices, dim=1)
+        h = scatter_add(
+            attention_weight.unsqueeze(-1) * h[:, :, 1],
+            node_indices,
+            dim=1,
+        )
 
         # #node, latent_dim
         return self.get_output(h, predict)
