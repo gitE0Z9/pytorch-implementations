@@ -14,7 +14,7 @@ from ..models.resnet.model import ResNet
         ["152", 152],
     ],
 )
-def test_reset_forward_shape(name: str, num_layer: int):
+def test_resnet_forward_shape(name: str, num_layer: int):
     x = torch.randn(2, 3, 224, 224)
     model = ResNet(output_size=5, num_layer=num_layer)
     y = model(x)
