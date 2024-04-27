@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchlake.common.network import ConvBnRelu
+
 from .network import BottleNeck, ConvBlock, ResBlock
 
 # input, output, base?, number_block, block_type
