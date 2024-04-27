@@ -83,7 +83,7 @@ class ResBlock(nn.Module):
         self.downsample = (
             nn.Identity()
             if input_channel == output_channel
-            else ConvBnRelu(input_channel, output_channel, 1)
+            else ConvBnRelu(input_channel, output_channel, 1, activation=None)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
