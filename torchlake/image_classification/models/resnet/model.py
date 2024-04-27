@@ -45,9 +45,11 @@ class ResNet(nn.Module):
         output_size: int = 1,
         num_layer: int = 50,
         pre_activation: bool = False,
+        configs=CONFIGS,
     ):
         super(ResNet, self).__init__()
         self.pre_activation = pre_activation
+        self.config = configs[num_layer]
 
         self.foot = nn.Sequential(
             ConvBnRelu(input_channel, 64, 7, stride=2, padding=3),
@@ -58,18 +60,16 @@ class ResNet(nn.Module):
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
         )
-        self.fc = nn.Linear(CONFIGS[num_layer][-1][1], output_size)
+        self.fc = nn.Linear(self.config[-1][1], output_size)
 
     def build_blocks(self, num_layer: int):
-        config = CONFIGS[num_layer]
-
         for block_index, (
             input_channel,
             output_channel,
             base_number,
             num_layer,
             layer_class,
-        ) in enumerate(config):
+        ) in enumerate(self.config):
             layers = [
                 ResBlock(
                     input_channel if layer_index == 0 else output_channel,
@@ -80,7 +80,7 @@ class ResNet(nn.Module):
                 )
                 for layer_index in range(num_layer)
             ]
-            if block_index not in [0, len(config) - 1]:
+            if block_index not in [0, len(self.config) - 1]:
                 layers.append(nn.MaxPool2d(2, 2))
 
             setattr(self, f"block{block_index+1}", nn.Sequential(*layers))
