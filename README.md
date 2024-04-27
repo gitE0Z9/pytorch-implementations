@@ -45,6 +45,11 @@
             ResNet50
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-resnext-019a1528cfd7">
+            ResNeXt50-32x4d
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
