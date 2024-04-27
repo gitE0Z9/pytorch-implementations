@@ -44,14 +44,20 @@ class ResNet(nn.Module):
         input_channel: int = 3,
         output_size: int = 1,
         num_layer: int = 50,
+        pre_activation: bool = False,
     ):
         super(ResNet, self).__init__()
+        self.pre_activation = pre_activation
+
         self.foot = nn.Sequential(
             ConvBnRelu(input_channel, 64, 7, stride=2, padding=3),
             nn.MaxPool2d(3, stride=2),
         )
         self.build_blocks(num_layer)
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.pool = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+        )
         self.fc = nn.Linear(CONFIGS[num_layer][-1][1], output_size)
 
     def build_blocks(self, num_layer: int):
@@ -70,6 +76,7 @@ class ResNet(nn.Module):
                     base_number,
                     output_channel,
                     layer_class,
+                    pre_activation=self.pre_activation,
                 )
                 for layer_index in range(num_layer)
             ]
@@ -86,7 +93,6 @@ class ResNet(nn.Module):
                 break
             y = block(y)
         y = self.pool(y)
-        y = torch.flatten(y, start_dim=1)
         y = self.fc(y)
 
         return y
