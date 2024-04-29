@@ -1,7 +1,11 @@
 import torch
 from torch import nn
-from torchlake.common.models import DepthwiseSeparableConv2d, ResBlock
-from torchlake.common.network import ConvBnRelu
+from torchlake.common.models import (
+    DepthwiseSeparableConv2d,
+    ResBlock,
+    SqueezeExcitation2d,
+)
+from torchvision.ops import Conv2dNormActivation
 
 
 class LinearBottleneck(nn.Module):
@@ -23,17 +27,18 @@ class LinearBottleneck(nn.Module):
         """
         super(LinearBottleneck, self).__init__()
         self.layers = nn.Sequential(
-            ConvBnRelu(
+            Conv2dNormActivation(
                 input_channel,
                 expansion_ratio * input_channel,
                 1,
-                activation=nn.ReLU6(),
+                activation_layer=nn.ReLU6,
+                inplace=False,
             ),
             DepthwiseSeparableConv2d(
                 expansion_ratio * input_channel,
                 output_channel,
                 stride=stride,
-                activation=(nn.ReLU6(), nn.Identity()),
+                activations=(nn.ReLU6(), nn.Identity()),
             ),
         )
 
@@ -80,7 +85,71 @@ class InvertedResidualBlock(nn.Module):
         return self.layer(x)
 
 
-class SeLinearBottleneck(nn.Module):
+class DepthwiseSeparableConv2dV3(DepthwiseSeparableConv2d):
+
+    def __init__(
+        self,
+        input_channel: int,
+        output_channel: int,
+        kernel: int = 3,
+        stride: int = 1,
+        padding: int = 1,
+        dilation: int = 1,
+        enable_bn: tuple[bool, bool] = (True, True),
+        enable_relu: bool = False,
+        enable_se: bool = True,
+        reduction_ratio: int = 4,
+    ):
+        """Squeeze and excitation depthwise separable convolution [1905.02244]
+
+        Args:
+            input_channel (int): input channel size
+            output_channel (int): output channel size
+            kernel (int): kernel size of depthwise separable convolution layer
+            stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
+            padding (tuple[int], optional): padding of both layers. Defaults to (0, 0).
+            dilation (tuple[int], optional): dilation of both layers. Defaults to (1, 1).
+            enable_bn (tuple[bool, bool], optional): enable_bn of both layers. Defaults to (True, True).
+            enable_relu (bool, optional): enable relu, otherwise hard-swish. Defaults to False.
+            enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
+            reduction_ratio (int, optional): reduction ratio. Defaults to 4.
+        """
+        activations = (
+            (nn.ReLU(True), nn.ReLU(True))
+            if enable_relu
+            else (nn.Hardswish(), nn.Identity())
+        )
+
+        super(DepthwiseSeparableConv2dV3, self).__init__(
+            input_channel,
+            output_channel,
+            kernel,
+            stride,
+            padding,
+            dilation,
+            enable_bn,
+            activations,
+        )
+
+        self.se = (
+            SqueezeExcitation2d(
+                self.get_latent_dim(input_channel, output_channel),
+                reduction_ratio=reduction_ratio,
+                activations=(nn.ReLU(True), nn.Hardswish()),
+            )
+            if enable_se
+            else nn.Identity()
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.depthwise_separable_layer(x)
+        y = self.se(y)
+        y = self.pointwise_layer(y)
+
+        return y
+
+
+class LinearBottleneckV3(nn.Module):
 
     def __init__(
         self,
@@ -89,9 +158,11 @@ class SeLinearBottleneck(nn.Module):
         kernel: int,
         stride: int = 1,
         expansion_size: int = 1,
-        reduction_ratio=16,
+        enable_relu: bool = False,
+        enable_se: bool = True,
+        reduction_ratio: int = 4,
     ):
-        """Squeeze and excitation bottleneck [1905.02244]
+        """Linear bottleneck for mobilenet v3 [1905.02244]
 
         Args:
             input_channel (int): input channel size. Defaults to 3.
@@ -99,23 +170,26 @@ class SeLinearBottleneck(nn.Module):
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
+            enable_relu (bool, optional): enable relu, otherwise hard-swish. Defaults to False.
+            enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
+            reduction_ratio (int, optional): reduction ratio. Defaults to 4.
         """
-        super(SeLinearBottleneck, self).__init__()
+        super(LinearBottleneckV3, self).__init__()
         self.layers = nn.Sequential(
-            ConvBnRelu(
+            Conv2dNormActivation(
                 input_channel,
                 expansion_size,
                 1,
-                activation=nn.Hardswish(),
+                activation_layer=nn.ReLU if enable_relu else nn.Hardswish,
+                inplace=enable_relu,
             ),
-            DepthwiseSeparableConv2d(
+            DepthwiseSeparableConv2dV3(
                 expansion_size,
                 output_channel,
                 kernel,
                 stride=stride,
-                expansion_size=expansion_size,
-                activation=(nn.Hardswish(), nn.ReLU6()),
-                enable_se=True,
+                padding=kernel // 2,
+                enable_se=enable_se,
                 reduction_ratio=reduction_ratio,
             ),
         )
@@ -124,7 +198,7 @@ class SeLinearBottleneck(nn.Module):
         return self.layers(x)
 
 
-class SeInvertedResidualBlock(nn.Module):
+class InvertedResidualBlockV3(nn.Module):
 
     def __init__(
         self,
@@ -133,11 +207,11 @@ class SeInvertedResidualBlock(nn.Module):
         kernel: int,
         stride: int = 1,
         expansion_size: int = 1,
-        activation: nn.Module | None = nn.Hardswish(),
+        enable_relu: bool = False,
         enable_se: bool = True,
-        reduction_ratio=16,
+        reduction_ratio: int = 4,
     ):
-        """Squeeze and excitation inverted residual block [1905.02244]
+        """Inverted residual block for mobilenet v3 [1905.02244]
 
         Args:
             input_channel (int): input channel size. Defaults to 3.
@@ -146,15 +220,20 @@ class SeInvertedResidualBlock(nn.Module):
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
             activation (tuple[nn.Module  |  None], optional): activation of both layers. Defaults to nn.Hardswish().
+            enable_relu (bool, optional): enable relu, otherwise hard-swish. Defaults to False.
+            enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
+            reduction_ratio (int, optional): reduction ratio. Defaults to 4.
         """
-        super(SeInvertedResidualBlock, self).__init__()
-        layer = SeLinearBottleneck(
+        super(InvertedResidualBlockV3, self).__init__()
+        layer = LinearBottleneckV3(
             input_channel,
             output_channel,
             kernel,
             stride,
             expansion_size,
-            reduction_ratio,
+            enable_relu=enable_relu,
+            enable_se=enable_se,
+            reduction_ratio=reduction_ratio,
         )
         self.layer = (
             ResBlock(
