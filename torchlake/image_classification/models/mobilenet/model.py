@@ -110,7 +110,7 @@ class MobileNetV2(nn.Module):
                     InvertedResidualBlock(
                         int((in_c if l == 0 else out_c) * width_multiplier),
                         int(out_c * width_multiplier),
-                        stride=stride,
+                        stride=stride if l == 0 else 1,
                         expansion_ratio=expansion_ratio,
                     )
                     for l in range(num_layer)
@@ -129,13 +129,23 @@ class MobileNetV2(nn.Module):
             # middle layers
             *middle_layers,
             # final layers
-            ConvBnRelu(int(320 * width_multiplier), 1280, 1),
+            ConvBnRelu(
+                int(320 * width_multiplier),
+                int(1280 * width_multiplier) if width_multiplier > 1 else 1280,
+                1,
+            ),
         )
         self.pool = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
         )
-        self.fc = nn.Linear(1280, output_size)
+        self.fc = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(
+                int(1280 * width_multiplier) if width_multiplier > 1 else 1280,
+                output_size,
+            ),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.layers(x)
