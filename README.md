@@ -50,6 +50,16 @@
             ResNeXt50-32x4d
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e">
+            MobileNet v1
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e">
+            MobileNet v2
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
@@ -86,6 +96,11 @@
         <li>
           <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b">
             FCN
+          </a>
+        </li>
+        <li>
+          <a href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221">
+            PSPNet
           </a>
         </li>
       </ul>
