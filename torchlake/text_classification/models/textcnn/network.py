@@ -12,7 +12,10 @@ class TextCnnPool(nn.Module):
         super(TextCnnPool, self).__init__()
         self.convs = nn.ModuleList(
             [
-                nn.Sequential(nn.Conv2d(1, 32, (kernel, embed_dim)), nn.LeakyReLU())
+                nn.Sequential(
+                    nn.Conv2d(1, 32, (kernel, embed_dim)),
+                    nn.LeakyReLU(),
+                )
                 for kernel in kernel_size
             ]
         )
