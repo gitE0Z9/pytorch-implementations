@@ -3,8 +3,24 @@ from typing import Literal
 import torch
 import torchvision
 from torch import nn
+import torch.nn.functional as F
 
 from .constants import IMAGENET_MEAN, IMAGENET_STD
+
+
+class SqueezeExcitation2d(nn.Module):
+
+    def __init__(self, in_dim: int, reduction_ratio: float = 1):
+        super(SqueezeExcitation2d, self).__init__()
+        self.s = nn.Linear(in_dim, in_dim // reduction_ratio)
+        self.e = nn.Linear(in_dim // reduction_ratio, in_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = x.mean((2, 3))
+        y = self.s(y)
+        y.relu_()
+        y = self.e(y)
+        return x * y.sigmoid()[:, :, None, None]
 
 
 class ConvBnRelu(nn.Module):
@@ -53,6 +69,8 @@ class DepthwiseSeparableConv2d(nn.Module):
         dilation: int = 1,
         enable_bn: tuple[bool] = (True, True),
         activation: tuple[nn.Module | None] = (nn.ReLU(True), nn.ReLU(True)),
+        enable_se: bool = False,
+        reduction_ratio: float = 1,
     ):
         """DepthwiseSeparableConv2d, consist of depthwise separable convolution layer and pointwise convolution layer
         3 -> 1
@@ -67,34 +85,43 @@ class DepthwiseSeparableConv2d(nn.Module):
             dilation (tuple[int], optional): dilation of both layers. Defaults to (1, 1).
             enable_bn (tuple[bool], optional): enable_bn of both layers. Defaults to (True, True).
             activation (tuple[nn.Module  |  None], optional): activation of both layers. Defaults to (nn.ReLU(True), nn.ReLU(True)).
+            enable_se (bool, optional): enable squeeze and excitation. Defaults to False.
         """
         super(DepthwiseSeparableConv2d, self).__init__()
+        self.enable_se = enable_se
         latent_dim = (
             output_channel if input_channel == output_channel else input_channel
         )
-        self.layers = nn.Sequential(
-            ConvBnRelu(
-                input_channel,
-                latent_dim,
-                kernel,
-                stride,
-                padding,
-                dilation,
-                group=input_channel,
-                enable_bn=enable_bn[0],
-                activation=activation[0],
-            ),
-            ConvBnRelu(
-                latent_dim,
-                output_channel,
-                1,
-                enable_bn=enable_bn[1],
-                activation=activation[1],
-            ),
+        self.depthwise_separable_layer = ConvBnRelu(
+            input_channel,
+            latent_dim,
+            kernel,
+            stride,
+            padding,
+            dilation,
+            group=input_channel,
+            enable_bn=enable_bn[0],
+            activation=activation[0],
+        )
+        self.pointwise_layer = ConvBnRelu(
+            latent_dim,
+            output_channel,
+            1,
+            enable_bn=enable_bn[1],
+            activation=activation[1],
         )
 
+        if self.enable_se:
+            self.se = SqueezeExcitation2d(output_channel, reduction_ratio)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layers(x)
+        y = self.depthwise_separable_layer(x)
+        y = self.pointwise_layer(x)
+
+        if self.enable_se:
+            return self.se(y)
+
+        return y
 
 
 class ResBlock(nn.Module):

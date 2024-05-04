@@ -1,0 +1,60 @@
+import torch
+from torchlake.common.network import SqueezeExcitation2d
+
+from ..resnet.network import BottleNeck, ConvBlock
+
+
+class SeConvBlock(ConvBlock):
+    def __init__(
+        self,
+        input_channel: int,
+        block_base_channel: int,
+        pre_activation: bool = False,
+    ):
+        """convolution block in se-resnet
+        3 -> 3
+        input_channel -> block_base_channel -> block_base_channel
+
+        Args:
+            input_channel (int): input channel size
+            block_base_channel (int): base number of block channel size
+            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+        """
+        super(SeConvBlock, self).__init__(
+            input_channel,
+            block_base_channel,
+            pre_activation,
+        )
+        self.se = SqueezeExcitation2d(block_base_channel, 16)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = super().forward(x)
+        return self.se(y)
+
+
+class SeBottleNeck(BottleNeck):
+    def __init__(
+        self,
+        input_channel: int,
+        block_base_channel: int,
+        pre_activation: bool = False,
+    ):
+        """bottleneck block in se-resnet
+        1 -> 3 -> 1
+        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+
+        Args:
+            input_channel (int): input channel size
+            block_base_channel (int): base number of block channel size
+            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+        """
+        super(SeBottleNeck, self).__init__(
+            input_channel,
+            block_base_channel,
+            pre_activation,
+        )
+        self.se = SqueezeExcitation2d(block_base_channel * 4, 16)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = super().forward(x)
+        return self.se(y)
