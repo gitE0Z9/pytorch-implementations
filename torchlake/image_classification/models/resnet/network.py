@@ -18,7 +18,7 @@ class ConvBlock(nn.Module):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
-            pre_activation (bool, Defaults False):
+            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
         """
         super(ConvBlock, self).__init__()
         self.pre_activation = pre_activation
@@ -54,7 +54,7 @@ class BottleNeck(nn.Module):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
-            pre_activation (bool, Defaults False): activation before block
+            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
         """
         super(BottleNeck, self).__init__()
         self.pre_activation = pre_activation
