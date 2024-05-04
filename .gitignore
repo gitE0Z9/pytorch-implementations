@@ -11,3 +11,6 @@ reference
 build
 dist
 *egg*
+runs
+__pycache_
+.pytest_cache
