@@ -60,6 +60,11 @@ The development direction will extend towards a monorepo.
             MobileNet v2
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="">
+            SE-ResNet50
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
