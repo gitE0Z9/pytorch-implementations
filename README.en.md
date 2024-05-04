@@ -65,6 +65,11 @@ The development direction will extend towards a monorepo.
             SE-ResNet50
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="">
+            SE-ResNeXt50
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
