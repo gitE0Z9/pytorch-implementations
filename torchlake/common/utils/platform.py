@@ -25,4 +25,4 @@ def get_file_size(
     }
     divider = mapping[unit]
 
-    return round(path.stat().st_size / divider, 2) + f"{unit}B"
+    return f"{round(path.stat().st_size / divider, 2)}{unit}B"
