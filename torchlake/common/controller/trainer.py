@@ -8,9 +8,15 @@ from tqdm import tqdm
 
 
 class TrainerBase(ABC):
-    def __init__(self, epoches: int, device: torch.device):
+    def __init__(
+        self,
+        epoches: int,
+        device: torch.device,
+        acc_iters: int,
+    ):
         self.epoches = epoches
         self.device = device
+        self.acc_iters = acc_iters
 
     def get_criterion(self):
         raise NotImplementedError
@@ -58,8 +64,12 @@ class TrainerBase(ABC):
                 loss = self._predict(row, model, criterion, *args, **kwargs)
                 running_loss += loss.item()
 
+                loss /= self.acc_iters
                 loss.backward()
-                optimizer.step()
+
+                if e % self.acc_iters == 0:
+                    optimizer.step()
+                    optimizer.zero_grad()
 
             training_loss.append(running_loss / data_size)
 
@@ -83,6 +93,7 @@ class ClassificationTrainer(TrainerBase):
         row: tuple[Iterable],
         model: nn.Module,
         criterion: nn.Module,
+        feature_last: bool = False,
         *args,
         **kwargs,
     ):
@@ -91,6 +102,9 @@ class ClassificationTrainer(TrainerBase):
         y = y.to(self.device)
 
         output = model(x)
+
+        if feature_last:
+            output = output.permute(0, -1, *range(1, len(output.shape) - 1))
 
         loss = criterion(output, y.long())
 
