@@ -2,6 +2,8 @@ import torch
 from torch import nn
 from torchlake.common.network import ConvBnRelu
 
+from ..resnext.network import BottleNeck as XBottleNeck
+
 
 class SelectiveKernel2d(nn.Module):
 
@@ -61,40 +63,25 @@ class SelectiveKernel2d(nn.Module):
         return attention[:, :, :, None, None].mul(_y).sum(1)
 
 
-class BottleNeck(nn.Module):
+class BottleNeck(XBottleNeck):
     def __init__(
         self,
         input_channel: int,
         block_base_channel: int,
         pre_activation: bool = False,
     ):
-        """bottleneck block in resnext
+        """bottleneck block in sknet
         1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+        input_channel -> block_base_channel -> block_base_channel -> 2 * block_base_channel
 
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
             pre_activation (bool, Defaults False): activation before block
         """
-        super(BottleNeck, self).__init__()
-        self.pre_activation = pre_activation
-
-        self.block = nn.Sequential(
-            ConvBnRelu(input_channel, block_base_channel, 1),
-            SelectiveKernel2d(
-                block_base_channel,
-                block_base_channel,
-            ),
-            ConvBnRelu(
-                block_base_channel,
-                block_base_channel * 2,
-                1,
-                activation=None,
-            ),
+        super(BottleNeck, self).__init__(
+            input_channel,
+            block_base_channel,
+            pre_activation,
         )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.pre_activation:
-            x.relu_()
-        return self.block(x)
+        self.block[1] = SelectiveKernel2d(block_base_channel, block_base_channel)
