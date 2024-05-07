@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 from torch import nn
 from torchlake.common.network import ConvBnRelu
@@ -46,7 +48,7 @@ class ResNet(nn.Module):
         output_size: int = 1,
         num_layer: int = 50,
         pre_activation: bool = False,
-        configs=CONFIGS,
+        configs: dict[int, Any] = CONFIGS,
     ):
         super(ResNet, self).__init__()
         self.pre_activation = pre_activation
@@ -54,16 +56,16 @@ class ResNet(nn.Module):
 
         self.foot = nn.Sequential(
             ConvBnRelu(input_channel, 64, 7, stride=2, padding=3),
-            nn.MaxPool2d(3, stride=2),
+            nn.MaxPool2d(3, stride=2, padding=1),
         )
-        self.build_blocks(num_layer)
+        self.build_blocks()
         self.pool = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
         )
         self.fc = nn.Linear(self.config[-1][1], output_size)
 
-    def build_blocks(self, num_layer: int):
+    def build_blocks(self):
         for block_index, (
             input_channel,
             output_channel,
