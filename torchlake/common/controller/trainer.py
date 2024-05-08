@@ -51,6 +51,7 @@ class TrainerBase(ABC):
         for e in range(self.epoches):
             running_loss = 0.0
             data_size = 0
+            optimizer.zero_grad()
 
             for row in tqdm(data):
                 x = row[0]
@@ -58,8 +59,6 @@ class TrainerBase(ABC):
                     data_size += x.size(0)
                 elif isinstance(x, list):
                     data_size += len(x)
-
-                optimizer.zero_grad()
 
                 loss = self._predict(row, model, criterion, *args, **kwargs)
                 running_loss += loss.item()
