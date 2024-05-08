@@ -35,8 +35,11 @@ class ConvBnRelu(nn.Module):
         group: int = 1,
         enable_bn: bool = True,
         activation: nn.Module | None = nn.ReLU(True),
+        conv_last: bool = False,
     ):
         super(ConvBnRelu, self).__init__()
+        self.conv_last = conv_last
+
         self.conv = nn.Conv2d(
             input_channel,
             output_channel,
@@ -47,15 +50,25 @@ class ConvBnRelu(nn.Module):
             group,
             bias=not enable_bn,
         )
-        self.bn = nn.BatchNorm2d(output_channel) if enable_bn else enable_bn
+        self.bn = (
+            nn.BatchNorm2d(output_channel if not conv_last else input_channel)
+            if enable_bn
+            else enable_bn
+        )
         self.activation = activation or nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv(x)
-        if self.bn:
-            y = self.bn(y)
+        if not self.conv_last:
+            x = self.conv(x)
 
-        return self.activation(y)
+        if self.bn:
+            x = self.bn(x)
+        x = self.activation(x)
+
+        if self.conv_last:
+            x = self.conv(x)
+
+        return x
 
 
 class DepthwiseSeparableConv2d(nn.Module):
