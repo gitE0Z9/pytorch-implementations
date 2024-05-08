@@ -1,6 +1,7 @@
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu, DepthwiseSeparableConv2d
+from torchlake.common.models import DepthwiseSeparableConv2d
+from torchlake.common.network import ConvBnRelu
 
 from .network import InvertedResidualBlock
 
