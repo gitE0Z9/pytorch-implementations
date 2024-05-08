@@ -1,5 +1,5 @@
 from torchlake.common.mixins.network import SeMixin
-from torchlake.common.network import SqueezeExcitation2d
+from torchlake.common.models import SqueezeExcitation2d
 
 from ..resnet.network import BottleNeck, ConvBlock
 from ..resnext.network import BottleNeck as XBottleNeck
