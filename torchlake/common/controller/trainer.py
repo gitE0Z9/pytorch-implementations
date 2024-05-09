@@ -54,7 +54,13 @@ class TrainerBase(ABC):
             optimizer.zero_grad()
 
             for row in tqdm(data):
-                x = row[0]
+                # get x
+                if isinstance(row, tuple):
+                    x = row[0]
+                else:
+                    x = row
+
+                # get batch size
                 if isinstance(x, torch.Tensor):
                     data_size += x.size(0)
                 elif isinstance(x, list):
