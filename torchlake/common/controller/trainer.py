@@ -53,9 +53,9 @@ class TrainerBase(ABC):
             data_size = 0
             optimizer.zero_grad()
 
-            for row in tqdm(data):
+            for i, row in enumerate(tqdm(data)):
                 # get x
-                if isinstance(row, tuple):
+                if isinstance(row, list):
                     x = row[0]
                 else:
                     x = row
@@ -67,12 +67,12 @@ class TrainerBase(ABC):
                     data_size += len(x)
 
                 loss = self._predict(row, model, criterion, *args, **kwargs)
-                running_loss += loss.item()
 
                 loss /= self.acc_iters
                 loss.backward()
+                running_loss += loss.item()
 
-                if e % self.acc_iters == 0:
+                if (i + 1) % self.acc_iters == 0:
                     optimizer.step()
                     optimizer.zero_grad()
 
