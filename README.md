@@ -238,20 +238,6 @@
   </tr>
   <tr>
     <td>
-      <b>機器翻譯(machine translation)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4">
-            Seq2Seq
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
       <b>增強學習(reinforcement learning)</b>
     </td>
     <td>

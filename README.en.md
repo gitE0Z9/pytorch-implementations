@@ -210,27 +210,13 @@ The development direction will extend towards a monorepo.
     <td>
       <ul>
         <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641">
-            LSTM
-          </a>
-        </li>
-        <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c">
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c">
             TextCNN
           </a>
         </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>POS tagging</b>
-    </td>
-    <td>
-      <ul>
         <li>
-          <a href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e">
-            BiLSTM
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-charcnn-47020fdc76d4">
+            CharCNN
           </a>
         </li>
       </ul>
@@ -245,20 +231,6 @@ The development direction will extend towards a monorepo.
         <li>
           <a href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6">
             BiLSTM-CRF
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>Machine translation</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4">
-            Seq2Seq
           </a>
         </li>
       </ul>
@@ -285,16 +257,26 @@ The development direction will extend towards a monorepo.
     <td>
       <ul>
         <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641">
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641">
             LSTM
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e">
+            BiLSTM
           </a>
         </li>
         <li>
           <p>GRU</p>
         </li>
         <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d">
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d">
             TCN
+          </a>
+        </li>
+        <li>
+          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4">
+            Seq2Seq
           </a>
         </li>
       </ul>
