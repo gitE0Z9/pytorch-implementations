@@ -41,13 +41,18 @@ The development direction will extend towards a monorepo.
     <td>
       <ul>
         <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43">
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43">
             ResNet50
           </a>
         </li>
         <li>
           <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-resnext-019a1528cfd7">
             ResNeXt50-32x4d
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
+            ResNeSt50
           </a>
         </li>
         <li>
@@ -61,13 +66,23 @@ The development direction will extend towards a monorepo.
           </a>
         </li>
         <li>
-          <a target="_blank" rel="noopener noreferrer" href="">
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
             SE-ResNet50
           </a>
         </li>
         <li>
-          <a target="_blank" rel="noopener noreferrer" href="">
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
             SE-ResNeXt50
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
+            SKNet
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976">
+            DenseNet
           </a>
         </li>
       </ul>

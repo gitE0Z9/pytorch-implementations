@@ -51,6 +51,11 @@
           </a>
         </li>
         <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
+            ResNeSt50
+          </a>
+        </li>
+        <li>
           <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e">
             MobileNet v1
           </a>
@@ -61,13 +66,23 @@
           </a>
         </li>
         <li>
-          <a target="_blank" rel="noopener noreferrer" href="">
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
             SE-ResNet50
           </a>
         </li>
         <li>
-          <a target="_blank" rel="noopener noreferrer" href="">
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
             SE-ResNeXt50
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
+            SKNet
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976">
+            DenseNet
           </a>
         </li>
       </ul>
