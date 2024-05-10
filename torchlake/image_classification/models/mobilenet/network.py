@@ -135,7 +135,7 @@ class DepthwiseSeparableConv2dV3(DepthwiseSeparableConv2d):
             SqueezeExcitation2d(
                 self.get_latent_dim(input_channel, output_channel),
                 reduction_ratio=reduction_ratio,
-                activations=(nn.ReLU(True), nn.Hardswish()),
+                activations=(nn.ReLU(True), nn.Hardsigmoid()),
             )
             if enable_se
             else nn.Identity()

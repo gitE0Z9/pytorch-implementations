@@ -246,7 +246,7 @@ class MobileNetV3(nn.Module):
             SqueezeExcitation2d(
                 960 if size == "large" else 576,
                 reduction_ratio=4,
-                activations=(nn.ReLU(True), nn.Hardswish()),
+                activations=(nn.ReLU(True), nn.Hardsigmoid()),
             ),
         )
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
