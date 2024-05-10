@@ -77,7 +77,7 @@ class InvertedResidualBlock(nn.Module):
                 layer,
                 activation=None,
             )
-            if stride == 1
+            if input_channel == output_channel
             else layer
         )
 
@@ -242,7 +242,7 @@ class InvertedResidualBlockV3(nn.Module):
                 layer,
                 activation=None,
             )
-            if stride == 1
+            if input_channel == output_channel
             else layer
         )
 
