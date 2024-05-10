@@ -66,6 +66,11 @@ The development direction will extend towards a monorepo.
           </a>
         </li>
         <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc">
+            MobileNet v3
+          </a>
+        </li>
+        <li>
           <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
             SE-ResNet50
           </a>
