@@ -25,7 +25,7 @@ class ClassificationEvaluator:
                 output = model(x).argmax(dim=-1)
                 confusion_matrix.update(y.long(), output.detach().cpu())
 
-            print(self.get_total_accuracy(confusion_matrix))
+            print(confusion_matrix)
 
         return confusion_matrix
 
