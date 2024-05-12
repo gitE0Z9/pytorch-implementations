@@ -90,7 +90,7 @@ class ResNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x)
-        for i in range(4):
+        for i in range(len(self.config)):
             block = getattr(self, f"block{i+1}", None)
             if not block:
                 break
