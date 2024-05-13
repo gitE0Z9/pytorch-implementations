@@ -18,17 +18,25 @@ class Bam2d(nn.Module):
 
         self.ca = nn.Sequential(
             nn.Conv2d(in_dim, compressed_dim, 1),
-            nn.Conv2d(compressed_dim, in_dim, 1),
+            Conv2dNormActivation(compressed_dim, in_dim, 1, activation_layer=None),
         )
         self.sa = nn.Sequential(
             nn.Conv2d(in_dim, compressed_dim, 1),
             nn.Conv2d(
-                compressed_dim, compressed_dim, 3, dilation=dilation, padding=dilation
+                compressed_dim,
+                compressed_dim,
+                3,
+                dilation=dilation,
+                padding=dilation,
             ),
             nn.Conv2d(
-                compressed_dim, compressed_dim, 3, dilation=dilation, padding=dilation
+                compressed_dim,
+                compressed_dim,
+                3,
+                dilation=dilation,
+                padding=dilation,
             ),
-            Conv2dNormActivation(compressed_dim, 1, 1),
+            Conv2dNormActivation(compressed_dim, 1, 1, activation_layer=None),
         )
 
     def get_channel_attention(self, x: torch.Tensor) -> torch.Tensor:
