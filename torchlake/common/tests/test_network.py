@@ -6,6 +6,7 @@ from ..models import (
     DepthwiseSeparableConv2d,
     ResBlock,
     SqueezeExcitation2d,
+    SpatialTransform2d,
 )
 from ..network import ConvBnRelu
 
@@ -74,3 +75,14 @@ class TestResBlock:
         y = model(x)
 
         assert y.shape == torch.Size((8, 32, 7, 7))
+
+
+class TestSpatialTransform2d:
+    def test_output_shape(self):
+        x = torch.randn(8, 16, 224, 224)
+
+        model = SpatialTransform2d(16, 32)
+
+        y = model(x)
+
+        assert y.shape == torch.Size((8, 16, 224, 224))
