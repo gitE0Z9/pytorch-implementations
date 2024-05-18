@@ -85,4 +85,5 @@ class TestSpatialTransform2d:
 
         y = model(x)
 
-        assert y.shape == torch.Size((8, 16, 224, 224))
+        for output in y:
+            assert output.shape == torch.Size((8, 16, 224, 224))
