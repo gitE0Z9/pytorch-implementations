@@ -4,6 +4,7 @@ from .ds_conv import DepthwiseSeparableConv2d
 from .residual import ResBlock
 from .se import SqueezeExcitation2d
 from .stn import SpatialTransform2d
+from .imagenet_norm import ImageNormalization
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -12,4 +13,5 @@ __all__ = [
     "Bam2d",
     "ResBlock",
     "SpatialTransform2d",
+    "ImageNormalization",
 ]

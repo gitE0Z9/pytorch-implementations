@@ -7,6 +7,7 @@ from ..models import (
     ResBlock,
     SqueezeExcitation2d,
     SpatialTransform2d,
+    ImageNormalization,
 )
 from ..network import ConvBnRelu
 
@@ -87,3 +88,23 @@ class TestSpatialTransform2d:
 
         for output in y:
             assert output.shape == torch.Size((8, 16, 224, 224))
+
+
+class TestImageNormalization:
+    def test_output_shape(self):
+        x = torch.randn(8, 3, 224, 224)
+
+        model = ImageNormalization()
+
+        y = model(x)
+
+        assert y.shape == torch.Size((8, 3, 224, 224))
+
+    def test_reverse_output_shape(self):
+        x = torch.randn(8, 3, 224, 224)
+
+        model = ImageNormalization()
+
+        y = model.forward(x, reverse=True)
+
+        assert y.shape == torch.Size((8, 3, 224, 224))
