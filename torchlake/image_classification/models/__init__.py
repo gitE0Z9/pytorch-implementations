@@ -1,5 +1,6 @@
 from .bam.model import BamResNet
 from .cbam.model import CbamResNet
+from .coord_attention.model import CoordAttentionResNet
 from .densenet.model import DenseNet
 from .mobilenet.model import MobileNetV1, MobileNetV2, MobileNetV3
 from .resnest.model import ResNeSt
@@ -16,6 +17,7 @@ __all__ = [
     "SeResNeXt",
     "CbamResNet",
     "BamResNet",
+    "CoordAttentionResNet",
     "SkNet",
     "DenseNet",
     "MobileNetV1",
