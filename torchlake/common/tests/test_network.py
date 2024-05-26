@@ -3,6 +3,7 @@ import torch
 from ..models import (
     Bam2d,
     Cbam2d,
+    CoordinateAttention2d,
     DepthwiseSeparableConv2d,
     ResBlock,
     SqueezeExcitation2d,
@@ -37,6 +38,17 @@ class TestBam2d:
         x = torch.randn(8, 16, 112, 112)
 
         model = Bam2d(16, 16)
+
+        y = model(x)
+
+        assert y.shape == torch.Size((8, 16, 112, 112))
+
+
+class TestCoordinateAttention2d:
+    def test_output_shape(self):
+        x = torch.randn(8, 16, 112, 112)
+
+        model = CoordinateAttention2d(16, 16)
 
         y = model(x)
 
