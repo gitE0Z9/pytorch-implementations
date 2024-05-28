@@ -2,8 +2,7 @@ import torch
 import torch.nn.functional as F
 import torchvision
 from torch import nn
-
-# from torchvision.ops import Conv2dNormActivation
+from torchvision.ops import Conv2dNormActivation
 
 from .network import DualAttention2d
 
@@ -33,12 +32,12 @@ class DaNet(nn.Module):
             nn.Conv2d(inter_channel, num_class, 1),
         )
 
-        # if self.training:
-        #     self.aux = nn.Sequential(
-        #         Conv2dNormActivation(1024, 256),
-        #         nn.Dropout2d(dropout_prob),
-        #         nn.Conv2d(256, num_class, 1),
-        #     )
+        if self.training:
+            self.aux = nn.Sequential(
+                Conv2dNormActivation(1024, 256),
+                nn.Dropout2d(dropout_prob),
+                nn.Conv2d(256, num_class, 1),
+            )
 
     def load_backbone(
         self,
@@ -80,19 +79,19 @@ class DaNet(nn.Module):
 
         return features
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor] | torch.Tensor:
         features = self.get_features(x)
         if self.training:
-            _, y = features
+            aux, y = features
         else:
             y = features[0]
         y = self.att(y)
         y = self.head(y)
         y = F.interpolate(y, x.shape[2:], mode="bilinear")
 
-        # if self.training:
-        #     aux = self.aux(aux)
-        #     aux = F.interpolate(aux, x.shape[2:], mode="bilinear")
-        #     return y, aux
+        if self.training:
+            aux = self.aux(aux)
+            aux = F.interpolate(aux, x.shape[2:], mode="bilinear")
+            return y, aux
 
         return y

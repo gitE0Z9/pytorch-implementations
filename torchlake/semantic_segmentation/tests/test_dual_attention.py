@@ -13,10 +13,10 @@ class TestDaNet:
 
         model = DaNet(2048, 21)
 
-        y = model(x)
+        y, aux = model(x)
 
         assert y.shape == torch.Size((16, 21, 224, 224))
-        # assert aux.shape == torch.Size((16, 21, 224, 224))
+        assert aux.shape == torch.Size((16, 21, 224, 224))
 
     def test_eval_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
