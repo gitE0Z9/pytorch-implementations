@@ -14,7 +14,7 @@ class DaNet(nn.Module):
         self,
         latent_dim: int = 1,
         num_class: int = 1,
-        reduction_ratio: float = 1,
+        reduction_ratio: float = 32,
         dropout_prob: float = 0.1,
         resent_no: 18 | 34 | 50 | 101 | 152 = 50,
     ):
