@@ -18,25 +18,28 @@ class ConvBlock(nn.Module):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
-            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
         """
         super(ConvBlock, self).__init__()
-        self.pre_activation = pre_activation
-
         self.block = nn.Sequential(
-            ConvBnRelu(input_channel, block_base_channel, 3, padding=1),
+            ConvBnRelu(
+                input_channel,
+                block_base_channel,
+                3,
+                padding=1,
+                conv_last=pre_activation,
+            ),
             ConvBnRelu(
                 block_base_channel,
                 block_base_channel,
                 3,
                 padding=1,
                 activation=None,
+                conv_last=pre_activation,
             ),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.pre_activation:
-            x = F.relu(x, True)
         return self.block(x)
 
 
@@ -54,25 +57,33 @@ class BottleNeck(nn.Module):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
-            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
         """
         super(BottleNeck, self).__init__()
-        self.pre_activation = pre_activation
-
         self.block = nn.Sequential(
-            ConvBnRelu(input_channel, block_base_channel, 1),
-            ConvBnRelu(block_base_channel, block_base_channel, 3, padding=1),
+            ConvBnRelu(
+                input_channel,
+                block_base_channel,
+                1,
+                conv_last=pre_activation,
+            ),
+            ConvBnRelu(
+                block_base_channel,
+                block_base_channel,
+                3,
+                padding=1,
+                conv_last=pre_activation,
+            ),
             ConvBnRelu(
                 block_base_channel,
                 block_base_channel * 4,
                 1,
                 activation=None,
+                conv_last=pre_activation,
             ),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.pre_activation:
-            x = F.relu(x, True)
         return self.block(x)
 
 
@@ -93,6 +104,7 @@ class ResBlock(nn.Module):
             block_base_channel (int): base number of block channel size
             output_channel (int): output channel size
             block (ConvBlock | BottleNeck): block class
+            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
         """
         super(ResBlock, self).__init__()
         self.pre_activation = pre_activation
