@@ -86,6 +86,11 @@
           </a>
         </li>
         <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-and-its-variants-2-f8f77cef8e2b">
+            Residual attention network(AttentionNet56)
+          </a>
+        </li>
+        <li>
           <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976">
             DenseNet
           </a>
