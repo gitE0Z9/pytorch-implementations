@@ -8,6 +8,7 @@ from .resnet.model import ResNet
 from .resnext.model import ResNeXt
 from .senet.model import SeResNet, SeResNeXt
 from .sknet.model import SkNet
+from .residual_attention.model import ResidualAttentionNetwork
 
 __all__ = [
     "ResNet",
@@ -18,6 +19,7 @@ __all__ = [
     "CbamResNet",
     "BamResNet",
     "CoordAttentionResNet",
+    "ResidualAttentionNetwork",
     "SkNet",
     "DenseNet",
     "MobileNetV1",
