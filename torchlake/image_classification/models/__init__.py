@@ -9,6 +9,7 @@ from .resnext.model import ResNeXt
 from .senet.model import SeResNet, SeResNeXt
 from .sknet.model import SkNet
 from .residual_attention.model import ResidualAttentionNetwork
+from .highway.model import HighwayNetwork
 
 __all__ = [
     "ResNet",
@@ -25,4 +26,5 @@ __all__ = [
     "MobileNetV1",
     "MobileNetV2",
     "MobileNetV3",
+    "HighwayNetwork",
 ]
