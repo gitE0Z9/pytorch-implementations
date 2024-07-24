@@ -4,6 +4,7 @@ from .coord_attention import CoordinateAttention2d
 from .ds_conv import DepthwiseSeparableConv2d
 from .residual import ResBlock
 from .se import SqueezeExcitation2d
+from .highway import HighwayBlock
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -12,4 +13,5 @@ __all__ = [
     "Cbam2d",
     "Bam2d",
     "ResBlock",
+    "HighwayBlock",
 ]

@@ -1,10 +1,12 @@
 import torch
+from torchvision.ops import Conv2dNormActivation
 
 from ..models import (
     Bam2d,
     Cbam2d,
     CoordinateAttention2d,
     DepthwiseSeparableConv2d,
+    HighwayBlock,
     ResBlock,
     SqueezeExcitation2d,
 )
@@ -82,6 +84,20 @@ class TestResBlock:
         x = torch.randn(8, 16, 7, 7)
 
         model = ResBlock(16, 32, ConvBnRelu(16, 32, 3, padding=1, activation=None))
+
+        y = model(x)
+
+        assert y.shape == torch.Size((8, 32, 7, 7))
+
+
+class TestHighwayBlock:
+    def test_output_shape(self):
+        x = torch.randn(8, 32, 7, 7)
+
+        model = HighwayBlock(
+            Conv2dNormActivation(32, 32, 3),
+            Conv2dNormActivation(32, 32, 3),
+        )
 
         y = model(x)
 
