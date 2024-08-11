@@ -9,6 +9,7 @@ class ResBlock(nn.Module):
         input_channel: int,
         output_channel: int,
         block: nn.Module,
+        stride: int = 1,
         activation: nn.Module | None = nn.ReLU(True),
     ):
         """residual block
@@ -18,6 +19,7 @@ class ResBlock(nn.Module):
             input_channel (int): input channel size
             output_channel (int): output channel size
             block (nn.Module): block class
+            stride (int, optional): stride of identity mapping. Defaults to 1.
             activation (tuple[nn.Module  |  None], optional): activation of residual output. Defaults to nn.ReLU(True).
         """
         super(ResBlock, self).__init__()
@@ -32,6 +34,7 @@ class ResBlock(nn.Module):
                 input_channel,
                 output_channel,
                 1,
+                stride,
                 activation_layer=None,
             )
         )
