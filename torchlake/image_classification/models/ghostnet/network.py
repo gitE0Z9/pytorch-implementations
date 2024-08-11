@@ -26,12 +26,13 @@ class GhostModule(nn.Module):
             d (int): kernel size of depthwise convolution layer. Defaults to 1.
         """
         super(GhostModule, self).__init__()
-        self.identity_channel = int(output_channel / s)
-        transformed_channel = output_channel - self.identity_channel
+        self.s = s
+        self.identity_channel = output_channel // s
+        transformed_channel = self.identity_channel * (s - 1)
 
         self.pointwise_conv = Conv2dNormActivation(
             input_channel,
-            output_channel,
+            self.identity_channel,
             1,
             norm_layer=None,
             activation_layer=None,
@@ -53,8 +54,8 @@ class GhostModule(nn.Module):
         # b, c / s + c * (s-1) / s, h, w
         return torch.cat(
             [
-                y[:, : self.identity_channel, :, :],
-                self.ghost(y[:, self.identity_channel :, :, :]),
+                y,
+                self.ghost(y.repeat(1, self.s - 1, 1, 1)),
             ],
             1,
         )
