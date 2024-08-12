@@ -23,7 +23,10 @@ class TestWord2Vec:
     def test_cbow_forward_shape(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = Word2Vec(
-            VOCAB_SIZE, EMBED_SIZE, CONTEXT_SIZE, model_type=ModelType.CBOW
+            VOCAB_SIZE,
+            EMBED_SIZE,
+            model_type=ModelType.CBOW,
+            context=CONTEXT,
         )
         y = model(x)
 
@@ -31,8 +34,13 @@ class TestWord2Vec:
 
     def test_skipgram_forward_shape(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-        model = Word2Vec(VOCAB_SIZE, EMBED_SIZE, CONTEXT_SIZE, ModelType.SKIP_GRAM)
-        y = model(x)
+        model = Word2Vec(
+            VOCAB_SIZE,
+            EMBED_SIZE,
+            ModelType.SKIP_GRAM,
+            context=CONTEXT,
+        )
+        y = model(x, NEIGHBOR_SIZE)
 
         assert y.shape == torch.Size(
             (BATCH_SIZE, VOCAB_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN)
@@ -106,9 +114,9 @@ class TestNegativeSampling:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            CONTEXT_SIZE,
             ModelType.CBOW,
             loss_type=LossType.NS,
+            context=CONTEXT,
         )
         yhat = model(x)
 
@@ -128,11 +136,11 @@ class TestNegativeSampling:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            CONTEXT_SIZE,
             ModelType.SKIP_GRAM,
             loss_type=LossType.NS,
+            context=CONTEXT,
         )
-        yhat = model(x)
+        yhat = model(x, NEIGHBOR_SIZE)
 
         criterion = NegativeSampling(
             WORD_FREQS,
@@ -211,9 +219,9 @@ class TestHierarchicalSoftmax:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            CONTEXT_SIZE,
             ModelType.CBOW,
             loss_type=LossType.HS,
+            context=CONTEXT,
         )
         yhat = model(x)
 
@@ -233,11 +241,11 @@ class TestHierarchicalSoftmax:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            CONTEXT_SIZE,
             ModelType.SKIP_GRAM,
             loss_type=LossType.HS,
+            context=CONTEXT,
         )
-        yhat = model(x)
+        yhat = model(x, NEIGHBOR_SIZE)
 
         criterion = HierarchicalSoftmax(
             WORD_COUNTS,

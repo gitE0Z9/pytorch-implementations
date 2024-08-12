@@ -44,7 +44,6 @@ class SkipGram(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        context_size: int,
         context: NlpContext = NlpContext(),
     ):
         """Skip gram model, use gram to predict context
@@ -52,12 +51,9 @@ class SkipGram(nn.Module):
         Args:
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            context_size (int): size of each subsequence
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
         super(SkipGram, self).__init__()
-        self.context_size = context_size
-
         self.embeddings = nn.Embedding(
             vocab_size,
             embed_dim,
@@ -68,13 +64,14 @@ class SkipGram(nn.Module):
         """forward
 
         Args:
-            x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
+            x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, 1, #subsequence)
 
         Returns:
-            torch.Tensor: embedded vectors, shape is (batch size, neighbor_size, #subsequence, embedding dimension)
+            torch.Tensor: embedded vectors, shape is (batch size, 1, #subsequence, embedding dimension)
         """
-        # B, neighbor, subseq, embed_dim
-        return self.embeddings(x).repeat(1, self.context_size - 1, 1, 1)
+        # B, 1, subseq, embed_dim
+        # repeat neighbor_size in wrapper
+        return self.embeddings(x)
 
 
 class Word2Vec(nn.Module):
@@ -82,7 +79,6 @@ class Word2Vec(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        context_size: int,
         model_type: ModelType,
         loss_type: LossType = LossType.CE,
         context: NlpContext = NlpContext(),
@@ -92,12 +88,12 @@ class Word2Vec(nn.Module):
         Args:
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            context_size (int): size of each subsequence
             model_type (ModelType): model type, either Cbow or Skipgram
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
         super(Word2Vec, self).__init__()
+        self.model_type = model_type
         self.loss_type = loss_type
         self.fc = nn.Identity()
         self.model = self._build_model(
@@ -105,7 +101,6 @@ class Word2Vec(nn.Module):
             loss_type,
             vocab_size,
             embed_dim,
-            context_size,
             context,
         )
 
@@ -115,7 +110,6 @@ class Word2Vec(nn.Module):
         loss_type: LossType,
         vocab_size: int,
         embed_dim: int,
-        context_size: int,
         context: NlpContext = NlpContext(),
     ) -> Cbow | SkipGram:
         """build model with options
@@ -125,7 +119,6 @@ class Word2Vec(nn.Module):
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            context_size (int): size of each subsequence
             context (NlpContext, optional): context object. Defaults to NlpContext().
 
         Returns:
@@ -135,7 +128,7 @@ class Word2Vec(nn.Module):
         if model_type == ModelType.CBOW:
             model = Cbow(vocab_size, embed_dim, context)
         elif model_type == ModelType.SKIP_GRAM:
-            model = SkipGram(vocab_size, embed_dim, context_size, context)
+            model = SkipGram(vocab_size, embed_dim, context)
 
         if loss_type == LossType.CE:
             self.fc = nn.Linear(embed_dim, vocab_size)
@@ -166,12 +159,14 @@ class Word2Vec(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
+        neighbor_size: int = 1,
         word_probs: dict[int, float] | None = None,
     ) -> torch.Tensor:
         """forward
 
         Args:
             x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
+            neighbor_size (int): how many tokens around the middle gram for skip gram model, i.e. context size - 1. Defaults to 1.
             word_probs (dict[int, float] | None, optional): probability distribution of each token with formula in paper. Defaults to None.
 
         Returns:
@@ -182,7 +177,11 @@ class Word2Vec(nn.Module):
 
         y = self.model(x)
 
+        if self.model_type == ModelType.SKIP_GRAM:
+            y = y.repeat(1, neighbor_size, 1, 1)
+
         # B, neighbor, subseq, embed_dim | B, neighbor, subseq, vocab_size
+        # lossType != CE | lossType == CE
         y = self.fc(y)
 
         if self.loss_type == LossType.CE:

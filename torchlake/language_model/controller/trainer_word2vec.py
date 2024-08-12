@@ -18,7 +18,8 @@ class SkipGramTrainer(TrainerBase):
         context = context.to(self.device)
 
         # batch, context-1, subseq, embed
-        output = model(gram, *args, **kwargs)
+        neighbor_size = context.size(1)
+        output = model(gram, neighbor_size, *args, **kwargs)
 
         loss = criterion(output, context)
 
