@@ -57,7 +57,7 @@ class ResNet(nn.Module):
             output_size (int, optional): output channel size. Defaults to 1.
             num_layer (int, optional): number of layers. Defaults to 50.
             pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
-            configs (dict[int, Any], optional): configs for resnet, key is number ofy layers. Defaults to CONFIGS.
+            configs (dict[int, Any], optional): configs for resnet, key is number of layers. Defaults to CONFIGS.
         """
         super(ResNet, self).__init__()
         self.pre_activation = pre_activation
