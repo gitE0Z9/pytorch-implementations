@@ -13,6 +13,8 @@ from .sknet.model import SkNet
 from .residual_attention.model import ResidualAttentionNetwork
 from .highway.model import HighwayNetwork
 from .ghostnet.model import GhostNet
+from .shufflenet.model import ShuffleNet
+from .shufflenetv2.model import ShuffleNetV2
 
 __all__ = [
     "ResNet",
@@ -31,4 +33,6 @@ __all__ = [
     "MobileNetV3",
     "HighwayNetwork",
     "GhostNet",
+    "ShuffleNet",
+    "ShuffleNetV2",
 ]
