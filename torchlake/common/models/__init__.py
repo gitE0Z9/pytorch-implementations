@@ -5,6 +5,7 @@ from .ds_conv import DepthwiseSeparableConv2d
 from .residual import ResBlock
 from .se import SqueezeExcitation2d
 from .highway import HighwayBlock
+from .channel_shuffle import ChannelShuffle
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -14,4 +15,5 @@ __all__ = [
     "Bam2d",
     "ResBlock",
     "HighwayBlock",
+    "ChannelShuffle",
 ]
