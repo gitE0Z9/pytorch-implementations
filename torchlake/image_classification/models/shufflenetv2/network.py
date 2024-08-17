@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from torchvision.ops import Conv2dNormActivation
+from torchlake.common.models import ChannelShuffle
 
 
 class BottleNeck(nn.Module):
@@ -80,7 +81,7 @@ class ResBlock(nn.Module):
             if stride > 1
             else nn.Identity()
         )
-        self.channel_shuffle = nn.ChannelShuffle(groups)
+        self.channel_shuffle = ChannelShuffle(groups)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.stride == 1:
