@@ -42,7 +42,7 @@
       <ul>
         <li>
           <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43">
-            ResNet50
+            ResNet50, ResNet-B, ResNet-C, ResNet-D
           </a>
         </li>
         <li>
