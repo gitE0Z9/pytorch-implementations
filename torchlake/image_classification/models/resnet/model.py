@@ -1,8 +1,6 @@
-from typing import Any
-
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
 
 from .network import BottleNeck, ConvBlock, ResBlock
 
@@ -48,7 +46,7 @@ class ResNet(nn.Module):
         output_size: int = 1,
         num_layer: int = 50,
         pre_activation: bool = False,
-        configs: dict[int, Any] = CONFIGS,
+        configs: dict[int, list[list[int | nn.Module]]] = CONFIGS,
     ):
         """ResNet
 
@@ -56,15 +54,15 @@ class ResNet(nn.Module):
             input_channel (int, optional): input channel size. Defaults to 3.
             output_size (int, optional): output channel size. Defaults to 1.
             num_layer (int, optional): number of layers. Defaults to 50.
-            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
-            configs (dict[int, Any], optional): configs for resnet, key is number of layers. Defaults to CONFIGS.
+            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
+            configs (dict[int, list[list[int | nn.Module]]], optional): configs for resnet, key is number of layers. Defaults to CONFIGS.
         """
         super(ResNet, self).__init__()
         self.pre_activation = pre_activation
         self.config = configs[num_layer]
 
         self.foot = nn.Sequential(
-            ConvBnRelu(input_channel, 64, 7, stride=2, padding=3),
+            Conv2dNormActivation(input_channel, self.config[0][0], 7, stride=2),
             nn.MaxPool2d(3, stride=2, padding=1),
         )
         self.build_blocks()
@@ -88,12 +86,11 @@ class ResNet(nn.Module):
                     base_number,
                     output_channel,
                     layer_class,
+                    stride=2 if layer_index == 0 else 1,
                     pre_activation=self.pre_activation,
                 )
                 for layer_index in range(num_layer)
             ]
-            if block_index not in [0, len(self.config) - 1]:
-                layers.append(nn.MaxPool2d(2, 2))
 
             setattr(self, f"block{block_index+1}", nn.Sequential(*layers))
 
@@ -101,8 +98,6 @@ class ResNet(nn.Module):
         y = self.foot(x)
         for i in range(len(self.config)):
             block = getattr(self, f"block{i+1}", None)
-            if not block:
-                break
             y = block(y)
         y = self.pool(y)
         y = self.fc(y)

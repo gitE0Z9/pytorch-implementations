@@ -9,6 +9,7 @@ class ConvBlock(nn.Module):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """convolution block in resnet
@@ -18,7 +19,8 @@ class ConvBlock(nn.Module):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
-            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
+            stride (int, optional): stride of block. Defaults to 1.
+            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
         """
         super(ConvBlock, self).__init__()
         self.block = nn.Sequential(
@@ -27,6 +29,7 @@ class ConvBlock(nn.Module):
                 block_base_channel,
                 3,
                 padding=1,
+                stride=stride,
                 conv_last=pre_activation,
             ),
             ConvBnRelu(
@@ -48,6 +51,7 @@ class BottleNeck(nn.Module):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """bottleneck block in resnet
@@ -57,7 +61,8 @@ class BottleNeck(nn.Module):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
-            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
+            stride (int, optional): stride of block. Defaults to 1.
+            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
         """
         super(BottleNeck, self).__init__()
         self.block = nn.Sequential(
@@ -65,6 +70,7 @@ class BottleNeck(nn.Module):
                 input_channel,
                 block_base_channel,
                 1,
+                stride=stride,
                 conv_last=pre_activation,
             ),
             ConvBnRelu(
@@ -94,6 +100,7 @@ class ResBlock(nn.Module):
         block_base_channel: int,
         output_channel: int,
         block: ConvBlock | BottleNeck,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """residual block in resnet
@@ -104,7 +111,8 @@ class ResBlock(nn.Module):
             block_base_channel (int): base number of block channel size
             output_channel (int): output channel size
             block (ConvBlock | BottleNeck): block class
-            pre_activation (bool, Defaults False): put activation before convolution layer [1603.05027v3]
+            stride (int, optional): stride of block. Defaults to 1.
+            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
         """
         super(ResBlock, self).__init__()
         self.pre_activation = pre_activation
@@ -112,13 +120,20 @@ class ResBlock(nn.Module):
         self.block = block(
             input_channel=input_channel,
             block_base_channel=block_base_channel,
+            stride=stride,
             pre_activation=pre_activation,
         )
 
         self.downsample = (
             nn.Identity()
-            if input_channel == output_channel
-            else ConvBnRelu(input_channel, output_channel, 1, activation=None)
+            if input_channel == output_channel and stride == 1
+            else ConvBnRelu(
+                input_channel,
+                output_channel,
+                1,
+                stride=stride,
+                activation=None,
+            )
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
