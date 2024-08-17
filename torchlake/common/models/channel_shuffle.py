@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 
+# official implementation can't be derivated.
 class ChannelShuffle(nn.Module):
     def __init__(self, groups: int = 1):
         """Channel shuffle layer in paper [1707.01083v2]
