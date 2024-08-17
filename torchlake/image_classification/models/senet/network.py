@@ -11,6 +11,7 @@ class SeConvBlock(SeMixin, ConvBlock):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """convolution block in se-resnet
@@ -20,11 +21,13 @@ class SeConvBlock(SeMixin, ConvBlock):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
+            stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
         """
         super(SeConvBlock, self).__init__(
             input_channel,
             block_base_channel,
+            stride,
             pre_activation,
         )
         self.se = SqueezeExcitation2d(block_base_channel, 16)
@@ -35,6 +38,7 @@ class SeBottleNeck(SeMixin, BottleNeck):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """bottleneck block in se-resnet
@@ -44,11 +48,13 @@ class SeBottleNeck(SeMixin, BottleNeck):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
+            stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
         """
         super(SeBottleNeck, self).__init__(
             input_channel,
             block_base_channel,
+            stride,
             pre_activation,
         )
         self.se = SqueezeExcitation2d(block_base_channel * 4, 16)
@@ -59,6 +65,7 @@ class SeXConvBlock(SeMixin, XConvBlock):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """convolution block in resnet
@@ -68,15 +75,15 @@ class SeXConvBlock(SeMixin, XConvBlock):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
+            stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False):
         """
         super(SeXConvBlock, self).__init__(
             input_channel,
             block_base_channel,
+            stride,
             pre_activation,
         )
-        self.pre_activation = pre_activation
-
         self.se = SqueezeExcitation2d(block_base_channel, 16)
 
 
@@ -85,6 +92,7 @@ class SeXBottleNeck(SeMixin, XBottleNeck):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """bottleneck block in resnext
@@ -94,11 +102,13 @@ class SeXBottleNeck(SeMixin, XBottleNeck):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
+            stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False): activation before block
         """
         super(SeXBottleNeck, self).__init__(
             input_channel,
             block_base_channel,
+            stride,
             pre_activation,
         )
 

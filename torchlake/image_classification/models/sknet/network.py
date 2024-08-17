@@ -68,6 +68,7 @@ class BottleNeck(XBottleNeck):
         self,
         input_channel: int,
         block_base_channel: int,
+        stride: int = 1,
         pre_activation: bool = False,
     ):
         """bottleneck block in sknet
@@ -77,11 +78,13 @@ class BottleNeck(XBottleNeck):
         Args:
             input_channel (int): input channel size
             block_base_channel (int): base number of block channel size
+            stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False): activation before block
         """
         super(BottleNeck, self).__init__(
             input_channel,
             block_base_channel,
+            stride,
             pre_activation,
         )
         self.block[1] = SelectiveKernel2d(block_base_channel, block_base_channel)

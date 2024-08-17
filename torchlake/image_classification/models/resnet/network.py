@@ -37,7 +37,7 @@ class ConvBlock(nn.Module):
                 block_base_channel,
                 3,
                 padding=1,
-                activation=None,
+                activation=nn.ReLU(True) if pre_activation else None,
                 conv_last=pre_activation,
             ),
         )
@@ -84,7 +84,7 @@ class BottleNeck(nn.Module):
                 block_base_channel,
                 block_base_channel * 4,
                 1,
-                activation=None,
+                activation=nn.ReLU(True) if pre_activation else None,
                 conv_last=pre_activation,
             ),
         )
