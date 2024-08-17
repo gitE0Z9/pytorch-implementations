@@ -12,7 +12,7 @@ class TrainerBase(ABC):
         self,
         epoches: int,
         device: torch.device,
-        acc_iters: int,
+        acc_iters: int = 1,
     ):
         self.epoches = epoches
         self.device = device
