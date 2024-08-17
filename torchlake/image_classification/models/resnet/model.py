@@ -1,3 +1,4 @@
+from typing import Literal
 import torch
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
@@ -47,6 +48,7 @@ class ResNet(nn.Module):
         num_layer: int = 50,
         pre_activation: bool = False,
         configs: dict[int, list[list[int | nn.Module]]] = CONFIGS,
+        version: Literal["A"] | Literal["B"] | Literal["C"] | Literal["D"] = "A",
     ):
         """ResNet
 
@@ -56,15 +58,14 @@ class ResNet(nn.Module):
             num_layer (int, optional): number of layers. Defaults to 50.
             pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
             configs (dict[int, list[list[int | nn.Module]]], optional): configs for resnet, key is number of layers. Defaults to CONFIGS.
+            version (Literal["A"] | Literal["B"] | Literal["C"] | Literal["D"], Defaults "A"): A is resnet50 in paper[1512.03385], B, C, D is resnet-B, resnet-C, resnet-D in paper[1812.01187v2]. Defaults to "A".
         """
         super(ResNet, self).__init__()
         self.pre_activation = pre_activation
         self.config = configs[num_layer]
+        self.version = version
 
-        self.foot = nn.Sequential(
-            Conv2dNormActivation(input_channel, self.config[0][0], 7, stride=2),
-            nn.MaxPool2d(3, stride=2, padding=1),
-        )
+        self.build_foot(input_channel)
         self.build_blocks()
         self.pool = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
@@ -72,7 +73,29 @@ class ResNet(nn.Module):
         )
         self.fc = nn.Linear(self.config[-1][1], output_size)
 
+    def build_foot(self, input_channel: int):
+        first_input_channel = self.config[0][0]
+        self.foot = nn.Sequential(
+            nn.MaxPool2d(3, stride=2, padding=1),
+        )
+
+        if self.version != "C":
+            self.foot.insert(
+                0, Conv2dNormActivation(input_channel, first_input_channel, 7, stride=2)
+            )
+        else:
+            self.foot.insert(
+                0, Conv2dNormActivation(input_channel, first_input_channel, 3, stride=2)
+            )
+            self.foot.insert(
+                1, Conv2dNormActivation(first_input_channel, first_input_channel, 3)
+            )
+            self.foot.insert(
+                2, Conv2dNormActivation(first_input_channel, first_input_channel, 3)
+            )
+
     def build_blocks(self):
+        """build blocks"""
         for block_index, (
             input_channel,
             output_channel,
@@ -88,6 +111,7 @@ class ResNet(nn.Module):
                     layer_class,
                     stride=2 if layer_index == 0 else 1,
                     pre_activation=self.pre_activation,
+                    version=self.version if self.version != "C" else "A",
                 )
                 for layer_index in range(num_layer)
             ]

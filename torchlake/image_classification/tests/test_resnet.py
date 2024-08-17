@@ -96,12 +96,17 @@ def test_resblock_forward_shape(
 
 @pytest.mark.parametrize("num_layer", [18, 34, 50, 101, 152])
 @pytest.mark.parametrize("pre_activation", [False, True])
-def test_resnet_forward_shape(num_layer: int, pre_activation: bool):
+@pytest.mark.parametrize("version", ["A", "B", "C", "D"])
+def test_resnet_forward_shape(num_layer: int, pre_activation: bool, version: str):
+    if num_layer in [18, 34] and version != "A":
+        pytest.skip("version B, C, D only work with bottleneck layer.")
+
     x = torch.randn(2, 3, 224, 224)
     model = ResNet(
         output_size=5,
         num_layer=num_layer,
         pre_activation=pre_activation,
+        version=version,
     )
     y = model(x)
 
