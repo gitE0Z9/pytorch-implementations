@@ -115,6 +115,16 @@ The development direction will extend towards a monorepo.
             ShuffleNetV2
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316">
+            SqueezeNet
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316">
+            SqueezeNeXt
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
