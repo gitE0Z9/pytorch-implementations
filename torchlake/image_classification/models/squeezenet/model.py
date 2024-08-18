@@ -35,9 +35,14 @@ class SqueezeNet(nn.Module):
                 96 if version == "1.0" else 64,
                 7 if version == "1.0" else 3,
                 stride=2,
+                padding=2,  # as paper
                 norm_layer=None,
             ),
-            nn.MaxPool2d(3, 2, 1),
+            nn.MaxPool2d(
+                3,
+                2,
+                0,  # as paper
+            ),
             # middle layers
             *self.build_middle_layers(),
             # final layers
@@ -95,7 +100,13 @@ class SqueezeNet(nn.Module):
 
             # pool
             if i in pool_config:
-                middle_layers.append(nn.MaxPool2d(3, 2, 1))
+                middle_layers.append(
+                    nn.MaxPool2d(
+                        3,
+                        2,
+                        0,  # as paper
+                    )
+                )
 
         return middle_layers
 
