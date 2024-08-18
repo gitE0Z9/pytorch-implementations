@@ -24,18 +24,5 @@ CONFIGS = {
 
 
 class CbamResNet(ResNet):
-    def __init__(
-        self,
-        input_channel: int = 3,
-        output_size: int = 1,
-        num_layer: int = 50,
-        pre_activation: bool = False,
-        configs=CONFIGS,
-    ):
-        super(CbamResNet, self).__init__(
-            input_channel,
-            output_size,
-            num_layer,
-            pre_activation,
-            configs,
-        )
+    def __init__(self, configs=CONFIGS, *args, **kwargs):
+        super(CbamResNet, self).__init__(configs=configs, *args, **kwargs)
