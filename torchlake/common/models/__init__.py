@@ -6,6 +6,7 @@ from .residual import ResBlock
 from .se import SqueezeExcitation2d
 from .highway import HighwayBlock
 from .channel_shuffle import ChannelShuffle
+from .flatten import FlattenFeature
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -16,4 +17,5 @@ __all__ = [
     "ResBlock",
     "HighwayBlock",
     "ChannelShuffle",
+    "FlattenFeature",
 ]

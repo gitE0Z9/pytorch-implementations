@@ -15,6 +15,7 @@ from ..models import (
     HighwayBlock,
     ResBlock,
     SqueezeExcitation2d,
+    FlattenFeature,
 )
 from ..network import ConvBnRelu
 
@@ -138,3 +139,14 @@ def test_channel_shuffle_layer_forward_shape(groups: int):
     y, official_y = layer(x), official_layer(x)
 
     assert_close(y, official_y)
+
+
+class TestFlattenFeature:
+    def test_output_shape(self):
+        x = torch.randn(8, 32, 7, 7)
+
+        model = FlattenFeature()
+
+        y = model(x)
+
+        assert y.shape == torch.Size((8, 32))
