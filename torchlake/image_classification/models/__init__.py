@@ -15,6 +15,8 @@ from .highway.model import HighwayNetwork
 from .ghostnet.model import GhostNet
 from .shufflenet.model import ShuffleNet
 from .shufflenetv2.model import ShuffleNetV2
+from .squeezenet.model import SqueezeNet
+from .squeezenext.model import SqueezeNeXt
 
 __all__ = [
     "ResNet",
@@ -35,4 +37,6 @@ __all__ = [
     "GhostNet",
     "ShuffleNet",
     "ShuffleNetV2",
+    "SqueezeNet",
+    "SqueezeNeXt",
 ]
