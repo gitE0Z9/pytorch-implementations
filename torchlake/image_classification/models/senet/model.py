@@ -37,8 +37,7 @@ CONFIGS = {
 
 
 class SeResNet(ResNet):
-    def __init__(self, configs=CONFIGS, *args, **kwargs):
-        super(SeResNet, self).__init__(configs=configs, *args, **kwargs)
+    configs = CONFIGS
 
 
 XCONFIGS = {
@@ -76,5 +75,4 @@ XCONFIGS = {
 
 
 class SeResNeXt(ResNeXt):
-    def __init__(self, configs=XCONFIGS, *args, **kwargs):
-        super(SeResNeXt, self).__init__(configs=configs, *args, **kwargs)
+    configs = XCONFIGS

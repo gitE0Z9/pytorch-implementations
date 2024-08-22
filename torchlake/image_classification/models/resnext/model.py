@@ -37,5 +37,4 @@ CONFIGS = {
 
 
 class ResNeXt(ResNet):
-    def __init__(self, configs=CONFIGS, *args, **kwargs):
-        super(ResNeXt, self).__init__(configs=configs, *args, **kwargs)
+    configs = CONFIGS

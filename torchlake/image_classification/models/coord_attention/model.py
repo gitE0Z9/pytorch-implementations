@@ -24,5 +24,4 @@ CONFIGS = {
 
 
 class CoordAttentionResNet(ResNet):
-    def __init__(self, configs=CONFIGS, *args, **kwargs):
-        super(CoordAttentionResNet, self).__init__(configs=configs, *args, **kwargs)
+    configs = CONFIGS

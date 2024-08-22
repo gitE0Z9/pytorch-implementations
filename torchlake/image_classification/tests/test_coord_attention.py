@@ -67,13 +67,13 @@ def test_resblock_forward_shape(
     assert y.shape == torch.Size((2, output_channel, OUTPUT_SIZE, OUTPUT_SIZE))
 
 
-@pytest.mark.parametrize("num_layer", [50, 101, 152])
+@pytest.mark.parametrize("key", [50, 101, 152])
 @pytest.mark.parametrize("pre_activation", [False, True])
-def test_resnet_forward_shape(num_layer: int, pre_activation: bool):
+def test_resnet_forward_shape(key: int, pre_activation: bool):
     x = torch.randn(2, 3, 224, 224)
     model = CoordAttentionResNet(
         output_size=5,
-        num_layer=num_layer,
+        key=key,
         pre_activation=pre_activation,
     )
     y = model(x)

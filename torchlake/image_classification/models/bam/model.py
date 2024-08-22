@@ -1,15 +1,11 @@
-from typing import Any
-
 from torch import nn
 from torchlake.common.models import Bam2d
 
-from ..resnet.model import CONFIGS, ResNet
+from ..resnet.model import ResNet
 from ..resnet.network import ResBlock
 
 
 class BamResNet(ResNet):
-    def __init__(self, configs=CONFIGS, *args, **kwargs):
-        super(BamResNet, self).__init__(configs=configs, *args, **kwargs)
 
     def build_blocks(self):
         for block_index, (

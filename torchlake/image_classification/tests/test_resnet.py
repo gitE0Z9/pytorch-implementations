@@ -116,21 +116,21 @@ def test_resblock_forward_shape(
     assert y.shape == torch.Size((2, output_channel, OUTPUT_SIZE, OUTPUT_SIZE))
 
 
-@pytest.mark.parametrize("num_layer", [18, 34, 50, 101, 152])
+@pytest.mark.parametrize("key", [18, 34, 50, 101, 152])
 @pytest.mark.parametrize("pre_activation", [False, True])
 @pytest.mark.parametrize("net", [ResNet, ResNetB, ResNetC, ResNetD])
 def test_resnet_forward_shape(
-    num_layer: int,
+    key: int,
     pre_activation: bool,
     net: ResNet | ResNetB | ResNetC | ResNetD,
 ):
-    if num_layer in [18, 34] and net != ResNet:
+    if key in [18, 34] and net != ResNet:
         pytest.skip("version B, C, D only work with bottleneck layer.")
 
     x = torch.randn(2, 3, 224, 224)
     model = net(
         output_size=5,
-        num_layer=num_layer,
+        key=key,
         pre_activation=pre_activation,
     )
     y = model(x)

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
+from torchlake.common.models import FlattenFeature
 
 from .network import (
     BottleNeck,
@@ -47,34 +48,40 @@ CONFIGS = {
 
 
 class ResNet(nn.Module):
+    configs = CONFIGS
+
     def __init__(
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        num_layer: int = 50,
         pre_activation: bool = False,
-        configs: dict[int, list[list[int | nn.Module]]] = CONFIGS,
+        key: int = 50,
     ):
         """ResNet
 
         Args:
             input_channel (int, optional): input channel size. Defaults to 3.
             output_size (int, optional): output channel size. Defaults to 1.
-            num_layer (int, optional): number of layers. Defaults to 50.
             pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
-            configs (dict[int, list[list[int | nn.Module]]], optional): configs for resnet, key is number of layers. Defaults to CONFIGS.
+            key (int, optional): key of configs. Defaults to 50.
         """
         super(ResNet, self).__init__()
+        self.key = key
         self.pre_activation = pre_activation
-        self.config = configs[num_layer]
 
         self.build_foot(input_channel)
         self.build_blocks()
-        self.pool = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-        )
+        self.pool = FlattenFeature()
         self.fc = nn.Linear(self.config[-1][1], output_size)
+
+    @property
+    def config(self) -> list[list[int | nn.Module]]:
+        """parameter of layers
+
+        Returns:
+            list[list[int | nn.Module]]: parameters of layers
+        """
+        return self.configs[self.key]
 
     def build_foot(self, input_channel: int):
         first_input_channel = self.config[0][0]
@@ -141,22 +148,7 @@ CONFIGS_B = {
 
 
 class ResNetB(ResNet):
-    def __init__(
-        self,
-        configs: dict[int, list[list[int | nn.Module]]] = CONFIGS_B,
-        *args,
-        **kwargs,
-    ):
-        """ResNet
-
-        Args:
-            input_channel (int, optional): input channel size. Defaults to 3.
-            output_size (int, optional): output channel size. Defaults to 1.
-            num_layer (int, optional): number of layers. Defaults to 50.
-            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
-            configs (dict[int, list[list[int | nn.Module]]], optional): configs for resnet, key is number of layers. Defaults to CONFIGS_D.
-        """
-        super(ResNetB, self).__init__(configs=configs, *args, **kwargs)
+    configs = CONFIGS_B
 
 
 class ResNetC(ResNet):
@@ -195,22 +187,7 @@ CONFIGS_D = {
 
 
 class ResNetD(ResNet):
-    def __init__(
-        self,
-        configs: dict[int, list[list[int | nn.Module]]] = CONFIGS_D,
-        *args,
-        **kwargs,
-    ):
-        """ResNet
-
-        Args:
-            input_channel (int, optional): input channel size. Defaults to 3.
-            output_size (int, optional): output channel size. Defaults to 1.
-            num_layer (int, optional): number of layers. Defaults to 50.
-            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
-            configs (dict[int, list[list[int | nn.Module]]], optional): configs for resnet, key is number of layers. Defaults to CONFIGS_D.
-        """
-        super(ResNetD, self).__init__(configs=configs, *args, **kwargs)
+    configs = CONFIGS_D
 
     def build_blocks(self):
         """build blocks"""

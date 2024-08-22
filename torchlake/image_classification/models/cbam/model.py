@@ -24,5 +24,4 @@ CONFIGS = {
 
 
 class CbamResNet(ResNet):
-    def __init__(self, configs=CONFIGS, *args, **kwargs):
-        super(CbamResNet, self).__init__(configs=configs, *args, **kwargs)
+    configs = CONFIGS
