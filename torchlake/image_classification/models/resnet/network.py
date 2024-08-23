@@ -120,19 +120,7 @@ class BottleNeckB(BottleNeck):
         self.block[1].conv.stride = (stride, stride)
 
 
-class BottleNeckD(BottleNeckB):
-    def __init__(self, *args, **kwargs):
-        """bottleneck block in resnet-D in paper[1812.01187v2]
-        1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
-
-        Args:
-            input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
-            stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
-        """
-        super(BottleNeckD, self).__init__(*args, **kwargs)
+class BottleNeckD(BottleNeckB): ...
 
 
 class ResBlock(nn.Module):
@@ -206,19 +194,6 @@ class ResBlock(nn.Module):
 
 
 class ResBlockD(ResBlock):
-    def __init__(self, *args, **kwargs):
-        """residual block in resnet
-        skip connection has kernel size 1 and input_channel -> output_channel
-
-        Args:
-            input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
-            output_channel (int): output channel size
-            block (BottleNeckD): block class
-            stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
-        """
-        super(ResBlockD, self).__init__(*args, **kwargs)
 
     def build_shortcut(
         self,
