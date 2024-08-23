@@ -27,17 +27,36 @@ class ResBlock(nn.Module):
 
         self.block = block
 
-        self.downsample = (
-            nn.Identity()
-            if input_channel == output_channel
-            else Conv2dNormActivation(
+        self.downsample = self.build_shortcut(input_channel, output_channel, stride)
+
+    def build_shortcut(
+        self,
+        input_channel: int,
+        output_channel: int,
+        stride: int = 1,
+    ) -> nn.Module:
+        """build shortcut
+
+        Args:
+            input_channel (int): input channel size
+            output_channel (int): output channel size
+            stride (int, optional): stride of block. Defaults to 1.
+        """
+
+        if input_channel == output_channel and stride == 1:
+            return nn.Identity()
+
+        layer = nn.Sequential(
+            Conv2dNormActivation(
                 input_channel,
                 output_channel,
                 1,
-                stride,
+                stride=stride,
                 activation_layer=None,
             )
         )
+
+        return layer
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.block(x) + self.downsample(x)
