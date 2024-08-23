@@ -7,6 +7,7 @@ from .mobilenetv2.model import MobileNetV2
 from .mobilenetv3.model import MobileNetV3
 from .resnest.model import ResNeSt
 from .resnet.model import ResNet
+from .wide_resnet.model import WideResNet, BottleneckWideResNet
 from .resnext.model import ResNeXt
 from .senet.model import SeResNet, SeResNeXt
 from .sknet.model import SkNet
@@ -22,6 +23,8 @@ __all__ = [
     "ResNet",
     "ResNeXt",
     "ResNeSt",
+    "WideResNet",
+    "BottleneckWideResNet",
     "SeResNet",
     "SeResNeXt",
     "CbamResNet",
