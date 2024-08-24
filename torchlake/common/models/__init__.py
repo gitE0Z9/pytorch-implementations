@@ -1,4 +1,3 @@
-from .bam import Bam2d
 from .cbam import Cbam2d
 from .coord_attention import CoordinateAttention2d
 from .ds_conv import DepthwiseSeparableConv2d
@@ -13,7 +12,6 @@ __all__ = [
     "DepthwiseSeparableConv2d",
     "CoordinateAttention2d",
     "Cbam2d",
-    "Bam2d",
     "ResBlock",
     "HighwayBlock",
     "ChannelShuffle",

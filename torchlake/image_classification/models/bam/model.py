@@ -1,8 +1,8 @@
 from torch import nn
-from torchlake.common.models import Bam2d
 
 from ..resnet.model import ResNet
 from ..resnet.network import ResBlock
+from .network import Bam2d
 
 
 class BamResNet(ResNet):
