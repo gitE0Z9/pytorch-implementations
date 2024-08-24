@@ -11,6 +11,7 @@ from .wide_resnet.model import WideResNet, BottleneckWideResNet
 from .resnext.model import ResNeXt
 from .senet.model import SeResNet, SeResNeXt
 from .sknet.model import SkNet
+from .res2net.model import Res2Net
 from .residual_attention.model import ResidualAttentionNetwork
 from .highway.model import HighwayNetwork
 from .ghostnet.model import GhostNet
@@ -32,6 +33,7 @@ __all__ = [
     "CoordAttentionResNet",
     "ResidualAttentionNetwork",
     "SkNet",
+    "Res2Net",
     "DenseNet",
     "MobileNetV1",
     "MobileNetV2",
