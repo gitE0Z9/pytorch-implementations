@@ -44,7 +44,7 @@ class TrainerBase(ABC):
         criterion: nn.Module,
         *args,
         **kwargs,
-    ):
+    ) -> list[float]:
         training_loss = []
 
         model.train()
