@@ -1,47 +1,51 @@
 from typing import Iterable
 
 from torch import nn
-from torchlake.common.controller.trainer import TrainerBase
+import torch
+from torchlake.common.controller.trainer import ClassificationTrainer
 
 
-class SkipGramTrainer(TrainerBase):
+class SkipGramTrainer(ClassificationTrainer):
     def _predict(
         self,
         row: tuple[Iterable],
         model: nn.Module,
-        criterion: nn.Module,
         *args,
         **kwargs,
     ):
         gram, context = row
         gram = gram.to(self.device)
-        context = context.to(self.device)
 
         # batch, context-1, subseq, embed
         neighbor_size = context.size(1)
-        output = model(gram, neighbor_size, *args, **kwargs)
 
-        loss = criterion(output, context)
-
-        return loss
+        return model(gram, neighbor_size, *args, **kwargs)
 
 
-class CbowTrainer(TrainerBase):
+class CbowTrainer(ClassificationTrainer):
     def _predict(
         self,
         row: tuple[Iterable],
         model: nn.Module,
-        criterion: nn.Module,
         *args,
         **kwargs,
     ):
-        gram, context = row
-        gram = gram.to(self.device)
+        _, context = row
         context = context.to(self.device)
 
         # batch, 1, subseq, embed
-        output = model(context, *args, **kwargs)
+        return model(context, *args, **kwargs)
 
-        loss = criterion(output, gram)
+    def _calc_loss(
+        self,
+        y_hat: torch.Tensor,
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ):
+        gram, _ = row
+        gram: torch.Tensor = gram.to(self.device)
 
-        return loss
+        if self.feature_last:
+            y_hat = y_hat.permute(0, -1, *range(1, len(y_hat.shape) - 1))
+
+        return criterion(y_hat, gram)
