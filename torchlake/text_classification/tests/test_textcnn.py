@@ -2,7 +2,8 @@ from unittest import TestCase
 
 import torch
 from torch.testing import assert_close
-from torchlake.text_classification.models import TextCnn
+
+from ..models import TextCnn
 
 
 class TestModel(TestCase):
@@ -13,4 +14,4 @@ class TestModel(TestCase):
         x = torch.randint(0, 26, (1, 5))
         output = model(x)
 
-        assert_close(output.shape, torch.Size(1, 10))
+        assert_close(output.shape, torch.Size((1, 10)))

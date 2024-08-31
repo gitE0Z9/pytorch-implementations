@@ -2,8 +2,9 @@ from unittest import TestCase
 
 import torch
 from torch.testing import assert_close
-from torchlake.text_classification.models import CharCnn
 from torchlake.common.schemas.nlp import NlpContext
+
+from ..models import CharCnn
 
 
 class TestModel(TestCase):
