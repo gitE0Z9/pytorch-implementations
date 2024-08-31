@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Iterable, Iterator
 
 import torch
@@ -6,17 +6,29 @@ from torch import nn
 from torch.optim.optimizer import Optimizer
 from tqdm import tqdm
 
+from ..mixins.controller import PredictFunctionMixin
 
-class TrainerBase(ABC):
+
+class TrainerBase(PredictFunctionMixin, ABC):
     def __init__(
         self,
         epoches: int,
         device: torch.device,
         acc_iters: int = 1,
+        feature_last: bool = False,
     ):
+        """Base class of trainer
+
+        Args:
+            epoches (int): how many epoch to run
+            device (torch.device): which device to use
+            acc_iters (int, optional): how many epoch to finish gradient accumulation. Defaults to 1.
+            feature_last (bool, optional): do we need to move index -1 of output to index 1, default value intends to work with image and entropy loss. Defaults to False.
+        """
         self.epoches = epoches
         self.device = device
         self.acc_iters = acc_iters
+        self.feature_last = feature_last
 
     def get_criterion(self):
         raise NotImplementedError
@@ -26,14 +38,13 @@ class TrainerBase(ABC):
         optim_class = getattr(torch.optim, name)
         return optim_class(*args, **kwargs)
 
-    def _predict(
+    @abstractmethod
+    def _calc_loss(
         self,
+        y_hat: torch.Tensor,
         row: tuple[Iterable],
-        model: nn.Module,
         criterion: nn.Module,
-        *args,
-        **kwargs,
-    ):
+    ) -> torch.Tensor:
         raise NotImplementedError
 
     def run(
@@ -47,6 +58,9 @@ class TrainerBase(ABC):
     ) -> list[float]:
         training_loss = []
 
+        if not hasattr(self, "_predict"):
+            self.build_predict_function_by_data_type(iter(data))
+
         model.train()
         for e in range(self.epoches):
             running_loss = 0.0
@@ -55,18 +69,24 @@ class TrainerBase(ABC):
 
             for i, row in enumerate(tqdm(data)):
                 # get x
+                # case 1: row is a list, e.g. features and labels
+                # case 2: row is not a list, e.g. features only or features also serve as labels
                 if isinstance(row, list):
                     x = row[0]
                 else:
                     x = row
 
-                # get batch size
+                # get batch size to calculate dataset size
+                # hard to choose if running once before or dynamically like this
+                # since the former will run an empty cycle
+                # the latter will waste resource when dataset size is fixed
                 if isinstance(x, torch.Tensor):
                     data_size += x.size(0)
                 elif isinstance(x, list):
                     data_size += len(x)
 
-                loss = self._predict(row, model, criterion, *args, **kwargs)
+                output = self._predict(row, model, *args, **kwargs)
+                loss: torch.Tensor = self._calc_loss(output, row, criterion)
 
                 loss /= self.acc_iters
                 loss.backward()
@@ -85,32 +105,48 @@ class TrainerBase(ABC):
 
 class ClassificationTrainer(TrainerBase):
     @staticmethod
-    def get_criterion(label_size: int):
+    def get_criterion(
+        label_size: int, *args, **kwargs
+    ) -> nn.BCEWithLogitsLoss | nn.CrossEntropyLoss:
         if label_size == 1:
-            return nn.BCEWithLogitsLoss()
+            return nn.BCEWithLogitsLoss(*args, **kwargs)
         elif label_size > 1:
-            return nn.CrossEntropyLoss()
+            return nn.CrossEntropyLoss(*args, **kwargs)
         else:
             raise ValueError(f"label size {label_size} is not valid")
 
-    def _predict(
+    def _calc_loss(
         self,
+        y_hat: torch.Tensor,
         row: tuple[Iterable],
-        model: nn.Module,
         criterion: nn.Module,
-        feature_last: bool = False,
-        *args,
-        **kwargs,
-    ):
-        x, y = row
-        x = x.to(self.device)
-        y = y.to(self.device)
+    ) -> torch.Tensor:
+        _, y = row
+        y: torch.Tensor = y.to(self.device)
 
-        output = model(x)
+        # batch, context, seq, embed
+        if self.feature_last:
+            y_hat = y_hat.permute(0, -1, *range(1, len(y_hat.shape) - 1))
 
-        if feature_last:
-            output = output.permute(0, -1, *range(1, len(output.shape) - 1))
+        return criterion(y_hat, y.long())
 
-        loss = criterion(output, y.long())
 
-        return loss
+class RegressionTrainer(TrainerBase):
+    @staticmethod
+    def get_criterion() -> nn.MSELoss | nn.SmoothL1Loss:
+        return nn.MSELoss()
+
+    def _calc_loss(
+        self,
+        y_hat: torch.Tensor,
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        _, y = row
+        y: torch.Tensor = y.to(self.device)
+
+        # batch, context, seq, embed
+        if self.feature_last:
+            y_hat = y_hat.permute(0, -1, *range(1, len(y_hat.shape) - 1))
+
+        return criterion(y_hat, y.float())

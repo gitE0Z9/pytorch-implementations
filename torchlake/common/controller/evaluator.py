@@ -1,33 +1,72 @@
-from typing import Iterator
-from matplotlib import pyplot as plt
+from abc import ABC, abstractmethod
+from typing import Any, Iterable, Iterator
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from seaborn import heatmap
 from torch import nn
 from torchlake.common.metrics.classification import IncrementalConfusionMatrix
 from tqdm import tqdm
 
+from ..mixins.controller import PredictFunctionMixin
 
-class ClassificationEvaluator:
-    def __init__(self, label_size: int, device: torch.device):
-        self.label_size = label_size
-        self.device = device
+
+class EvaluatorBase(PredictFunctionMixin, ABC):
+    @abstractmethod
+    def _build_metric(self): ...
+
+    @abstractmethod
+    def _decode_output(
+        self,
+        output: torch.Tensor | tuple[torch.Tensor],
+    ) -> torch.Tensor | tuple[torch.Tensor]: ...
 
     def run(self, data: Iterator, model: nn.Module):
+        if not hasattr(self, "_predict"):
+            self.build_predict_function_by_data_type(iter(data))
+
         model.eval()
         with torch.no_grad():
-            confusion_matrix = IncrementalConfusionMatrix(self.label_size)
 
-            for x, y in tqdm(data):
-                x = x.to(self.device)
+            metric = self._build_metric()
+            for row in tqdm(data):
+                _, y = row
+                output = self._predict(row, model)
+                output = self._decode_output(output)
+                metric.update(y.long(), output.detach().cpu())
 
-                output = model(x).argmax(dim=-1)
-                confusion_matrix.update(y.long(), output.detach().cpu())
+            print(metric)
 
-            print(confusion_matrix)
+        return metric
 
-        return confusion_matrix
+
+class ClassificationEvaluator(EvaluatorBase):
+    def __init__(
+        self,
+        label_size: int,
+        device: torch.device,
+        feature_dim: int | tuple[int] = 1,
+    ):
+        """Evaluator for classification task
+
+        Args:
+            label_size (int): size of label
+            device (torch.device): which device to use
+            feature_dim (int | tuple[int], optional): which dimensions should be used as features. Defaults to 1.
+        """
+        self.label_size = label_size
+        self.device = device
+        self.feature_dim = feature_dim
+
+    def _build_metric(self) -> IncrementalConfusionMatrix:
+        return IncrementalConfusionMatrix(self.label_size)
+
+    def _decode_output(
+        self,
+        output: torch.Tensor | tuple[torch.Tensor],
+    ) -> torch.Tensor | tuple[torch.Tensor]:
+        return output.argmax(dim=self.feature_dim)
 
     @staticmethod
     def get_matrix(
