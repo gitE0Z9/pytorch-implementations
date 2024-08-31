@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from ..utils.image import load_image
 
 
 class DatasetBaseMixin:
@@ -90,8 +91,8 @@ class ImagePairDataset(torch.utils.data.Dataset):
         return self.get_img(collection[idx].as_posix())
 
     @lru_cache
-    def get_img(self, filename: str) -> tuple[np.ndarray, int, int]:
-        img = cv2.imread(filename)[:, :, ::-1]
+    def get_img(self, filename: str | Path) -> tuple[np.ndarray, int, int]:
+        img = load_image(filename, is_numpy=True)
         h, w, _ = img.shape
 
         return img, h, w
