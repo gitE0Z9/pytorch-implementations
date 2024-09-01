@@ -49,7 +49,7 @@ class TestWord2Vec:
     def test_word2vec_subsampling(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         p = torch.randn(VOCAB_SIZE).softmax(0)
-        y = Word2Vec.subsampling(x, p)
+        y = Word2Vec.subsampling(x, p, CONTEXT.unk_idx)
 
         assert y.shape == torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 

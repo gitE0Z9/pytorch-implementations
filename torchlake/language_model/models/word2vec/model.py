@@ -27,7 +27,11 @@ class Cbow(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """forward
+        """cbow forward
+
+        aggregate context with "mean" as author(https://github.com/tmikolov/word2vec/blob/master/word2vec.c)
+
+        "sum" used in paper(https://arxiv.org/abs/1301.3781) might be deprecated
 
         Args:
             x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
@@ -36,7 +40,7 @@ class Cbow(nn.Module):
             torch.Tensor: embedded vectors, shape is (batch_size, 1, #subsequence, vocab_size)
         """
         # B, 1, subseq, embed_dim
-        return self.embeddings(x).sum(dim=1, keepdim=True)
+        return self.embeddings(x).mean(dim=1, keepdim=True)
 
 
 class SkipGram(nn.Module):
@@ -93,6 +97,7 @@ class Word2Vec(nn.Module):
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
         super(Word2Vec, self).__init__()
+        self.context = context
         self.model_type = model_type
         self.loss_type = loss_type
         self.fc = nn.Identity()
@@ -143,6 +148,7 @@ class Word2Vec(nn.Module):
     def subsampling(
         x: torch.Tensor,
         subsampling_probs: torch.Tensor,
+        unk_idx: int,
     ) -> torch.Tensor:
         """1310.4546 p.4
         subsampling tokens with the probability of word frequency formula
@@ -150,11 +156,12 @@ class Word2Vec(nn.Module):
         Args:
             x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
             subsampling_probs (torch.Tensor): probability distribution of each token with formula in paper
+            unk_idx (int): unknown index as masked index
 
         Returns:
             torch.Tensor: subsampled one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
         """
-        return x * subsampling_probs[x].bernoulli()
+        return x.masked_fill_(~subsampling_probs[x].bernoulli().bool(), unk_idx)
 
     def forward(
         self,
@@ -173,7 +180,7 @@ class Word2Vec(nn.Module):
             torch.Tensor: output vector, shape is (batch_size, neighbor_size, #subsequence, embedding_dim) or (batch_size, neighbor_size, #subsequence, vocab_size)
         """
         if word_probs is not None:
-            x = self.subsampling(x, word_probs).long()
+            x = self.subsampling(x, word_probs, self.context.unk_idx).long()
 
         y = self.model(x)
 
