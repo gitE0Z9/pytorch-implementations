@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 import torch
 from torch import nn
@@ -12,17 +13,25 @@ class ModelBase(ABC):
         input_channel: int = 3,
         output_size: int = 1,
     ):
-        self.feature_dim = ...
-
         self.build_foot(input_channel)
         self.build_blocks()
         self.build_head(output_size)
 
-    @abstractmethod
-    def build_foot(self, input_channel: int): ...
+    @property
+    def feature_dim(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def config(self) -> list[list[Any]]:
+        raise NotImplementedError
 
     @abstractmethod
-    def build_blocks(self): ...
+    def build_foot(self, input_channel: int):
+        self.foot = ...
+
+    @abstractmethod
+    def build_blocks(self):
+        self.blocks = ...
 
     def build_head(self, output_size: int):
         self.pool = FlattenFeature()
