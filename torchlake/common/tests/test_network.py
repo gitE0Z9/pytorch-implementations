@@ -7,9 +7,7 @@ from torch.testing import assert_close
 from torchvision.ops import Conv2dNormActivation
 
 from ..models import (
-    Cbam2d,
     ChannelShuffle,
-    CoordinateAttention2d,
     DepthwiseSeparableConv2d,
     HighwayBlock,
     ResBlock,
@@ -28,28 +26,6 @@ class TestSqueezeExcitation2d:
         y = model(x)
 
         assert y.shape == torch.Size((8, 16, 7, 7))
-
-
-class TestCbam2d:
-    def test_output_shape(self):
-        x = torch.randn(8, 16, 7, 7)
-
-        model = Cbam2d(16, 16)
-
-        y = model(x)
-
-        assert y.shape == torch.Size((8, 16, 7, 7))
-
-
-class TestCoordinateAttention2d:
-    def test_output_shape(self):
-        x = torch.randn(8, 16, 112, 112)
-
-        model = CoordinateAttention2d(16, 16)
-
-        y = model(x)
-
-        assert y.shape == torch.Size((8, 16, 112, 112))
 
 
 class TestConvBnRelu:

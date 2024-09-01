@@ -1,10 +1,21 @@
 from math import ceil
+
 import pytest
 import torch
 
-from ..models.resnet.network import ResBlock
 from ..models.cbam.model import CbamResNet
-from ..models.cbam.network import BottleNeck
+from ..models.cbam.network import BottleNeck, Cbam2d
+from ..models.resnet.network import ResBlock
+
+
+def test_cbam2d_forward_shape():
+    x = torch.randn(8, 16, 7, 7)
+
+    model = Cbam2d(16, 16)
+
+    y = model(x)
+
+    assert y.shape == torch.Size((8, 16, 7, 7))
 
 
 @pytest.mark.parametrize(

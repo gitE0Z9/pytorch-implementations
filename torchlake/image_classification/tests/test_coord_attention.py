@@ -4,7 +4,17 @@ import torch
 
 from ..models.resnet.network import ResBlock
 from ..models.coord_attention.model import CoordAttentionResNet
-from ..models.coord_attention.network import BottleNeck
+from ..models.coord_attention.network import BottleNeck, CoordinateAttention2d
+
+
+def test_coord_att2d_forward_shape():
+    x = torch.randn(8, 16, 112, 112)
+
+    model = CoordinateAttention2d(16, 16)
+
+    y = model(x)
+
+    assert y.shape == torch.Size((8, 16, 112, 112))
 
 
 @pytest.mark.parametrize(
