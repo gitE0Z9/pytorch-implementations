@@ -29,14 +29,27 @@ class TestSqueezeExcitation2d:
 
 
 class TestConvBnRelu:
-    def test_output_shape(self):
-        x = torch.randn(8, 16, 7, 7)
+    @pytest.mark.parametrize(
+        "input_shape,output_shape,dimension",
+        [
+            [(8, 16, 7), (8, 32, 7), "1d"],
+            [(8, 16, 7, 7), (8, 32, 7, 7), "2d"],
+            [(8, 16, 7, 7, 7), (8, 32, 7, 7, 7), "3d"],
+        ],
+    )
+    def test_output_shape(
+        self,
+        input_shape: tuple[int],
+        output_shape: tuple[int],
+        dimension: str,
+    ):
+        x = torch.randn(*input_shape)
 
-        model = ConvBnRelu(16, 32, 3)
+        model = ConvBnRelu(16, 32, 3, padding=1, dimension=dimension)
 
         y = model(x)
 
-        assert y.shape == torch.Size((8, 32, 5, 5))
+        assert y.shape == torch.Size(output_shape)
 
 
 class TestDepthwiseSeparableConv2d:
