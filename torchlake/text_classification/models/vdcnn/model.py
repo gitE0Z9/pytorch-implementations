@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torchlake.common.models import ResBlock
 from torchlake.common.models.cnn_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
@@ -60,11 +61,17 @@ class Vdcnn(ModelBase):
         blocks = nn.Sequential()
         for stage_idx, (in_c, out_c, num_repeat) in enumerate(self.config):
             for layer_idx in range(num_repeat):
-                block = Block(in_c if layer_idx == 0 else out_c, out_c, 3)
+                _in_c = in_c if layer_idx == 0 else out_c
+                _is_last_layer = layer_idx == num_repeat - 1
+                _is_last_stage = stage_idx == len(self.config) - 1
+                block = Block(
+                    _in_c,
+                    out_c,
+                    3,
+                    enable_shortcut=not (_is_last_layer and _is_last_stage),
+                    enable_pool=_is_last_layer and not _is_last_stage,
+                )
                 blocks.append(block)
-
-                if layer_idx == num_repeat - 1 and stage_idx != len(self.config) - 1:
-                    blocks.append(nn.MaxPool1d(3, 2, 1))
 
         blocks.append(KmaxPool1d(self.topk))
 
