@@ -17,6 +17,16 @@ class Vdcnn(ModelBase):
         depth_multipier: int = 1,
         context: NlpContext = NlpContext(max_seq_len=1024),
     ):
+        """Very deep convolution neural network in paper [1606.01781v2]
+
+        Args:
+            vocab_size (int): size of vocabulary
+            output_size (int, optional): output channel size. Defaults to 1.
+            embed_dim (int, optional): dimension of embedding vector. Defaults to 16.
+            topk (int, optional): top k of max pooling. Defaults to 8.
+            depth_multipier (int, optional): depth multiplier, 1 means 9 layers, 2 means 17 layers, and so on. Defaults to 1.
+            context (NlpContext, optional): nlp context. Defaults to NlpContext(max_seq_len=1024).
+        """
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.max_seq_len = context.max_seq_len
