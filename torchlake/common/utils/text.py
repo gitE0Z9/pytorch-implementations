@@ -20,13 +20,54 @@ def build_vocab(data: Iterable, context: NlpContext = NlpContext()) -> Vocab:
     return vocab
 
 
-def get_unigram_counts(data: Iterable, vocab_size: int, freq: bool = False):
-    counts = Counter()
-    for item in data:
-        counts.update(item)
+def get_unigram_counts(
+    data: Iterable,
+    vocab_size: int,
+    freq: bool = False,
+) -> torch.LongTensor:
+    """unigram counts, i.e. word counts, for iterable tokens
 
-    word_counts = [counts.get(i, 0) for i in range(vocab_size)]
+    Args:
+        data (Iterable): tokens.
+        vocab_size (int): size of vocabulary.
+        freq (bool, optional): return in frequency. Defaults to False.
+
+    Returns:
+        torch.LongTensor: unigram counts
+    """
+    counter = Counter()
+    for item in data:
+        counter.update(item)
+
+    word_counts = [counter.get(i, 0) for i in range(vocab_size)]
     word_counts = torch.LongTensor(word_counts)
+
+    assert len(word_counts) == vocab_size, "Word counts misaligned with vocab."
+
+    if freq:
+        return word_counts / sum(word_counts)
+
+    return word_counts
+
+
+def get_unigram_counts_by_tensor(
+    data: Iterable[torch.Tensor],
+    vocab_size: int,
+    freq: bool = False,
+) -> torch.LongTensor:
+    """unigram counts, i.e. word counts, for iterable tensors
+
+    Args:
+        data (Iterable[torch.Tensor]): tokens in tensor.
+        vocab_size (int): size of vocabulary.
+        freq (bool, optional): return in frequency. Defaults to False.
+
+    Returns:
+        torch.LongTensor: unigram counts
+    """
+    word_counts = torch.zeros(vocab_size, dtype=torch.long)
+    for item in data:
+        word_counts += torch.bincount(item, minlength=vocab_size)
 
     assert len(word_counts) == vocab_size, "Word counts misaligned with vocab."
 
