@@ -54,6 +54,7 @@ def get_unigram_counts_by_tensor(
     data: Iterable[torch.Tensor],
     vocab_size: int,
     freq: bool = False,
+    device: torch.device = "cpu",
 ) -> torch.LongTensor:
     """unigram counts, i.e. word counts, for iterable tensors
 
@@ -61,13 +62,15 @@ def get_unigram_counts_by_tensor(
         data (Iterable[torch.Tensor]): tokens in tensor.
         vocab_size (int): size of vocabulary.
         freq (bool, optional): return in frequency. Defaults to False.
+        device (torch.device, optional): device for tensor. Defaults to "cpu".
 
     Returns:
         torch.LongTensor: unigram counts
     """
-    word_counts = torch.zeros(vocab_size, dtype=torch.long)
+    word_counts = torch.zeros(vocab_size, dtype=torch.long).to(device)
     for item in data:
-        word_counts += torch.bincount(item, minlength=vocab_size)
+        item = item.to(device)
+        word_counts += torch.bincount(item, minlength=vocab_size).to(device)
 
     assert len(word_counts) == vocab_size, "Word counts misaligned with vocab."
 
