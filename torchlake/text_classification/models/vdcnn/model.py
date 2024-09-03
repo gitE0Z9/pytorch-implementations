@@ -16,6 +16,7 @@ class Vdcnn(ModelBase):
         embed_dim: int = 16,
         topk: int = 8,
         depth_multipier: int = 1,
+        enable_shortcut: bool = True,
         context: NlpContext = NlpContext(max_seq_len=1024),
     ):
         """Very deep convolution neural network in paper [1606.01781v2]
@@ -26,6 +27,7 @@ class Vdcnn(ModelBase):
             embed_dim (int, optional): dimension of embedding vector. Defaults to 16.
             topk (int, optional): top k of max pooling. Defaults to 8.
             depth_multipier (int, optional): depth multiplier, 1 means 9 layers, 2 means 17 layers, and so on. Defaults to 1.
+            enable_shortcut (bool, optional): enable shortcut. Defaults to True.
             context (NlpContext, optional): nlp context. Defaults to NlpContext(max_seq_len=1024).
         """
         self.vocab_size = vocab_size
@@ -33,6 +35,7 @@ class Vdcnn(ModelBase):
         self.max_seq_len = context.max_seq_len
         self.topk = topk
         self.depth_multipier = depth_multipier
+        self.enable_shortcut = enable_shortcut
         self.context = context
         super(Vdcnn, self).__init__(1, output_size)  # dummy in_c
 
@@ -68,7 +71,8 @@ class Vdcnn(ModelBase):
                     _in_c,
                     out_c,
                     3,
-                    enable_shortcut=not (_is_last_layer and _is_last_stage),
+                    enable_shortcut=self.enable_shortcut
+                    and (not (_is_last_layer and _is_last_stage)),
                     enable_pool=_is_last_layer and not _is_last_stage,
                 )
                 blocks.append(block)
