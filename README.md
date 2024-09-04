@@ -273,6 +273,11 @@
             VDCNN
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-rcnn-for-text-classification-17880a540591">
+            RCNN
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
