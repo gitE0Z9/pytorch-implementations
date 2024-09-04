@@ -1,7 +1,8 @@
 import torch
 from torch import nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
+from torch.nn.utils.rnn import PackedSequence
 from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.utils.sequence import pack_sequence, unpack_sequence
 
 
 class SequenceModelWrapper(nn.Module):
@@ -17,7 +18,7 @@ class SequenceModelWrapper(nn.Module):
         is_sequence: bool = False,
         model_class: nn.Module | None = None,
     ):
-        """_summary_
+        """Wrapper for sequence model classifier
 
         Args:
             vocab_size (int): size of vocabulary
@@ -28,7 +29,7 @@ class SequenceModelWrapper(nn.Module):
             bidirectional (bool, optional): is bidirectional layer. Defaults to False.
             context (NlpContext, optional): nlp context. Defaults to NlpContext().
             is_sequence (bool, optional): is output tensor a sequence. Defaults to False.
-            model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer . Defaults to None.
+            model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
         """
         super(SequenceModelWrapper, self).__init__()
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
@@ -52,31 +53,6 @@ class SequenceModelWrapper(nn.Module):
         self.layer_norm = nn.LayerNorm(hidden_dim * self.factor)
         self.fc = nn.Linear(hidden_dim * self.factor, output_size)
 
-    def pack_sequence(
-        self,
-        y: torch.Tensor,
-        seq_lengths: torch.Tensor,
-    ) -> PackedSequence | torch.Tensor:
-        if self.embed.padding_idx is not None and y.size(1) > 1:
-            y = pack_padded_sequence(
-                y,
-                seq_lengths,
-                batch_first=True,
-                enforce_sorted=False,
-            )
-
-        return y
-
-    def unpack_sequence(self, ot: PackedSequence) -> torch.Tensor:
-        if isinstance(ot, PackedSequence):
-            ot, _ = pad_packed_sequence(
-                ot,
-                batch_first=True,
-                total_length=self.context.max_seq_len,
-            )
-
-        return ot
-
     def feature_extract(
         self,
         x: torch.Tensor,
@@ -85,9 +61,10 @@ class SequenceModelWrapper(nn.Module):
         # batch_size, seq_len, embed_dim
         y = self.embed(x)
 
-        y = self.pack_sequence(
+        y = pack_sequence(
             y,
             x.ne(self.embed.padding_idx).sum(dim=1).long().detach().cpu(),
+            self.context.padding_idx,
         )
 
         # ot, (ht, ct)
@@ -100,7 +77,7 @@ class SequenceModelWrapper(nn.Module):
 
         ot, states = self.rnn(y, states)
 
-        ot = self.unpack_sequence(ot)
+        ot = unpack_sequence(ot, self.context.max_seq_len)
 
         return ot, states
 
@@ -148,6 +125,17 @@ class SequenceModelFullFeatureExtractor(nn.Module):
         context: NlpContext = NlpContext(),
         model_class: nn.Module | None = None,
     ):
+        """Full timestep and full layers feature extractor for sequence model
+
+        Args:
+            vocab_size (int): size of vocabulary
+            embed_dim (int): dimension of embedding vector
+            hidden_dim (int): dimension of hidden layer
+            num_layers (int, optional): number of layers. Defaults to 1.
+            bidirectional (bool, optional): is bidirectional layer. Defaults to False.
+            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
+        """
         super(SequenceModelFullFeatureExtractor, self).__init__()
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
 
@@ -182,31 +170,6 @@ class SequenceModelFullFeatureExtractor(nn.Module):
             ]
         )
 
-    def pack_sequence(
-        self,
-        y: torch.Tensor,
-        seq_lengths: torch.Tensor,
-    ) -> PackedSequence | torch.Tensor:
-        if self.embed.padding_idx is not None and y.size(1) > 1:
-            y = pack_padded_sequence(
-                y,
-                seq_lengths,
-                batch_first=True,
-                enforce_sorted=False,
-            )
-
-        return y
-
-    def unpack_sequence(self, ot: PackedSequence) -> torch.Tensor:
-        if isinstance(ot, PackedSequence):
-            ot, _ = pad_packed_sequence(
-                ot,
-                batch_first=True,
-                total_length=self.context.max_seq_len,
-            )
-
-        return ot
-
     def _rnn_forward(
         self,
         x: torch.Tensor | PackedSequence,
@@ -221,8 +184,10 @@ class SequenceModelFullFeatureExtractor(nn.Module):
             ot, states = layer(ot, states)
             features.append(ot)
             if self.factor == 2:
-                ot = self.unpack_sequence(ot)[:, :, self.hidden_dim :]
-                ot = self.pack_sequence(ot, seq_lengths)
+                ot = unpack_sequence(ot, self.context.max_seq_len)[
+                    :, :, self.hidden_dim :
+                ]
+                ot = pack_sequence(ot, seq_lengths, self.context.padding_idx)
 
             # collect hidden states between cells
             is_multiple_state = isinstance(states, tuple)
@@ -238,7 +203,9 @@ class SequenceModelFullFeatureExtractor(nn.Module):
                     placeholder.append(state)
 
         # collect output state
-        features = [self.unpack_sequence(feature) for feature in features]
+        features = [
+            unpack_sequence(feature, self.context.max_seq_len) for feature in features
+        ]
 
         # collect hidden state
         if not is_multiple_state:
@@ -260,7 +227,7 @@ class SequenceModelFullFeatureExtractor(nn.Module):
         # batch_size, seq_len, embed_dim
         y = self.embed(x)
 
-        y = self.pack_sequence(y, seq_lengths)
+        y = pack_sequence(y, seq_lengths, self.context.padding_idx)
 
         # ot, (ht, ct)
         # ot: batch_size, seq_len, bidirectional * num_layers * hidden_dim
@@ -268,6 +235,6 @@ class SequenceModelFullFeatureExtractor(nn.Module):
 
         ot, hidden_state = self._rnn_forward(y, hidden_state, seq_lengths)
 
-        ot = self.unpack_sequence(ot)
+        ot = unpack_sequence(ot, self.context.max_seq_len)
 
         return ot, hidden_state
