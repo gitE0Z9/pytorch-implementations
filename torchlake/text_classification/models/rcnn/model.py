@@ -1,9 +1,10 @@
 import torch
 from torch import nn
+from torchlake.common.models import FlattenFeature
+from torchlake.common.schemas.nlp import NlpContext
 from torchlake.sequence_data.models.base.wrapper import (
     SequenceModelFullFeatureExtractor,
 )
-from torchlake.common.schemas.nlp import NlpContext
 
 
 class Rcnn(nn.Module):
@@ -28,6 +29,7 @@ class Rcnn(nn.Module):
             model_class=nn.RNN,
         )
         self.conv = nn.Conv1d(2 * hidden_dim + embed_dim, hidden_dim, 1)
+        self.pool = FlattenFeature(reduction="max", dimension="1d")
         self.fc = nn.Linear(hidden_dim, output_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -44,6 +46,6 @@ class Rcnn(nn.Module):
         # b, h, s
         y = self.conv(y).tanh()
         # b, h
-        y = y.max(-1)[0]
+        y = self.pool(y)
 
         return self.fc(y)
