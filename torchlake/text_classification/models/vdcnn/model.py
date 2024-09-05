@@ -1,10 +1,10 @@
 import torch
 from torch import nn
-from torchlake.common.models import ResBlock
+from torchlake.common.models import KmaxPool1d
 from torchlake.common.models.cnn_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
-from .network import Block, KmaxPool1d
+from .network import Block
 
 
 class Vdcnn(ModelBase):

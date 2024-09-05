@@ -9,10 +9,11 @@ from torchvision.ops import Conv2dNormActivation
 from ..models import (
     ChannelShuffle,
     DepthwiseSeparableConv2d,
+    FlattenFeature,
     HighwayBlock,
+    KmaxPool1d,
     ResBlock,
     SqueezeExcitation2d,
-    FlattenFeature,
 )
 from ..network import ConvBnRelu
 
@@ -133,3 +134,13 @@ def test_flatten_output_shape(input_shape: tuple[int], dimension: str, reduction
     assert y.shape == torch.Size(
         (8, 32 * (1 if reduction is not None else prod(input_shape)))
     )
+
+
+def test_topk_pool_output_shape():
+    x = torch.randn(8, 32, 7)
+
+    model = KmaxPool1d(3)
+
+    y = model(x)
+
+    assert y.shape == torch.Size((8, 32, 3))
