@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import KmaxPool1d
+from torchlake.common.models import FlattenFeature, KmaxPool1d
 from torchlake.common.models.cnn_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
@@ -83,6 +83,7 @@ class Vdcnn(ModelBase):
 
     def build_head(self, output_size: int):
         self.head = nn.Sequential(
+            FlattenFeature(None, "1d"),
             nn.Linear(self.feature_dim, 2048),
             nn.ReLU(True),
             nn.Linear(2048, 2048),
@@ -93,5 +94,5 @@ class Vdcnn(ModelBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y: torch.Tensor = self.foot["embed"](x).transpose(-1, -2)
         y = self.foot["conv"](y)
-        y = self.blocks(y).view(x.size(0), -1)
+        y = self.blocks(y)
         return self.head(y)
