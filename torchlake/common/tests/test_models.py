@@ -1,4 +1,4 @@
-from math import ceil
+from math import ceil, prod
 
 import pytest
 import torch
@@ -118,12 +118,18 @@ def test_channel_shuffle_layer_forward_shape(groups: int):
     assert_close(y, official_y)
 
 
-class TestFlattenFeature:
-    def test_output_shape(self):
-        x = torch.randn(8, 32, 7, 7)
+@pytest.mark.parametrize(
+    "input_shape,dimension",
+    [[(7,), "1d"], [(7, 7), "2d"], [(7, 7, 7), "3d"]],
+)
+@pytest.mark.parametrize("reduction", ["mean", "max", None])
+def test_flatten_output_shape(input_shape: tuple[int], dimension: str, reduction: str):
+    x = torch.randn(8, 32, *input_shape)
 
-        model = FlattenFeature()
+    model = FlattenFeature(reduction=reduction, dimension=dimension)
 
-        y = model(x)
+    y = model(x)
 
-        assert y.shape == torch.Size((8, 32))
+    assert y.shape == torch.Size(
+        (8, 32 * (1 if reduction is not None else prod(input_shape)))
+    )
