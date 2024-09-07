@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.network import FeatureExtractor
+from torchlake.common.models import VggFeatureExtractor
 
 from .network import UpSampling
 
@@ -8,7 +8,7 @@ from .network import UpSampling
 class Fcn(nn.Module):
     def __init__(self, num_class: int):
         super(Fcn, self).__init__()
-        self.backbone = FeatureExtractor("vgg16", "maxpool")
+        self.backbone = VggFeatureExtractor("vgg16", "maxpool")
         self.up1 = UpSampling(512, 512)
         self.up2 = UpSampling(512, 256)
         self.up3 = UpSampling(256, 128)

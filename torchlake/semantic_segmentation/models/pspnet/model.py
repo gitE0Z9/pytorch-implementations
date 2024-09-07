@@ -2,7 +2,8 @@ import torch
 import torch.nn.functional as F
 import torchvision
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
+
 from .network import PyramidPool2d
 
 
@@ -26,14 +27,14 @@ class PspNet(nn.Module):
         self.load_backbone(resent_no)
         self.psp_layer = PyramidPool2d(latent_dim, bins_size)
         self.fc = nn.Sequential(
-            ConvBnRelu(latent_dim * 2, 512, 3, padding=1),
+            Conv2dNormActivation(latent_dim * 2, 512, 3),
             nn.Dropout2d(dropout),
             nn.Conv2d(512, num_class, 1),
         )
 
         if self.training:
             self.aux = nn.Sequential(
-                ConvBnRelu(1024, 256, 3, padding=1),
+                Conv2dNormActivation(1024, 256, 3),
                 nn.Dropout2d(p=dropout),
                 nn.Conv2d(256, num_class, 1),
             )

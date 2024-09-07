@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.network import FeatureExtractor
+from torchlake.common.models import VggFeatureExtractor
 
 from .network import AdaIn2d, AdaInDecoder
 
@@ -8,7 +8,7 @@ from .network import AdaIn2d, AdaInDecoder
 class AdaInTrainer(nn.Module):
     def __init__(
         self,
-        feature_extractor: FeatureExtractor,
+        feature_extractor: VggFeatureExtractor,
         style_layer_names: list[str],
     ):
         super(AdaInTrainer, self).__init__()

@@ -1,5 +1,5 @@
 import torch
-from torchlake.common.network import FeatureExtractor
+from torchlake.common.models import VggFeatureExtractor
 
 from ..models.adain.loss import AdaInLoss
 from ..models.adain.model import AdaInTrainer
@@ -26,7 +26,7 @@ def test_forward_shape_model():
     c, s = torch.rand((2, 3, 256, 256)), torch.rand((2, 3, 256, 256))
 
     STYLE_LAYER_NAMES = ["1_1", "2_1", "3_1", "4_1"]
-    feature_extractor = FeatureExtractor("vgg19", "relu")
+    feature_extractor = VggFeatureExtractor("vgg19", "relu")
     model = AdaInTrainer(feature_extractor, STYLE_LAYER_NAMES)
     output = model(c, s)
 
@@ -37,7 +37,7 @@ def test_style_interpolation_forward_shape_model():
     c, s = torch.rand((2, 3, 256, 256)), torch.rand((2, 3, 256, 256))
 
     STYLE_LAYER_NAMES = ["1_1", "2_1", "3_1", "4_1"]
-    feature_extractor = FeatureExtractor("vgg19", "relu")
+    feature_extractor = VggFeatureExtractor("vgg19", "relu")
     model = AdaInTrainer(feature_extractor, STYLE_LAYER_NAMES)
     output = model.style_interpolation_forward(c, s, [0.5, 0.5])
 
@@ -48,7 +48,7 @@ def test_loss_forward_shape_model():
     c, s = torch.rand((2, 3, 256, 256)), torch.rand((2, 3, 256, 256))
 
     STYLE_LAYER_NAMES = ["1_1", "2_1", "3_1", "4_1"]
-    feature_extractor = FeatureExtractor("vgg19", "relu")
+    feature_extractor = VggFeatureExtractor("vgg19", "relu")
     model = AdaInTrainer(feature_extractor, STYLE_LAYER_NAMES)
     generated_features, normalized, style_features = model.loss_forward(c, s)
 
@@ -71,7 +71,7 @@ def test_forward_shape_loss():
     c, s = torch.rand((2, 3, 256, 256)), torch.rand((2, 3, 256, 256))
 
     STYLE_LAYER_NAMES = ["1_1", "2_1", "3_1", "4_1"]
-    feature_extractor = FeatureExtractor("vgg19", "relu")
+    feature_extractor = VggFeatureExtractor("vgg19", "relu")
     model = AdaInTrainer(feature_extractor, STYLE_LAYER_NAMES)
     generated_features, normalized, style_features = model.loss_forward(c, s)
 

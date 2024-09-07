@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchlake.common.models import ConvBnRelu
 
 from ..resnext.network import BottleNeck as XBottleNeck
 

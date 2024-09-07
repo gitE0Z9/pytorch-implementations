@@ -1,10 +1,10 @@
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
 
 
 class DcganGenerator(nn.Module):
-    def __init__(self, latent_dim: int = 128, init_scale: int= 7):
+    def __init__(self, latent_dim: int = 128, init_scale: int = 7):
         super(DcganGenerator, self).__init__()
         self.latent_dim = latent_dim
         self.init_scale = init_scale
@@ -13,9 +13,9 @@ class DcganGenerator(nn.Module):
 
         self.generator = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            ConvBnRelu(latent_dim, 128, 3, padding=1),
+            Conv2dNormActivation(latent_dim, 128, 3),
             nn.Upsample(scale_factor=2),
-            ConvBnRelu(128, 64, 3, padding=1),
+            Conv2dNormActivation(128, 64, 3),
             nn.Conv2d(64, 3, 3, padding=1),
             nn.Tanh(),
         )

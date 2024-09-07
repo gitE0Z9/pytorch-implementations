@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
 
 
 class PyramidPool2d(nn.Module):
@@ -17,7 +17,7 @@ class PyramidPool2d(nn.Module):
             [
                 nn.Sequential(
                     nn.AdaptiveAvgPool2d(bin_size),
-                    ConvBnRelu(in_dim, in_dim // len(bins_size), 1),
+                    Conv2dNormActivation(in_dim, in_dim // len(bins_size), 1),
                 )
                 for bin_size in bins_size
             ]

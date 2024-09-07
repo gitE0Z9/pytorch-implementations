@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from ..network import ConvBnRelu
+from .conv import ConvBnRelu
 
 
 class DepthwiseSeparableConv2d(nn.Module):

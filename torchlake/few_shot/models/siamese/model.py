@@ -1,25 +1,52 @@
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchlake.common.models import FlattenFeature
+from torchvision.ops import Conv2dNormActivation
 
 
 class SiameseNetwork(nn.Module):
     def __init__(self, input_channel: int):
         super(SiameseNetwork, self).__init__()
-        self.conv_1 = nn.Sequential(ConvBnRelu(input_channel, 32, 10), nn.MaxPool2d(2))
-        self.conv_2 = nn.Sequential(ConvBnRelu(32, 64, 7), nn.MaxPool2d(2))
-        self.conv_3 = nn.Sequential(ConvBnRelu(64, 128, 3), nn.MaxPool2d(2))
-        self.linear = nn.Sequential(nn.Linear(9 * 9 * 128, 256), nn.ReLU(inplace=True))
-        self.clf = nn.Linear(256, 1)
+        self.block1 = nn.Sequential(
+            Conv2dNormActivation(
+                input_channel,
+                32,
+                10,
+                padding=0,
+            ),
+            nn.MaxPool2d(2),
+        )
+        self.block2 = nn.Sequential(
+            Conv2dNormActivation(
+                32,
+                64,
+                7,
+                padding=0,
+            ),
+            nn.MaxPool2d(2),
+        )
+        self.block3 = nn.Sequential(
+            Conv2dNormActivation(
+                64,
+                128,
+                3,
+                padding=0,
+            ),
+            nn.MaxPool2d(2),
+        )
+        self.linear = nn.Sequential(
+            FlattenFeature(reduction=None),
+            nn.Linear(9 * 9 * 128, 256),
+            nn.ReLU(inplace=True),
+        )
+        self.fc = nn.Linear(256, 1)
 
     def feature_extract(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv_1(x)
-        y = self.conv_2(y)
-        y = self.conv_3(y)
-        y = torch.flatten(y, start_dim=1)
-        y = self.linear(y)
+        y = x
+        for i in range(1, 4):
+            y = getattr(self, f"block{i}")(y)
 
-        return y
+        return self.linear(y)
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         # share embedding
@@ -27,9 +54,7 @@ class SiameseNetwork(nn.Module):
         yprime = self.feature_extract(y)
 
         # compare both flatten dimension
-        dif = torch.abs(xprime - yprime)
+        y = torch.abs(xprime - yprime)
 
         # compute similarity
-        dif = self.clf(dif)
-
-        return dif
+        return self.fc(y)

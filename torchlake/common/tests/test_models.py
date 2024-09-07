@@ -14,8 +14,10 @@ from ..models import (
     KmaxPool1d,
     ResBlock,
     SqueezeExcitation2d,
+    ImageNetNormalization,
+    VggFeatureExtractor,
+    ConvBnRelu,
 )
-from ..network import ConvBnRelu
 
 
 class TestSqueezeExcitation2d:

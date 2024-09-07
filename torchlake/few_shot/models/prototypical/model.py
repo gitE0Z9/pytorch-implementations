@@ -1,25 +1,25 @@
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
 
 
 class PrototypicalNetwork(nn.Module):
     def __init__(self, input_channel: int):
         super(PrototypicalNetwork, self).__init__()
         self.conv_1 = nn.Sequential(
-            ConvBnRelu(input_channel, 64, 3, padding=1),
+            Conv2dNormActivation(input_channel, 64, 3),
             nn.MaxPool2d(2),
         )
         self.conv_2 = nn.Sequential(
-            ConvBnRelu(64, 64, 3, padding=1),
+            Conv2dNormActivation(64, 64, 3),
             nn.MaxPool2d(2),
         )
         self.conv_3 = nn.Sequential(
-            ConvBnRelu(64, 64, 3, padding=1),
+            Conv2dNormActivation(64, 64, 3),
             nn.MaxPool2d(2),
         )
         self.conv_4 = nn.Sequential(
-            ConvBnRelu(64, 64, 3, padding=1),
+            Conv2dNormActivation(64, 64, 3),
             nn.MaxPool2d(2),
         )
 

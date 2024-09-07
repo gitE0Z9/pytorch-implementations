@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
 
 
 class ConvInRelu(nn.Module):
@@ -21,8 +21,8 @@ class DownSampling(nn.Module):
     def __init__(self, input_channel: int, output_channel: int):
         super(DownSampling, self).__init__()
         self.model = nn.Sequential(
-            ConvBnRelu(input_channel, output_channel, 3, padding=1),
-            ConvBnRelu(output_channel, output_channel, 3, padding=1),
+            Conv2dNormActivation(input_channel, output_channel, 3),
+            Conv2dNormActivation(output_channel, output_channel, 3),
             nn.MaxPool2d(2),
         )
 
@@ -34,8 +34,8 @@ class UpSampling(nn.Module):
     def __init__(self, input_channel: int, output_channel: int):
         super(UpSampling, self).__init__()
         self.model = nn.Sequential(
-            ConvBnRelu(input_channel, output_channel, 3, padding=1),
-            ConvBnRelu(output_channel, output_channel, 3, padding=1),
+            Conv2dNormActivation(input_channel, output_channel, 3),
+            Conv2dNormActivation(output_channel, output_channel, 3),
             nn.ConvTranspose2d(output_channel, output_channel // 2, 2, stride=2),
         )
 

@@ -1,10 +1,13 @@
+from .channel_shuffle import ChannelShuffle
+from .conv import ConvBnRelu
 from .ds_conv import DepthwiseSeparableConv2d
+from .flatten import FlattenFeature
+from .highway import HighwayBlock
+from .imagenet_normalization import ImageNetNormalization
 from .residual import ResBlock
 from .se import SqueezeExcitation2d
-from .highway import HighwayBlock
-from .channel_shuffle import ChannelShuffle
-from .flatten import FlattenFeature
 from .topk_pool import KmaxPool1d
+from .vgg_feature_extractor import VggFeatureExtractor
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -14,4 +17,7 @@ __all__ = [
     "ChannelShuffle",
     "FlattenFeature",
     "KmaxPool1d",
+    "ImageNetNormalization",
+    "VggFeatureExtractor",
+    "ConvBnRelu",
 ]

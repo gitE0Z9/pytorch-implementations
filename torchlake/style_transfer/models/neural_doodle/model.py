@@ -1,13 +1,13 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torchlake.common.network import FeatureExtractor
+from torchlake.common.models import VggFeatureExtractor
 
 
 class AuxiliaryNetwork(nn.Module):
     def __init__(
         self,
-        feature_extractor: FeatureExtractor,
+        feature_extractor: VggFeatureExtractor,
         layer_names: list[str],
         mask_weight: float = 1,
     ):

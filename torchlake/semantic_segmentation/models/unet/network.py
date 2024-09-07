@@ -1,14 +1,13 @@
 import torch
 from torch import nn
-import math
-from torchlake.common.network import ConvBnRelu
+from torchvision.ops import Conv2dNormActivation
 
 
 class DoubleConv(nn.Module):
     def __init__(self, in_ch: int, out_ch: int):
         super(DoubleConv, self).__init__()
-        self.conv1 = ConvBnRelu(in_ch, out_ch, 3, padding=1)
-        self.conv2 = ConvBnRelu(out_ch, out_ch, 3, padding=1)
+        self.conv1 = Conv2dNormActivation(in_ch, out_ch, 3)
+        self.conv2 = Conv2dNormActivation(out_ch, out_ch, 3)
 
         # nn.init.normal_(self.conv1.conv.weight, 0, math.sqrt(2 / 9 / in_ch))
         # nn.init.normal_(self.conv2.conv.weight, 0, math.sqrt(2 / 9 / out_ch))
