@@ -302,20 +302,6 @@
   </tr>
   <tr>
     <td>
-      <b>增強學習(reinforcement learning)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337">
-            DQN
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
       <b>序列資料(sequence data)</b>
     </td>
     <td>
@@ -374,6 +360,20 @@
         <li>
           <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12">
             GAT
+          </a>
+        </li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>增強學習(reinforcement learning)</b>
+    </td>
+    <td>
+      <ul>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337">
+            DQN
           </a>
         </li>
       </ul>
