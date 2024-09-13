@@ -1,3 +1,4 @@
+import random
 from collections import Counter
 from typing import Iterable
 
@@ -90,3 +91,61 @@ def is_longer_text(text: str, length: int = 0) -> bool:
 
 def drop_keywords(tokens: list[str], keywords: list[str]) -> list[str]:
     return [token for token in tokens if token not in keywords]
+
+
+def get_context(
+    batch: list[torch.Tensor],
+    left_context_size: int = 2,
+    right_context_size: int = 2,
+    enable_random_context_size: bool = False,
+    enable_symmetric_context: bool = True,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Get context words for a center word
+
+    Args:
+        batch: shape(batch_size, max_seq_len)
+        left_context_size (int, optional): left side of a center word. Defaults to 2.
+        right_context_size (int, optional): right side of a center word. Defaults to 2.
+        enable_random_context_size (bool, optional): enable random context size from 1 to maximum. Defaults to False.
+        enable_symmetric_context (bool, optional): disable this variable to disable symmetry check. Defaults to True.
+
+    Returns:
+        gram,context: shape(batch_size, 1 or context_size - 1, max_seq_len - context_size + 1)
+    """
+    maximum_context_size = left_context_size + right_context_size + 1
+    assert maximum_context_size > 1, "context size should be larger than 0"
+
+    # Check symmetry first
+    if enable_symmetric_context:
+        assert (
+            left_context_size == right_context_size
+        ), "asymmetric context is only supported when enable_symmetric_context is False."
+
+        # Context is an odd that falls between 3 ~ maximum_context_size
+        if maximum_context_size < 3:
+            raise ValueError("contextss size is too small.")
+        elif maximum_context_size % 2 == 0:
+            raise ValueError("context size should be odd.")
+
+    # for now, only symmetric context supports random mode
+    context_size = (
+        random.choice(range(3, maximum_context_size + 1, 2))
+        if enable_random_context_size and enable_symmetric_context
+        else maximum_context_size
+    )
+
+    half_size = context_size // 2 if enable_symmetric_context else left_context_size
+    context_indice = list(range(context_size))
+    context_indice.pop(half_size)
+
+    batch: torch.Tensor = torch.stack(batch)
+    batch = batch.unfold(1, context_size, 1)
+    gram = batch[:, :, half_size]
+    context = batch[:, :, context_indice]
+
+    return (
+        # batch_size, 1, seq_len
+        gram.long().unsqueeze(1),
+        # batch_size, neighbor_size, seq_len
+        context.long().transpose(-1, -2),
+    )
