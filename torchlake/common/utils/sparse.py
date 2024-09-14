@@ -18,4 +18,4 @@ def ones_tensor(indices: torch.Tensor) -> torch.Tensor:
 
 
 def get_sparsity(x: torch.Tensor) -> float:
-    return x._nnz() / prod(x.size())
+    return 1 - x._nnz() / prod(x.size())
