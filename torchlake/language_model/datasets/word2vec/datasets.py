@@ -18,11 +18,11 @@ class WordAnalogyDataset(Dataset):
 
     def __init__(
         self,
-        root: str | None = None,
+        root: Path | str,
         transform=None,
     ):
         self.name = "WordAnalogy"
-        self.path = Path(root / "word-analogy.txt")
+        self.path = Path(root) / "word-analogy.txt"
         self.transform = transform
         self.data: list[tuple[str, str, str, str]] = self.load_data()
 
