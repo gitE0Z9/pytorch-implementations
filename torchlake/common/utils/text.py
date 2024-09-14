@@ -99,6 +99,7 @@ def get_context(
     right_context_size: int = 2,
     enable_random_context_size: bool = False,
     enable_symmetric_context: bool = True,
+    flatten_output: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Get context words for a center word
 
@@ -108,6 +109,7 @@ def get_context(
         right_context_size (int, optional): right side of a center word. Defaults to 2.
         enable_random_context_size (bool, optional): enable random context size from 1 to maximum. Defaults to False.
         enable_symmetric_context (bool, optional): disable this variable to disable symmetry check. Defaults to True.
+        flatten_output (bool, optional): flatten output to gram(batch_size*seq_len, 1) and context(batch_size*seq_len, neighbor_size). Defaults to False.
 
     Returns:
         gram,context: shape(batch_size, 1 or context_size - 1, max_seq_len - context_size + 1)
@@ -140,12 +142,20 @@ def get_context(
 
     batch: torch.Tensor = torch.stack(batch)
     batch = batch.unfold(1, context_size, 1)
-    gram = batch[:, :, half_size]
-    context = batch[:, :, context_indice]
+    gram = batch[:, :, half_size].long().unsqueeze(1)
+    context = batch[:, :, context_indice].long()
+
+    if flatten_output:
+        return (
+            # batch_size*seq_len, 1
+            gram.transpose(-1, -2).flatten(0, 1),
+            # batch_size*seq_len, neighbor_size
+            context.flatten(0, 1),
+        )
 
     return (
         # batch_size, 1, seq_len
-        gram.long().unsqueeze(1),
+        gram,
         # batch_size, neighbor_size, seq_len
-        context.long().transpose(-1, -2),
+        context.transpose(-1, -2),
     )
