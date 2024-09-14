@@ -1,4 +1,5 @@
 import torch
+from math import prod
 
 
 def eye_matrix(rank: int) -> torch.Tensor:
@@ -14,3 +15,7 @@ def ones_tensor(indices: torch.Tensor) -> torch.Tensor:
         indices,
         torch.ones(indices.size(1)).to(indices.device),
     )
+
+
+def get_sparsity(x: torch.Tensor) -> float:
+    return x._nnz() / prod(x.size())
