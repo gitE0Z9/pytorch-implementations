@@ -40,16 +40,13 @@ class PPMI(nn.Module):
     ):
         corpus_total = vocab_counts.sum()
         context_counts = co_occurrence.get_context_counts()
-        context_indices = {
-            context: i for i, context in enumerate(context_counts.keys())
-        }
 
-        count_source = iter(co_occurrence.get_pair_counts().items())
+        count_source = co_occurrence.get_pair_counts().items()
         if show_progress:
-            count_source = tqdm(count_source, total=len(co_occurrence.counts))
+            count_source = tqdm(count_source)
         for (gram, context), pair_count in count_source:
             self.row_indices.append(gram)
-            self.col_indices.append(context_indices[context])
+            self.col_indices.append(context)
 
             ppmi = torch.log2(
                 corpus_total * pair_count / context_counts[context] / vocab_counts[gram]

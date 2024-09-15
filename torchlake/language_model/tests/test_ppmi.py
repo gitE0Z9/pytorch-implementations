@@ -9,7 +9,8 @@ from ..models.ppmi.model import PPMI
 
 class TestCoOccurrenceCounter(TestCase):
     def setUp(self) -> None:
-        self.gram = torch.Tensor(
+        self.vocab_size = 6
+        self.gram = torch.LongTensor(
             [
                 [1],
                 [1],
@@ -17,7 +18,7 @@ class TestCoOccurrenceCounter(TestCase):
             ]
         )
 
-        self.context = torch.Tensor(
+        self.context = torch.LongTensor(
             [
                 [2, 3, 4],
                 [2, 3, 4],
@@ -25,71 +26,75 @@ class TestCoOccurrenceCounter(TestCase):
             ]
         )
 
-    def test_update_counts(self):
-        counter = CoOccurrenceCounter()
-        counter.update_counts(self.gram, self.context)
+        self.counter = CoOccurrenceCounter(self.vocab_size)
+        self.counter.update_counts(self.gram, self.context)
 
+    def test_update_counts(self):
         self.assertDictEqual(
-            counter.counts,
+            self.counter.counts,
             {
-                (1, (2, 3, 4)): 2,
-                (2, (3, 4, 5)): 1,
+                (1, 2 + 0 * self.vocab_size): 2,
+                (1, 3 + 1 * self.vocab_size): 2,
+                (1, 4 + 2 * self.vocab_size): 2,
+                (2, 3 + 0 * self.vocab_size): 1,
+                (2, 4 + 1 * self.vocab_size): 1,
+                (2, 5 + 2 * self.vocab_size): 1,
             },
         )
 
     def test_get_context_counts(self):
-        counter = CoOccurrenceCounter()
-        counter.update_counts(self.gram, self.context)
-
         self.assertDictEqual(
-            counter.get_context_counts(),
+            self.counter.get_context_counts(),
             {
-                (2, 3, 4): 2,
-                (3, 4, 5): 1,
+                2 + 0 * self.vocab_size: 2,
+                3 + 1 * self.vocab_size: 2,
+                4 + 2 * self.vocab_size: 2,
+                3 + 0 * self.vocab_size: 1,
+                4 + 1 * self.vocab_size: 1,
+                5 + 2 * self.vocab_size: 1,
             },
         )
 
     def test_get_pair_counts_key_by_none(self):
-        counter = CoOccurrenceCounter()
-        counter.update_counts(self.gram, self.context)
-
         self.assertDictEqual(
-            counter.get_pair_counts(),
+            self.counter.get_pair_counts(),
             {
-                (1, (2, 3, 4)): 2,
-                (2, (3, 4, 5)): 1,
+                (1, 2 + 0 * self.vocab_size): 2,
+                (1, 3 + 1 * self.vocab_size): 2,
+                (1, 4 + 2 * self.vocab_size): 2,
+                (2, 3 + 0 * self.vocab_size): 1,
+                (2, 4 + 1 * self.vocab_size): 1,
+                (2, 5 + 2 * self.vocab_size): 1,
             },
         )
 
     def test_get_pair_counts_key_by_gram(self):
-        counter = CoOccurrenceCounter()
-        counter.update_counts(self.gram, self.context)
-
         self.assertDictEqual(
-            counter.get_pair_counts(key_by="gram"),
+            self.counter.get_pair_counts(key_by="gram"),
             {
                 1: {
-                    (2, 3, 4): 2,
+                    2 + 0 * self.vocab_size: 2,
+                    3 + 1 * self.vocab_size: 2,
+                    4 + 2 * self.vocab_size: 2,
                 },
                 2: {
-                    (3, 4, 5): 1,
+                    3 + 0 * self.vocab_size: 1,
+                    4 + 1 * self.vocab_size: 1,
+                    5 + 2 * self.vocab_size: 1,
                 },
             },
         )
 
     def test_get_pair_counts_key_by_context(self):
-        counter = CoOccurrenceCounter()
-        counter.update_counts(self.gram, self.context)
-
         self.assertDictEqual(
-            counter.get_pair_counts(key_by="context"),
+            self.counter.get_pair_counts(key_by="context"),
             {
-                (2, 3, 4): {
-                    1: 2,
-                },
-                (3, 4, 5): {
-                    2: 1,
-                },
+                2 + 0 * self.vocab_size: {1: 2},
+                3 + 1 * self.vocab_size: {1: 2},
+                4 + 2 * self.vocab_size: {1: 2},
+                3 + 0 * self.vocab_size: {2: 1},
+                4 + 1 * self.vocab_size: {2: 1},
+                5 + 2 * self.vocab_size: {2: 1},
             },
         )
 
@@ -114,7 +119,7 @@ class TestPPMI(TestCase):
                 [2, 2],
             ]
         )
-        self.cooccur = CoOccurrenceCounter()
+        self.cooccur = CoOccurrenceCounter(3)
         self.cooccur.update_counts(self.gram, self.context)
         self.vocab_counts = torch.LongTensor([0, 2, 3])
         self.model = PPMI(self.vocab_size, self.context_size)
@@ -135,7 +140,7 @@ class TestPPMI(TestCase):
             torch.Size((self.vocab_size, self.context_token_size)),
         )
         # assert sparsity
-        self.assertEqual(get_sparsity(embedding), 1 - 2 / (3 * 6))
+        self.assertEqual(get_sparsity(embedding), 1 - 4 / (3 * 6))
 
     def test_fit(self):
         self.model.fit(
@@ -158,4 +163,4 @@ class TestPPMI(TestCase):
         self.assertTrue(self.model.embedding.is_sparse_csr)
         self.assertEqual(target.shape, torch.Size((2, self.context_token_size)))
         # assert sparsity
-        self.assertEqual(get_sparsity(target), 1 - 2 / (2 * 6))
+        self.assertEqual(get_sparsity(target), 1 - 4 / (2 * 6))
