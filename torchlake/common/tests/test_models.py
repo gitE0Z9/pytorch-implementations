@@ -125,17 +125,26 @@ def test_channel_shuffle_layer_forward_shape(groups: int):
     "input_shape,dimension",
     [[(7,), "1d"], [(7, 7), "2d"], [(7, 7, 7), "3d"]],
 )
+@pytest.mark.parametrize("start_dim", [1, 2])
 @pytest.mark.parametrize("reduction", ["mean", "max", None])
-def test_flatten_output_shape(input_shape: tuple[int], dimension: str, reduction: str):
+def test_flatten_output_shape(
+    input_shape: tuple[int],
+    dimension: str,
+    start_dim: int,
+    reduction: str,
+):
     x = torch.randn(8, 32, *input_shape)
 
-    model = FlattenFeature(reduction=reduction, dimension=dimension)
+    model = FlattenFeature(reduction, dimension, start_dim)
 
     y = model(x)
 
-    assert y.shape == torch.Size(
-        (8, 32 * (1 if reduction is not None else prod(input_shape)))
-    )
+    reduced_factor = 1 if reduction is not None else prod(input_shape)
+    if start_dim == 1:
+        expected_shape = (8, 32 * reduced_factor)
+    else:
+        expected_shape = (8, 32, reduced_factor)
+    assert y.shape == torch.Size(expected_shape)
 
 
 def test_topk_pool_output_shape():
