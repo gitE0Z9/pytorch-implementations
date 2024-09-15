@@ -8,8 +8,8 @@ class FlattenFeature(nn.Module):
 
     def __init__(
         self,
-        reduction: Literal["mean"] | Literal["max"] | None = "mean",
-        dimension: Literal["1d"] | Literal["2d"] | Literal["3d"] = "2d",
+        reduction: Literal["mean", "max"] | None = "mean",
+        dimension: Literal["1d", "2d", "3d"] = "2d",
     ):
         """_summary_
 
