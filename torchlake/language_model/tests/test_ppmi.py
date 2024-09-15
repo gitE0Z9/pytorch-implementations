@@ -5,6 +5,8 @@ from torchlake.common.utils.sparse import get_sparsity
 
 from ..models.ppmi.helper import CoOccurrenceCounter
 from ..models.ppmi.model import PPMI
+from typing import Callable
+from parameterized import parameterized
 
 
 class TestCoOccurrenceCounter(TestCase):
@@ -55,47 +57,59 @@ class TestCoOccurrenceCounter(TestCase):
             },
         )
 
-    def test_get_pair_counts_key_by_none(self):
-        self.assertDictEqual(
-            self.counter.get_pair_counts(),
-            {
-                (1, 2 + 0 * self.vocab_size): 2,
-                (1, 3 + 1 * self.vocab_size): 2,
-                (1, 4 + 2 * self.vocab_size): 2,
-                (2, 3 + 0 * self.vocab_size): 1,
-                (2, 4 + 1 * self.vocab_size): 1,
-                (2, 5 + 2 * self.vocab_size): 1,
-            },
-        )
-
-    def test_get_pair_counts_key_by_gram(self):
-        self.assertDictEqual(
-            self.counter.get_pair_counts(key_by="gram"),
-            {
-                1: {
-                    2 + 0 * self.vocab_size: 2,
-                    3 + 1 * self.vocab_size: 2,
-                    4 + 2 * self.vocab_size: 2,
+    @parameterized.expand(
+        [
+            (
+                "key_by_none",
+                None,
+                lambda vocab_size: {
+                    (1, 2 + 0 * vocab_size): 2,
+                    (1, 3 + 1 * vocab_size): 2,
+                    (1, 4 + 2 * vocab_size): 2,
+                    (2, 3 + 0 * vocab_size): 1,
+                    (2, 4 + 1 * vocab_size): 1,
+                    (2, 5 + 2 * vocab_size): 1,
                 },
-                2: {
-                    3 + 0 * self.vocab_size: 1,
-                    4 + 1 * self.vocab_size: 1,
-                    5 + 2 * self.vocab_size: 1,
+            ),
+            (
+                "key_by_gram",
+                "gram",
+                lambda vocab_size: {
+                    1: {
+                        2 + 0 * vocab_size: 2,
+                        3 + 1 * vocab_size: 2,
+                        4 + 2 * vocab_size: 2,
+                    },
+                    2: {
+                        3 + 0 * vocab_size: 1,
+                        4 + 1 * vocab_size: 1,
+                        5 + 2 * vocab_size: 1,
+                    },
                 },
-            },
-        )
-
-    def test_get_pair_counts_key_by_context(self):
+            ),
+            (
+                "key_by_context",
+                "context",
+                lambda vocab_size: {
+                    2 + 0 * vocab_size: {1: 2},
+                    3 + 1 * vocab_size: {1: 2},
+                    4 + 2 * vocab_size: {1: 2},
+                    3 + 0 * vocab_size: {2: 1},
+                    4 + 1 * vocab_size: {2: 1},
+                    5 + 2 * vocab_size: {2: 1},
+                },
+            ),
+        ]
+    )
+    def test_get_pair_counts(
+        self,
+        name: str,
+        key_by: str | None,
+        expected: Callable[[int], dict[tuple[int, int], int]],
+    ):
         self.assertDictEqual(
-            self.counter.get_pair_counts(key_by="context"),
-            {
-                2 + 0 * self.vocab_size: {1: 2},
-                3 + 1 * self.vocab_size: {1: 2},
-                4 + 2 * self.vocab_size: {1: 2},
-                3 + 0 * self.vocab_size: {2: 1},
-                4 + 1 * self.vocab_size: {2: 1},
-                5 + 2 * self.vocab_size: {2: 1},
-            },
+            self.counter.get_pair_counts(key_by=key_by),
+            expected(self.vocab_size),
         )
 
 
