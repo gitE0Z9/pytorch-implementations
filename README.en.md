@@ -443,3 +443,7 @@ In general, each domain will have a structure similar to the following:
 `utils`: Stores functions with low dependency and high reusability.
 
 Model and dataset configurations are controlled using pydantic.
+
+## Module dependency
+
+![modules drawio](https://github.com/user-attachments/assets/610e83f6-7dc0-4437-a663-29f1ad93bfda)
