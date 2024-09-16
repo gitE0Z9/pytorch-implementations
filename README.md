@@ -446,3 +446,8 @@
 `utils`: 存放依賴性低且復用性高的函式
 
 model 和 dataset 的 config 會用 `pydantic` 控制格式
+
+## 模組依賴關係 
+
+![modules drawio](https://github.com/user-attachments/assets/610e83f6-7dc0-4437-a663-29f1ad93bfda)
+
