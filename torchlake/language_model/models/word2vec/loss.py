@@ -82,32 +82,32 @@ class NegativeSampling(nn.Module):
 
         # B, context-1, subseq, h x B, context-1, subseq, h
         # => B, context-1, subseq
-        positive_sample = torch.einsum(
+        positive_logits = torch.einsum(
             "bcsh, bcsh -> bcs",
             embedding,
             self.fc[target],
         )
 
         # B, context-1, subseq, #negative
-        negative_target = self.sample(target)
+        negative_sample = self.sample(target)
         # B, context-1, subseq, 1, h x B, context-1, subseq, h, #negative
         # => B, context-1, subseq, 1, #negative
-        negative_sample = torch.einsum(
+        negative_logits = torch.einsum(
             "bcsh, bcsnh -> bcsn",
             embedding,
-            self.fc[negative_target],
+            self.fc[negative_sample],
         )
 
         positive_loss = binary_cross_entropy_with_logits(
-            positive_sample,
-            torch.ones_like(positive_sample),
+            positive_logits,
+            torch.ones_like(positive_logits),
             reduction="sum",
         )
 
         negative_loss = (
             binary_cross_entropy_with_logits(
-                negative_sample,
-                torch.zeros_like(negative_sample),
+                negative_logits,
+                torch.zeros_like(negative_logits),
                 reduction="sum",
             )
             / batch_size
