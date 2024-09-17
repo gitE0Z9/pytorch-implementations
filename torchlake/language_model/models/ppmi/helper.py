@@ -32,11 +32,11 @@ class CoOccurrenceCounter:
 
         self.counts.update(zip(gram, context))
 
-    def get_context_counts(self) -> dict[tuple[str], int]:
-        """_summary_
+    def get_context_counts(self) -> dict[int, int]:
+        """get context-as-key counts dict, count represent how many times a word occurred in context
 
         Returns:
-            dict[tuple[str], int]: _description_
+            dict[int, int]: context-as-key counts dict
         """
         output = Counter()
 
@@ -48,14 +48,14 @@ class CoOccurrenceCounter:
     def get_pair_counts(
         self,
         key_by: Literal["gram", "context"] | None = None,
-    ) -> dict[tuple[str, tuple[str]], int]:
-        """_summary_
+    ) -> dict[tuple[int, int], int] | dict[int, dict[int, int]]:
+        """get multiple key counts dict, the hierarchy depends on `key_by`
 
         Args:
-            key_by (Literal["gram", "context"] | None, optional): _description_. Defaults to None.
+            key_by (Literal["gram", "context"] | None, optional): None returned flatten tuple level, `gram` returned gram->context levl, `context` returned context->gram levl. Defaults to None.
 
         Returns:
-            dict[tuple[str, tuple[str]], int]: _description_
+            dict[tuple[int, int], int] | dict[int, dict[int, int]]: count dict with flatten tuple level key or multilevel key
         """
 
         if key_by is None:
