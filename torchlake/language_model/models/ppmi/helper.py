@@ -19,19 +19,20 @@ class CoOccurrenceCounter:
         """update counts of (word, context)
 
         Args:
-            gram (torch.Tensor): a center word
-            context (torch.Tensor): context surround a center word
+            gram (torch.Tensor): a center word, in shape of (batch*subseq_len, 1)
+            context (torch.Tensor): context surround a center word, in shape of (batch*subseq_len, neighbor_size)
         """
         if self.padding_idx is not None:
-            filter_idx = gram != self.padding_idx
+            filter_idx = (gram != self.padding_idx)[:, 0]
             gram = gram[filter_idx]
-            context = context[filter_idx[:, 0]]
+            context = context[filter_idx]
 
         # position encoding
         context += torch.arange(0, context.size(1)).view(1, -1) * self.vocab_size
+        gram = gram.repeat_interleave(context.size(1), 1).view(-1).tolist()
+        context = context.view(-1).tolist()
 
-        for gram, context_tokens in zip(gram.squeeze().tolist(), context.tolist()):
-            self.counts.update(product([gram], context_tokens))
+        self.counts.update(zip(gram, context))
 
     def get_context_counts(self) -> dict[tuple[str], int]:
         """_summary_
