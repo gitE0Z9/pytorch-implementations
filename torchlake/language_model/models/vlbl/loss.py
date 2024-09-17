@@ -81,9 +81,9 @@ class NCE(nn.Module):
             torch.Tensor: nce loss value
         """
         # B, 1 or neighbor, subseq*#negative
-        negative_x_indices = self.sample(x_indices)
+        negative_x_indices = x_indices.repeat(1, 1, self.negative_ratio)
         # B, neighbor or 1, subseq*#negative
-        negative_y_indices = y_indices.repeat(1, 1, self.negative_ratio)
+        negative_y_indices = self.sample(y_indices)
         # B, neighbor or 1, subseq*#negative
         negative_pred = model.forward(negative_x_indices, negative_y_indices)
 
