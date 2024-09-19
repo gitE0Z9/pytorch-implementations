@@ -1,11 +1,11 @@
 from .word2vec.model import Word2Vec
-from .ppmi.model import PPMI
 from .vlbl.model import VLBL, IVLBL
+from .glove.model import GloVe
 
 
 __all__ = [
     "Word2Vec",
-    "PPMI",
     "VLBL",
     "IVLBL",
+    "GloVe",
 ]
