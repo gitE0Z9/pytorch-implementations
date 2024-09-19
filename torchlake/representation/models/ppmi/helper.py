@@ -7,7 +7,12 @@ import torch
 class CoOccurrenceCounter:
 
     def __init__(self, vocab_size: int, padding_idx: int | None = None):
-        """word context co-occurrence matrix"""
+        """word-context co-occurrence counter
+
+        Args:
+            vocab_size (int): size of vocabulary
+            padding_idx (int | None, optional): index of padding token. Defaults to None.
+        """
         super(CoOccurrenceCounter, self).__init__()
         self.vocab_size = vocab_size
         self.padding_idx = padding_idx

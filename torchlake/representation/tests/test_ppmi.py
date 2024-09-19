@@ -1,12 +1,12 @@
+from typing import Callable
 from unittest import TestCase
 
 import torch
+from parameterized import parameterized
 from torchlake.common.utils.sparse import get_sparsity
 
 from ..models.ppmi.helper import CoOccurrenceCounter
 from ..models.ppmi.model import PPMI
-from typing import Callable
-from parameterized import parameterized
 
 
 class TestCoOccurrenceCounter(TestCase):
