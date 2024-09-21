@@ -335,15 +335,44 @@ The development direction will extend towards a monorepo.
       </ul>
     </td>
   </tr>
-  <tr>
+    <tr>
     <td>
       <b>Language model</b>
     </td>
     <td>
       <ul>
         <li>
-          <a href="https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57">
+          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57">
             Word2vec
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            GloVe
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            vLBL/ivLBL
+          </a>
+        </li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>Representation learning</b>
+    </td>
+    <td>
+      <ul>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            PPMI
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            Hellinger PCA
           </a>
         </li>
       </ul>

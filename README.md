@@ -345,6 +345,35 @@
             Word2vec
           </a>
         </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            GloVe
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            vLBL/ivLBL
+          </a>
+        </li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>表示學習(representation learning)</b>
+    </td>
+    <td>
+      <ul>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            PPMI
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
+            Hellinger PCA
+          </a>
+        </li>
       </ul>
     </td>
   </tr>
