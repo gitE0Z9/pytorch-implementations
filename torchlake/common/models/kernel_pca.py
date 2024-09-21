@@ -30,9 +30,11 @@ def hellinger_kernel(x: torch.Tensor, is_normalized: bool = True) -> torch.Tenso
 
 
 def center_kernel(K: torch.Tensor) -> torch.Tensor:
-    n = K.shape[0]
-    ones = torch.ones((n, n), device=K.device) / n
-    K_centered = K - ones @ K - K @ ones + ones @ K @ ones
+    N = K.shape[0]
+    row_mean = K.mean(1, keepdim=True) / N
+    col_mean = K.mean(0, keepdim=True) / N
+    total_mean = row_mean.mean()
+    K_centered = K - row_mean - col_mean + total_mean
     return K_centered
 
 
@@ -40,12 +42,15 @@ class KernelPCA(nn.Module):
     def __init__(
         self,
         n_components: int,
-        kernel: KernelEnum | Callable[[torch.Tensor], torch.Tensor],
+        kernel: str | KernelEnum | Callable[[torch.Tensor], torch.Tensor],
         kernel_params: dict = {},
     ):
+        super(KernelPCA, self).__init__()
         self.n_components = n_components
         self.kernel = (
-            kernel if isinstance(kernel, Callable) else self.kernel_mapping[kernel]
+            kernel
+            if isinstance(kernel, Callable)
+            else self.kernel_mapping[KernelEnum(kernel)]
         )
         self.kernel_params = kernel_params
 
@@ -60,17 +65,18 @@ class KernelPCA(nn.Module):
     def fit(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         self.x_fit = x
 
-        # Step 1: Compute the kernel matrix
+        print("Step 1: Compute the kernel matrix")
         K = self.kernel(x, **self.kernel_params)
 
-        # Step 2: Center the kernel matrix
+        print("Step 2: Center the kernel matrix")
         K_centered = center_kernel(K)
 
-        # Step 3: Eigenvalue decomposition
-        eigvals, eigvecs = torch.linalg.eigh(K_centered)
+        print("Step 3: Eigenvalue decomposition")
+        # eigvals, eigvecs = torch.linalg.eigh(K_centered)
+        eigvecs, eigvals, _ = torch.linalg.svd(K_centered)
 
         # Step 4: Sort eigenvalues and eigenvectors in descending order
-        eigvals, eigvecs = eigvals.flip(0), eigvecs.flip(1)
+        # eigvals, eigvecs = eigvals.flip(0), eigvecs.flip(1)
 
         # Step 5: Select the top n_components eigenvectors
         self.eigenvectors: torch.Tensor = eigvecs[:, : self.n_components]
