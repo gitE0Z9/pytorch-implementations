@@ -142,20 +142,22 @@ def get_context(
 
     batch: torch.Tensor = torch.stack(batch)
     batch = batch.unfold(1, context_size, 1)
-    gram = batch[:, :, half_size].long().unsqueeze(1)
+    # batch_size, seq_len, 1
+    gram = batch[:, :, half_size : half_size + 1].long()
+    # batch_size, seq_len, neighbor_size
     context = batch[:, :, context_indice].long()
 
     if flatten_output:
         return (
             # batch_size*seq_len, 1
-            gram.transpose(-1, -2).flatten(0, 1),
+            gram.contiguous().view(-1, gram.size(-1)),
             # batch_size*seq_len, neighbor_size
-            context.flatten(0, 1),
+            context.contiguous().view(-1, context.size(-1)),
         )
 
     return (
         # batch_size, 1, seq_len
-        gram,
+        gram.transpose(-1, -2),
         # batch_size, neighbor_size, seq_len
         context.transpose(-1, -2),
     )
