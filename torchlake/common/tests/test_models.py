@@ -1,10 +1,13 @@
 from math import ceil, prod
+from unittest import TestCase
 
 import pytest
 import torch
 from torch import nn
 from torch.testing import assert_close
 from torchvision.ops import Conv2dNormActivation
+from parameterized import parameterized
+from ..models.kernel_pca import KernelEnum
 
 from ..models import (
     ChannelShuffle,
@@ -17,6 +20,7 @@ from ..models import (
     ImageNetNormalization,
     VggFeatureExtractor,
     ConvBnRelu,
+    KernelPCA,
 )
 
 
@@ -97,7 +101,7 @@ class TestResBlock:
         assert y.shape == torch.Size((8, 32, OUTPUT_SHAPE, OUTPUT_SHAPE))
 
 
-class TestHighwayBlock:
+class TestHighwayBlock(TestCase):
     def test_output_shape(self):
         x = torch.randn(8, 32, 7, 7)
 
@@ -147,11 +151,45 @@ def test_flatten_output_shape(
     assert y.shape == torch.Size(expected_shape)
 
 
-def test_topk_pool_output_shape():
-    x = torch.randn(8, 32, 7)
+class TestTopkPool(TestCase):
+    def test_max_1d_output_shape(self):
+        x = torch.randn(8, 32, 7)
 
-    model = KmaxPool1d(3)
+        model = KmaxPool1d(3)
 
-    y = model(x)
+        y = model(x)
 
-    assert y.shape == torch.Size((8, 32, 3))
+        assert y.shape == torch.Size((8, 32, 3))
+
+
+class TestKernelPCA(TestCase):
+    @parameterized.expand(
+        [
+            (
+                "linear_kernel",
+                KernelEnum.LINEAR,
+            ),
+            (
+                "rbf_kernel",
+                KernelEnum.RBF,
+            ),
+            (
+                "helligner_kernel",
+                KernelEnum.HELLINGER,
+            ),
+        ]
+    )
+    def test_output_shape(self, name: str, kernel: str):
+        x = torch.randn(8, 10)
+        kernel_params = {}
+
+        if kernel == KernelEnum.HELLINGER:
+            x = torch.randint(0, 100, (8, 10)).float()
+            kernel_params["is_normalized"] = False
+
+        model = KernelPCA(2, kernel, kernel_params)
+
+        model.fit(x)
+
+        assert model.eigenvalues.shape == torch.Size((2,))
+        assert model.eigenvectors.shape == torch.Size((8, 2))
