@@ -144,6 +144,7 @@ class TestModel(TestCase):
 
 class TestLoss(TestCase):
     def setUp(self) -> None:
+        self.pred = torch.rand(BATCH_SIZE * SUBSEQ_LEN, NEIGHBOR_SIZE)
         self.gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE * SUBSEQ_LEN, 1))
         self.context = torch.randint(
             0, VOCAB_SIZE, (BATCH_SIZE * SUBSEQ_LEN, NEIGHBOR_SIZE)
@@ -160,13 +161,18 @@ class TestLoss(TestCase):
     def test_index_sparse_tensor_shape(self):
         criterion = GloVeLoss(self.counts, maximum_count=1)
 
-        context_shape = self.context.shape
+        pred = self.pred.view(-1)
         gram = self.gram.repeat_interleave(self.context.size(1), 1).view(-1)
         context = self.context.view(-1)
 
-        y = criterion.index_sparse_tensor(self.counts, gram, context, context_shape)
+        y = criterion.index_sparse_tensor(
+            self.counts,
+            gram,
+            context,
+            pred.shape,
+        )
 
-        assert y.shape == torch.Size((BATCH_SIZE * SUBSEQ_LEN, NEIGHBOR_SIZE))
+        assert y.shape == torch.Size((BATCH_SIZE * SUBSEQ_LEN * NEIGHBOR_SIZE,))
 
     def test_forward_shape(self):
         model = GloVe(VOCAB_SIZE, EMBED_SIZE, CONTEXT)

@@ -48,18 +48,20 @@ class GloVeLoss(nn.Module):
         target: torch.Tensor,
         gram: torch.Tensor,
         context: torch.Tensor,
-        context_shape,
+        output_shape: torch.Size,
     ) -> torch.Tensor:
         """get tensor from sparse tensor by indices
 
         Args:
+            target (torch.Tensor): sparse tensor to be selected, shape is vocab_size, vocab_size
             gram (torch.Tensor): shape is batch_size*subseq_len*neighbor_size
             context (torch.Tensor): shape is batch_size*subseq_len*neighbor_size
+            output_shape: shape of output tensor
 
         Returns:
             torch.Tensor: tensor from sparse tensor by indices
         """
-        target = target.index_select(0, gram).coalesce().values()
+        target = target.index_select(0, gram)
 
         filter_indices = ones_tensor(
             torch.stack(
@@ -72,7 +74,7 @@ class GloVeLoss(nn.Module):
             size=target.shape,
         )
 
-        return (target * filter_indices).sum(1).to_dense().reshape(context_shape)
+        return (target * filter_indices).sum(1).to_dense().reshape(output_shape)
 
     def forward(
         self,
