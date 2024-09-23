@@ -5,6 +5,7 @@ from .flatten import FlattenFeature
 from .highway import HighwayBlock
 from .imagenet_normalization import ImageNetNormalization
 from .kernel_pca import KernelPCA
+from .kmeans import KMeans
 from .residual import ResBlock
 from .se import SqueezeExcitation2d
 from .topk_pool import KmaxPool1d
@@ -22,4 +23,5 @@ __all__ = [
     "VggFeatureExtractor",
     "ConvBnRelu",
     "KernelPCA",
+    "KMeans",
 ]

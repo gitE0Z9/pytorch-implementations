@@ -21,6 +21,7 @@ from ..models import (
     VggFeatureExtractor,
     ConvBnRelu,
     KernelPCA,
+    KMeans,
 )
 
 
@@ -115,40 +116,43 @@ class TestHighwayBlock(TestCase):
         assert y.shape == torch.Size((8, 32, 7, 7))
 
 
-@pytest.mark.parametrize("groups", [1, 2, 3, 4, 8])
-def test_channel_shuffle_layer_forward_shape(groups: int):
-    x = torch.randn(2, 48, 224, 224)
-    layer = ChannelShuffle(groups=groups)
-    official_layer = nn.ChannelShuffle(groups)
-    y, official_y = layer(x), official_layer(x)
+class TestChannelShuffle:
+    @pytest.mark.parametrize("groups", [1, 2, 3, 4, 8])
+    def test_output_shape(self, groups: int):
+        x = torch.randn(2, 48, 224, 224)
+        layer = ChannelShuffle(groups=groups)
+        official_layer = nn.ChannelShuffle(groups)
+        y, official_y = layer(x), official_layer(x)
 
-    assert_close(y, official_y)
+        assert_close(y, official_y)
 
 
-@pytest.mark.parametrize(
-    "input_shape,dimension",
-    [[(7,), "1d"], [(7, 7), "2d"], [(7, 7, 7), "3d"]],
-)
-@pytest.mark.parametrize("start_dim", [1, 2])
-@pytest.mark.parametrize("reduction", ["mean", "max", None])
-def test_flatten_output_shape(
-    input_shape: tuple[int],
-    dimension: str,
-    start_dim: int,
-    reduction: str,
-):
-    x = torch.randn(8, 32, *input_shape)
+class TestFlattenFeature:
+    @pytest.mark.parametrize(
+        "input_shape,dimension",
+        [[(7,), "1d"], [(7, 7), "2d"], [(7, 7, 7), "3d"]],
+    )
+    @pytest.mark.parametrize("start_dim", [1, 2])
+    @pytest.mark.parametrize("reduction", ["mean", "max", None])
+    def test_output_shape(
+        self,
+        input_shape: tuple[int],
+        dimension: str,
+        start_dim: int,
+        reduction: str,
+    ):
+        x = torch.randn(8, 32, *input_shape)
 
-    model = FlattenFeature(reduction, dimension, start_dim)
+        model = FlattenFeature(reduction, dimension, start_dim)
 
-    y = model(x)
+        y = model(x)
 
-    reduced_factor = 1 if reduction is not None else prod(input_shape)
-    if start_dim == 1:
-        expected_shape = (8, 32 * reduced_factor)
-    else:
-        expected_shape = (8, 32, reduced_factor)
-    assert y.shape == torch.Size(expected_shape)
+        reduced_factor = 1 if reduction is not None else prod(input_shape)
+        if start_dim == 1:
+            expected_shape = (8, 32 * reduced_factor)
+        else:
+            expected_shape = (8, 32, reduced_factor)
+        assert y.shape == torch.Size(expected_shape)
 
 
 class TestTopkPool(TestCase):
@@ -193,3 +197,21 @@ class TestKernelPCA(TestCase):
 
         assert model.eigenvalues.shape == torch.Size((2,))
         assert model.eigenvectors.shape == torch.Size((8, 2))
+
+
+class TestKMeans(TestCase):
+    def test_output_shape(self):
+        x = torch.randn(10, 3)
+        model = KMeans(5)
+        indices = model.fit(x)
+
+        assert indices.shape == torch.Size((10,))
+        assert model.centroids.shape == torch.Size((5, 3))
+
+    def test_transform_shape(self):
+        x = torch.randn(10, 3)
+        model = KMeans(5)
+        indices = model.fit(x)
+        y = model.transform(indices)
+
+        assert y.shape == torch.Size((10, 3))
