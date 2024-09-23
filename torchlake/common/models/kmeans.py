@@ -86,7 +86,7 @@ class KMeans(nn.Module):
                 break
 
         # n
-        return i
+        return i.view(original_shape)
 
     def predict(self, x: torch.Tensor) -> torch.Tensor:
         # n, c x k, c => n, c
