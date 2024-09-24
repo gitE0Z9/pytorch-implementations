@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Literal
 
 import torch
 import torch.nn.functional as F
@@ -16,6 +16,7 @@ class KMeans(nn.Module):
         eval_metric: (
             Callable[[torch.Tensor, torch.Tensor, torch.Tensor], float] | None
         ) = None,
+        init_method: Literal["random", "kmeans++"] = "kmeans++",
     ):
         """KMeans
 
@@ -23,13 +24,14 @@ class KMeans(nn.Module):
             k (int): number of clusters
         """
         super(KMeans, self).__init__()
-        assert k > 0, "number of clusters should be larger than 0"
+        assert k > 1, "number of clusters should be larger than 1"
 
         self.k = k
         self.total_iter = total_iter
         self.error_acceptance = error_acceptance
         self.dist_metric = dist_metric or self.build_dist_metric()
         self.eval_metric = eval_metric or self.build_eval_metric()
+        self.init_method = init_method
         self.centroids = None
 
     def build_dist_metric(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
@@ -40,8 +42,27 @@ class KMeans(nn.Module):
     ) -> Callable[[torch.Tensor, torch.Tensor, torch.Tensor], float]:
         return lambda x, i, c: F.mse_loss(x, c[i])
 
-    def init_centroids(self, c: int):
-        self.centroids = torch.rand(self.k, c)
+    def init_centroids(self, x: torch.Tensor):
+        n, c = x.shape
+        # self.centroids = torch.rand(self.k, c)
+
+        if self.init_method == "random":
+            indices = torch.multinomial(
+                torch.ones_like(x[:, 0]),
+                num_samples=self.k,
+                replacement=False,
+            )
+            self.centroids = x[indices]
+        elif self.init_method == "kmeans++":
+            visited = torch.randint(0, n, (1,))
+            for _ in range(1, self.k):
+                prob = self.dist_metric(x, x[visited]).min(1)[0]
+                prob[visited] = 0
+
+                index = torch.multinomial(prob, num_samples=1)
+                visited = torch.cat([visited, index])
+
+            self.centroids = x[visited]
 
     def fit(self, x: torch.Tensor) -> torch.Tensor:
         """fit a kmeans model
@@ -56,7 +77,7 @@ class KMeans(nn.Module):
         # n, c
         x = x.view(-1, channel)
         # k, c
-        self.init_centroids(channel)
+        self.init_centroids(x)
 
         # init group
         # n
