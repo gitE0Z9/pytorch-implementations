@@ -84,7 +84,6 @@ class ProductQuantization(nn.Module):
         """Product quantization
 
         Args:
-            vector_dim (int): dimension of vector
             k (int): number of subquantizers
             b (int, optional): bits to store centroids. Defaults to 8.
             codebook_dtype (torch.dtype): data type of codebook tensor, could be used for uint8, float16, float32 quantization
