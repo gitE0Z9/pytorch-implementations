@@ -9,7 +9,7 @@ from ..models import TextCnn
 class TestModel(TestCase):
     def test_output_shape(self):
         """test output shape"""
-        model = TextCnn(26, 8, 10)
+        model = TextCnn(26, 8, output_size=10)
 
         x = torch.randint(0, 26, (1, 5))
         output = model(x)

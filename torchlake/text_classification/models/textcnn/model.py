@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from .network import TextCnnPool
+from torchlake.common.models import MultiKernelConvModule
 
 
 class TextCnn(nn.Module):
@@ -9,22 +9,42 @@ class TextCnn(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        label_size: int,
+        hidden_dim: int = 32,
+        output_size: int = 1,
         padding_idx: int | None = None,
         kernel_size: list[int] = [2, 3, 4],
     ):
+        """TextCNN in paper[1408.5882]
+
+        Args:
+            vocab_size (int): size of vocabulary
+            embed_dim (int): dimension of embedding vector
+            hidden_dim (int, optional): dimension of convolution layer. Defaults to 32.
+            output_size (int, optional): number of features of output. Defaults to 1.
+            padding_idx (int | None, optional): index of padding token. Defaults to None.
+            kernel_size (list[int], optional): size of kernels. Defaults to [2, 3, 4].
+        """
         super(TextCnn, self).__init__()
         self.embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
-        self.pool = TextCnnPool(embed_dim, kernel_size)
-        self.fc = nn.Linear(32 * len(kernel_size), label_size)
+        self.pool = MultiKernelConvModule(
+            1,
+            hidden_dim,
+            [(k, embed_dim) for k in kernel_size],
+            disable_padding=True,
+            activation=nn.LeakyReLU(),
+            reduction="max",
+            concat_output=True,
+        )
+        self.fc = nn.Linear(hidden_dim * len(kernel_size), output_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Batch_size, 1, Seq_len, embed_dim
         y = self.embed(x).unsqueeze(1)
 
-        # Batch_size, filter_number
+        # Batch_size, filter_number * hidden_dim
         y = self.pool(y)
 
+        # Batch_size, label_size
         y = self.fc(y)
 
         return y
