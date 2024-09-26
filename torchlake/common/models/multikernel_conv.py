@@ -10,7 +10,7 @@ class MultiKernelConvModule(nn.Module):
     def __init__(
         self,
         input_channel: int,
-        output_channel: int,
+        output_channels: int | list[int],
         kernels: list[int],
         disable_padding: bool = False,
         activation: nn.Module | None = nn.ReLU(True),
@@ -19,13 +19,18 @@ class MultiKernelConvModule(nn.Module):
         concat_output: bool = False,
     ):
         super(MultiKernelConvModule, self).__init__()
+        if isinstance(output_channels, int):
+            output_channels = [output_channels] * len(kernels)
+
         if reduction in ["mean", "max"]:
             self.flatten = FlattenFeature(
                 reduction=reduction,
                 dimension=dimension,
                 start_dim=2,
             )
+
         self.concat_output = concat_output
+
         self.cnns = nn.ModuleList(
             [
                 ConvBnRelu(
@@ -45,7 +50,7 @@ class MultiKernelConvModule(nn.Module):
                     activation=activation,
                     dimension=dimension,
                 )
-                for kernel in kernels
+                for output_channel, kernel in zip(output_channels, kernels)
             ]
         )
 
