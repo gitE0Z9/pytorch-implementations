@@ -9,6 +9,7 @@ from .kmeans import KMeans
 from .residual import ResBlock
 from .se import SqueezeExcitation2d
 from .topk_pool import KmaxPool1d
+from .multikernel_conv import MultiKernelConvModule
 from .vgg_feature_extractor import VggFeatureExtractor
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "ConvBnRelu",
     "KernelPCA",
     "KMeans",
+    "MultiKernelConvModule",
 ]
