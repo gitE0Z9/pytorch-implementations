@@ -82,7 +82,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 # the latter will waste resource when dataset size is fixed
                 if isinstance(x, torch.Tensor):
                     data_size += x.size(0)
-                elif isinstance(x, list):
+                elif isinstance(x, list | tuple | set):
                     data_size += len(x)
 
                 output = self._predict(row, model, *args, **kwargs)
