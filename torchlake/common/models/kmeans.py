@@ -16,7 +16,7 @@ class KMeans(nn.Module):
         eval_metric: (
             Callable[[torch.Tensor, torch.Tensor, torch.Tensor], float] | None
         ) = None,
-        init_method: Literal["random", "kmeans++"] = "kmeans++",
+        init_method: Literal["uniform", "random", "kmeans++"] = "kmeans++",
     ):
         """KMeans
 
@@ -44,9 +44,10 @@ class KMeans(nn.Module):
 
     def init_centroids(self, x: torch.Tensor):
         n, c = x.shape
-        # self.centroids = torch.rand(self.k, c)
 
-        if self.init_method == "random":
+        if self.init_method == "uniform":
+            self.centroids = torch.rand(self.k, c)
+        elif self.init_method == "random":
             indices = torch.multinomial(
                 torch.ones_like(x[:, 0]),
                 num_samples=self.k,
@@ -63,6 +64,8 @@ class KMeans(nn.Module):
                 visited = torch.cat([visited, index])
 
             self.centroids = x[visited]
+        else:
+            raise NotImplementedError
 
     def fit(self, x: torch.Tensor) -> torch.Tensor:
         """fit a kmeans model
@@ -80,6 +83,7 @@ class KMeans(nn.Module):
         self.init_centroids(x)
 
         # init group
+
         # n
         i = self.predict(x)
 
