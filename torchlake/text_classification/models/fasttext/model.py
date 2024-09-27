@@ -8,16 +8,16 @@ from torchlake.language_model.constants.enum import LossType
 class FastText(nn.Module):
     def __init__(
         self,
-        vocab_size: int,
+        bucket_size: int,
         embed_dim: int,
         output_size: int,
-        loss_type: LossType = LossType.CE,
+        loss_type: LossType = LossType.CROSS_ENTROPY,
         context: NlpContext = NlpContext(),
     ):
         """Fasttext [1607.04606]
 
         Args:
-            vocab_size (int): vocabulary(character ngram) size
+            bucket_size (int): size of hash bucket
             embed_dim (int): embedding dimension
             output_size (int, optional): number of features of output. Defaults to 1.
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
@@ -26,7 +26,7 @@ class FastText(nn.Module):
         super(FastText, self).__init__()
 
         self.embeddings = nn.Embedding(
-            vocab_size,
+            bucket_size,
             embed_dim,
             padding_idx=context.padding_idx,
         )

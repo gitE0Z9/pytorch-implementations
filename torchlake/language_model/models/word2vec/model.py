@@ -1,46 +1,65 @@
+from typing import Literal
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
-from torchlake.language_model.constants.enum import LossType, ModelType
+from torchlake.language_model.constants.enum import LossType, Word2VecModelType
 
 
-class Cbow(nn.Module):
+class CBOW(nn.Module):
     def __init__(
         self,
         vocab_size: int,
         embed_dim: int,
-        context: NlpContext = NlpContext(),
+        padding_idx: int | None = None,
+        reduction: Literal["sum", "mean"] = "mean",
     ):
         """Continuous bag of words model, use context to predict gram
 
         Args:
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            padding_idx (int | None, optional): index of padding token. Defaults to None.
+            reduction (Literal[mean] | Literal[sum], optional): redution mode. Defaults to "mean".
         """
-        super(Cbow, self).__init__()
+        super(CBOW, self).__init__()
 
-        self.embeddings = nn.Embedding(
-            vocab_size,
-            embed_dim,
-            padding_idx=context.padding_idx,
-        )
+        self.embeddings = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
+
+        self.set_reduction(reduction)
+
+    def set_reduction(self, reduction: Literal["sum", "mean"] = "mean"):
+        """set reduction method
+
+        Args:
+            reduction (Literal[mean] | Literal[sum], optional): redution mode. Defaults to "mean".
+
+        Raises:
+            ValueError: reduction must be either 'sum' or 'mean'
+        """
+        if reduction == "sum":
+            self.reduction = lambda x: x.sum(dim=1, keepdim=True)
+        elif reduction == "mean":
+            self.reduction = lambda x: x.mean(dim=1, keepdim=True)
+        else:
+            raise ValueError("reduction must be either 'sum' or 'mean'")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """cbow forward
+        """forward
 
         aggregate context with "mean" as author(https://github.com/tmikolov/word2vec/blob/master/word2vec.c)
 
         "sum" used in paper(https://arxiv.org/abs/1301.3781) might be deprecated
 
         Args:
-            x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
+            x (torch.Tensor): context tokens, shape is (batch_size, neighbor_size, #subsequence)
 
         Returns:
             torch.Tensor: embedded vectors, shape is (batch_size, 1, #subsequence, vocab_size)
         """
+        # B, neighbor_size, subseq, embed_dim
+        y = self.embeddings(x)
         # B, 1, subseq, embed_dim
-        return self.embeddings(x).mean(dim=1, keepdim=True)
+        return self.reduction(y)
 
 
 class SkipGram(nn.Module):
@@ -48,27 +67,23 @@ class SkipGram(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        context: NlpContext = NlpContext(),
+        padding_idx: int | None = None,
     ):
         """Skip gram model, use gram to predict context
 
         Args:
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            padding_idx (int | None, optional): index of padding token. Defaults to None.
         """
         super(SkipGram, self).__init__()
-        self.embeddings = nn.Embedding(
-            vocab_size,
-            embed_dim,
-            padding_idx=context.padding_idx,
-        )
+        self.embeddings = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """forward
 
         Args:
-            x (torch.Tensor): one-hot vector of tokens, shape is (batch_size, 1, #subsequence)
+            x (torch.Tensor): center tokens, shape is (batch_size, 1, #subsequence)
 
         Returns:
             torch.Tensor: embedded vectors, shape is (batch size, 1, #subsequence, embedding dimension)
@@ -83,8 +98,8 @@ class Word2Vec(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        model_type: ModelType,
-        loss_type: LossType = LossType.CE,
+        model_type: Word2VecModelType,
+        loss_type: LossType = LossType.CROSS_ENTROPY,
         context: NlpContext = NlpContext(),
     ):
         """Word2Vec model
@@ -92,8 +107,8 @@ class Word2Vec(nn.Module):
         Args:
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            model_type (ModelType): model type, either Cbow or Skipgram
-            loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
+            model_type (Word2VecModelType): model type, either Cbow or Skipgram
+            loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CROSS_ENTROPY.
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
         super(Word2Vec, self).__init__()
@@ -111,17 +126,17 @@ class Word2Vec(nn.Module):
 
     def _build_model(
         self,
-        model_type: ModelType,
+        model_type: Word2VecModelType,
         loss_type: LossType,
         vocab_size: int,
         embed_dim: int,
         context: NlpContext = NlpContext(),
-    ) -> Cbow | SkipGram:
+    ) -> CBOW | SkipGram:
         """build model with options
 
         Args:
-            model_type (ModelType): model type, either Cbow or Skipgram
-            loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
+            model_type (Word2VecModelType): model type, either Cbow or Skipgram
+            loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax.
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
             context (NlpContext, optional): context object. Defaults to NlpContext().
@@ -129,13 +144,15 @@ class Word2Vec(nn.Module):
         Returns:
             Cbow | SkipGram: nn.Module
         """
+        model_mapping = {
+            Word2VecModelType.CBOW: CBOW,
+            Word2VecModelType.SKIP_GRAM: SkipGram,
+        }
+        model_cls = model_mapping[model_type]
 
-        if model_type == ModelType.CBOW:
-            model = Cbow(vocab_size, embed_dim, context)
-        elif model_type == ModelType.SKIP_GRAM:
-            model = SkipGram(vocab_size, embed_dim, context)
+        model = model_cls(vocab_size, embed_dim, context.padding_idx)
 
-        if loss_type == LossType.CE:
+        if loss_type == LossType.CROSS_ENTROPY:
             self.fc = nn.Linear(embed_dim, vocab_size)
 
         return model
@@ -182,16 +199,13 @@ class Word2Vec(nn.Module):
         if word_probs is not None:
             x = self.subsampling(x, word_probs, self.context.unk_idx).long()
 
-        y = self.model(x)
+        y: torch.Tensor = self.model(x)
 
-        if self.model_type == ModelType.SKIP_GRAM:
+        # To keep forward interface the same
+        # move repeating here
+        if self.model_type == Word2VecModelType.SKIP_GRAM:
             y = y.repeat(1, neighbor_size, 1, 1)
 
-        # B, neighbor, subseq, embed_dim | B, neighbor, subseq, vocab_size
-        # lossType != CE | lossType == CE
-        y = self.fc(y)
-
-        if self.loss_type == LossType.CE:
-            y = y.permute(0, -1, 1, 2)
-
-        return y
+        # lossType != CROSS_ENTROPY => B, neighbor, subseq, embed_dim
+        # lossType == CROSS_ENTROPY => B, neighbor, subseq, vocab_size
+        return self.fc(y)

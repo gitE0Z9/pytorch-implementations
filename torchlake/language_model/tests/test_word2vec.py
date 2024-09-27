@@ -2,7 +2,7 @@ import torch
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.common.utils.tree import HuffmanNode
 
-from ..constants.enum import LossType, ModelType
+from ..constants.enum import LossType, Word2VecModelType
 from ..models.word2vec.loss import HierarchicalSoftmax, NegativeSampling
 from ..models.word2vec.model import Word2Vec
 
@@ -25,25 +25,25 @@ class TestWord2Vec:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            model_type=ModelType.CBOW,
+            model_type=Word2VecModelType.CBOW,
             context=CONTEXT,
         )
         y = model(x)
 
-        assert y.shape == torch.Size((BATCH_SIZE, VOCAB_SIZE, 1, SUBSEQ_LEN))
+        assert y.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, VOCAB_SIZE))
 
     def test_skipgram_forward_shape(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            ModelType.SKIP_GRAM,
+            Word2VecModelType.SKIP_GRAM,
             context=CONTEXT,
         )
         y = model(x, NEIGHBOR_SIZE)
 
         assert y.shape == torch.Size(
-            (BATCH_SIZE, VOCAB_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN)
+            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, VOCAB_SIZE)
         )
 
     def test_word2vec_subsampling(self):
@@ -114,8 +114,8 @@ class TestNegativeSampling:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            ModelType.CBOW,
-            loss_type=LossType.NS,
+            Word2VecModelType.CBOW,
+            loss_type=LossType.NEGATIVE_SAMPLING,
             context=CONTEXT,
         )
         yhat = model(x)
@@ -136,8 +136,8 @@ class TestNegativeSampling:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            ModelType.SKIP_GRAM,
-            loss_type=LossType.NS,
+            Word2VecModelType.SKIP_GRAM,
+            loss_type=LossType.NEGATIVE_SAMPLING,
             context=CONTEXT,
         )
         yhat = model(x, NEIGHBOR_SIZE)
@@ -219,8 +219,8 @@ class TestHierarchicalSoftmax:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            ModelType.CBOW,
-            loss_type=LossType.HS,
+            Word2VecModelType.CBOW,
+            loss_type=LossType.HIERARCHICAL_SOFTMAX,
             context=CONTEXT,
         )
         yhat = model(x)
@@ -241,8 +241,8 @@ class TestHierarchicalSoftmax:
         model = Word2Vec(
             VOCAB_SIZE,
             EMBED_SIZE,
-            ModelType.SKIP_GRAM,
-            loss_type=LossType.HS,
+            Word2VecModelType.SKIP_GRAM,
+            loss_type=LossType.HIERARCHICAL_SOFTMAX,
             context=CONTEXT,
         )
         yhat = model(x, NEIGHBOR_SIZE)

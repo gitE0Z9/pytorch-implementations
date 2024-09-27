@@ -1,12 +1,12 @@
 from enum import Enum
 
 
-class ModelType(Enum):
-    CBOW = "CBOW"
-    SKIP_GRAM = "SKIP_GRAM"
+class Word2VecModelType(Enum):
+    CBOW = 1
+    SKIP_GRAM = 2
 
 
 class LossType(Enum):
-    NS = "NS"
-    HS = "HS"
-    CE = "CE"
+    NEGATIVE_SAMPLING = 1
+    HIERARCHICAL_SOFTMAX = 2
+    CROSS_ENTROPY = 3
