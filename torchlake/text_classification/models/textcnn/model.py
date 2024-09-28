@@ -9,20 +9,20 @@ class TextCnn(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        hidden_dim: int = 32,
+        hidden_dim: int = 100,
         output_size: int = 1,
         padding_idx: int | None = None,
-        kernel_size: list[int] = [2, 3, 4],
+        kernel_size: list[int] = [3, 4, 5],
     ):
         """TextCNN in paper[1408.5882]
 
         Args:
             vocab_size (int): size of vocabulary
             embed_dim (int): dimension of embedding vector
-            hidden_dim (int, optional): dimension of convolution layer. Defaults to 32.
+            hidden_dim (int, optional): dimension of convolution layer. Defaults to 100.
             output_size (int, optional): number of features of output. Defaults to 1.
             padding_idx (int | None, optional): index of padding token. Defaults to None.
-            kernel_size (list[int], optional): size of kernels. Defaults to [2, 3, 4].
+            kernel_size (list[int], optional): size of kernels. Defaults to [3,4,5].
         """
         super(TextCnn, self).__init__()
         self.embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
@@ -31,7 +31,7 @@ class TextCnn(nn.Module):
             hidden_dim,
             [(k, embed_dim) for k in kernel_size],
             disable_padding=True,
-            activation=nn.LeakyReLU(),
+            activation=nn.ReLU(inplace=True),
             reduction="max",
             concat_output=True,
         )
