@@ -107,7 +107,7 @@ class Word2Vec(nn.Module):
         Args:
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            model_type (Word2VecModelType): model type, either Cbow or Skipgram
+            model_type (Word2VecModelType): model type, either CBOW or SkipGram
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CROSS_ENTROPY.
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
@@ -135,7 +135,7 @@ class Word2Vec(nn.Module):
         """build model with options
 
         Args:
-            model_type (Word2VecModelType): model type, either Cbow or Skipgram
+            model_type (Word2VecModelType): model type, either CBOW or SkipGram
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax.
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
