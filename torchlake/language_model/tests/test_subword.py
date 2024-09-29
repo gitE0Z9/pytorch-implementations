@@ -13,7 +13,8 @@ EMBED_DIM = 300
 NEIGHBOR_SIZE = 4
 VOCAB_SIZE = 100
 SUBSEQ_LEN = 256
-CONTEXT = NlpContext(max_seq_len=SUBSEQ_LEN)
+CONTEXT = NlpContext(max_seq_len=SUBSEQ_LEN, device="cpu")
+WORD_COUNTS = torch.randint(0, 5, (VOCAB_SIZE,))
 
 
 class TestSubwordEmbedding:
@@ -51,7 +52,9 @@ class TestSubWordLM:
             for _ in range(BATCH_SIZE * 1)
         ]
         self.gram_word = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
-        self.gram_word_span = [torch.ones_like(w) * 2 for w in self.context_word]
+        self.gram_word_span = [
+            torch.ones_like(w) * 2 for w in self.gram_word.view(-1, SUBSEQ_LEN)
+        ]
 
         # context
         self.context_ngram = [
@@ -59,9 +62,11 @@ class TestSubWordLM:
             for _ in range(BATCH_SIZE * NEIGHBOR_SIZE)
         ]
         self.context_word = torch.randint(
-            0, VOCAB_SIZE, (BATCH_SIZE * NEIGHBOR_SIZE, SUBSEQ_LEN)
+            0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN)
         )
-        self.context_word_span = [torch.ones_like(w) * 2 for w in self.context_word]
+        self.context_word_span = [
+            torch.ones_like(w) * 2 for w in self.context_word.view(-1, SUBSEQ_LEN)
+        ]
 
     def test_cb_ce_shape(self):
         self.setup()
@@ -77,17 +82,21 @@ class TestSubWordLM:
 
         gram_prob = model.forward(
             self.context_ngram,
-            self.context_word,
+            self.context_word.view(-1, SUBSEQ_LEN),
             self.context_word_span,
             BATCH_SIZE,
             1,
         )
 
         criterion = nn.CrossEntropyLoss()
-        loss = criterion.forward(gram_prob.permute(0, 3, 1, 2), self.context_word)
+        loss = criterion.forward(
+            gram_prob.permute(0, 3, 1, 2).repeat(1, 1, NEIGHBOR_SIZE, 1),
+            self.context_word,
+        )
         loss.backward()
 
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, VOCAB_SIZE))
+        assert not torch.isnan(loss)
 
     def test_sg_ce_shape(self):
         self.setup()
@@ -102,20 +111,24 @@ class TestSubWordLM:
         )
 
         context_prob = model.forward(
-            self.context_ngram,
-            self.context_word,
-            self.context_word_span,
+            self.gram_ngram,
+            self.gram_word.view(-1, SUBSEQ_LEN),
+            self.gram_word_span,
             BATCH_SIZE,
             NEIGHBOR_SIZE,
         )
 
         criterion = nn.CrossEntropyLoss()
-        loss = criterion.forward(context_prob, self.gram_word)
+        loss = criterion.forward(
+            context_prob.permute(0, 3, 1, 2),
+            self.context_word,
+        )
         loss.backward()
 
         assert context_prob.shape == torch.Size(
             (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, VOCAB_SIZE)
         )
+        assert not torch.isnan(loss)
 
     def test_cb_ns_shape(self):
         self.setup()
@@ -131,7 +144,7 @@ class TestSubWordLM:
 
         gram_prob = model.forward(
             self.context_ngram,
-            self.context_word,
+            self.context_word.view(-1, SUBSEQ_LEN),
             self.context_word_span,
             BATCH_SIZE,
             1,
@@ -146,7 +159,8 @@ class TestSubWordLM:
         loss = criterion.forward(gram_prob, self.context_word)
         loss.backward()
 
-        assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, VOCAB_SIZE))
+        assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, EMBED_DIM))
+        assert not torch.isnan(loss)
 
     def test_sg_ns_shape(self):
         self.setup()
@@ -161,9 +175,9 @@ class TestSubWordLM:
         )
 
         context_prob = model.forward(
-            self.context_ngram,
-            self.context_word,
-            self.context_word_span,
+            self.gram_ngram,
+            self.gram_word.view(-1, SUBSEQ_LEN),
+            self.gram_word_span,
             BATCH_SIZE,
             NEIGHBOR_SIZE,
         )
@@ -178,8 +192,9 @@ class TestSubWordLM:
         loss.backward()
 
         assert context_prob.shape == torch.Size(
-            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, VOCAB_SIZE)
+            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_DIM)
         )
+        assert not torch.isnan(loss)
 
     def test_cb_hs_shape(self):
         self.setup()
@@ -195,15 +210,18 @@ class TestSubWordLM:
 
         gram_prob = model.forward(
             self.context_ngram,
-            self.context_word,
+            self.context_word.view(-1, SUBSEQ_LEN),
             self.context_word_span,
             BATCH_SIZE,
             1,
         )
 
         criterion = HierarchicalSoftmax(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
+        loss = criterion.forward(gram_prob, self.gram_word)
+        loss.backward()
 
-        assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, VOCAB_SIZE))
+        assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, EMBED_DIM))
+        assert not torch.isnan(loss)
 
     def test_sg_hs_shape(self):
         self.setup()
@@ -218,9 +236,9 @@ class TestSubWordLM:
         )
 
         context_prob = model.forward(
-            self.context_ngram,
-            self.context_word,
-            self.context_word_span,
+            self.gram_ngram,
+            self.gram_word.view(-1, SUBSEQ_LEN),
+            self.gram_word_span,
             BATCH_SIZE,
             NEIGHBOR_SIZE,
         )
@@ -230,5 +248,6 @@ class TestSubWordLM:
         loss.backward()
 
         assert context_prob.shape == torch.Size(
-            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, VOCAB_SIZE)
+            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_DIM)
         )
+        assert not torch.isnan(loss)
