@@ -1,3 +1,4 @@
+# TODO: really slooooooooooow~~~
 from typing import Callable
 
 from .vocab import CharNgramVocab
@@ -9,52 +10,60 @@ class CharNgramTokenizer:
         tokenizer: Callable,
         vocab: CharNgramVocab,
         ngrams: list[int],
-        enable_mutable_vocab: bool = True,
     ) -> None:
+        """Characeter n-grams tokenizer
+
+        Args:
+            tokenizer (Callable): tokenizer e.g. spacy or any callable to split a sentence into tokens.
+            vocab (CharNgramVocab): character ngram vocab, which stored word vocab and cached subword vocab.
+            ngrams (list[int]): n-grams size, for instance, [2] means only collect bigrams, [3,4,5] means collect all of trigrams, quatragram, pentagram.
+        """
         self.tokenizer = tokenizer
         self.vocab = vocab
         self.ngrams = ngrams
-        self.enable_mutable_vocab = enable_mutable_vocab
 
-    def activate_vocab(self):
-        self.enable_mutable_vocab = True
+    def __call__(self, sentence: str) -> tuple[list[str], list[int], list[int]]:
+        """tokenize sentence into ngrams, words, word_spans
 
-    def frozen_vocab(self):
-        self.enable_mutable_vocab = False
+        Args:
+            sentence (str): sentence
 
-    def __call__(self, sentence: str) -> tuple[list[str], list[int]]:
-        subwords, word_indices = [], []
+        Returns:
+            tuple[list[str], list[int], list[int]]: ngrams, words, word_spans
+        """
+        tokens: list[str] = self.tokenizer(sentence)
 
-        tokenized: list[str] = self.tokenizer(sentence)
-        for token in tokenized:
-            if self.enable_mutable_vocab:
-                self.vocab.add_token(token)
+        # add words to hash cache
+        self.vocab.add_subtokens(tokens)
 
+        words = self.vocab.lookup_indices(tokens)
+        word_spans = []
+        subwords = []
+        # loop over ngrams combination
+        for token in tokens:
+            word_length = len(token)
+            word_span = 0
             for ngram in self.ngrams:
+                slide_times = max(word_length - ngram + 1, 1)
 
-                cloned_token = token
-                slide_times = len(cloned_token) - ngram + 1
-
+                # no sliding at all
                 if slide_times == 1:
-                    sub_token = "<" + cloned_token + ">"
-
-                    if self.enable_mutable_vocab:
-                        self.vocab.add_subtoken(sub_token)
-
+                    sub_token = f"<{token}>"
+                    # add a new subword to subword vocab
+                    self.vocab.add_subtoken(sub_token)
                     subwords.append(sub_token)
-                    word_indices.append(self.vocab.get_word_index(token))
+                    word_span += 1
+                # sliding is needed
                 else:
-                    for i in range(slide_times):
-                        sub_token = cloned_token[i : i + ngram]
-                        if i == 0:
-                            sub_token = "<" + sub_token
-                        if i == slide_times - 1:
-                            sub_token += ">"
+                    subtokens = [token[i : i + ngram] for i in range(slide_times)]
+                    subtokens[0] = "<" + subtokens[0]
+                    subtokens[-1] += ">"
 
-                        if self.enable_mutable_vocab:
-                            self.vocab.add_subtoken(sub_token)
+                    # add a new subword to subword vocab
+                    self.vocab.add_subtokens(subtokens)
+                    subwords.extend(subtokens)
+                    word_span += len(subtokens)
 
-                        subwords.append(sub_token)
-                        word_indices.append(self.vocab.get_word_index(token))
+            word_spans.append(word_span)
 
-        return subwords, word_indices
+        return subwords, words, word_spans
