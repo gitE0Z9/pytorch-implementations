@@ -1,7 +1,3 @@
-from functools import lru_cache
-
-
-@lru_cache()
 def fnv1a_hash(data: bytes, seed: int = 0x811C9DC5) -> int:
     """Fowler-Noll-Vo hash
 

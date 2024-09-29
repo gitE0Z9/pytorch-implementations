@@ -8,7 +8,6 @@ from PIL import Image
 from torchvision import transforms
 
 
-@lru_cache
 def load_image(
     path: str | Path,
     is_numpy: bool = False,
