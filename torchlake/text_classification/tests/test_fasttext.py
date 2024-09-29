@@ -1,38 +1,35 @@
 from unittest import TestCase
 
 import torch
-from torch.testing import assert_close
 
 from ..models import FastText
 
+BATCH_SIZE = 16
+BUCKET_SIZE = 100
+EMBED_DIM = 300
+VOCAB_SIZE = 100
+SUBSEQ_LEN = 256
+
 
 class TestModel(TestCase):
-    def test_words_vector_shape(self):
+    def setUp(self) -> None:
+        self.ngram = [
+            torch.randint(0, VOCAB_SIZE, (SUBSEQ_LEN * 2,)) for _ in range(BATCH_SIZE)
+        ]
+        self.word = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SUBSEQ_LEN))
+        self.word_span = [torch.ones_like(w) * 2 for w in self.word]
+
+    def test_get_sentence_vector_shape(self):
         """test output shape"""
-        model = FastText(10, 8, 10)
+        model = FastText(BUCKET_SIZE, EMBED_DIM, 10)
+        output = model.get_sentence_vector(self.ngram, self.word, self.word_span)
 
-        x = torch.randint(0, 10, (1, 5))
-        indices = torch.randint(0, 3, (1, 5, 8))
-        output = model.get_words_vector(x, indices)
-
-        assert_close(output.shape, torch.Size((1, 3, 8)))
-
-    def test_sentence_vector_shape(self):
-        """test output shape"""
-        model = FastText(10, 8, 10)
-
-        x = torch.randint(0, 10, (1, 5))
-        indices = torch.randint(0, 3, (1, 5, 8))
-        output = model.get_sentence_vector(x, indices)
-
-        assert_close(output.shape, torch.Size((1, 8)))
+        self.assertEqual(output.shape, torch.Size((BATCH_SIZE, EMBED_DIM)))
 
     def test_output_shape(self):
         """test output shape"""
-        model = FastText(10, 8, 10)
+        model = FastText(BUCKET_SIZE, EMBED_DIM, 10)
 
-        x = torch.randint(0, 10, (1, 5))
-        indices = torch.randint(0, 3, (1, 5, 8))
-        output = model.forward(x, indices)
+        output = model.forward(self.ngram, self.word, self.word_span)
 
-        assert_close(output.shape, torch.Size((1, 10)))
+        self.assertEqual(output.shape, torch.Size((BATCH_SIZE, 10)))
