@@ -1,8 +1,5 @@
-from unittest import TestCase
-
 import pytest
 import torch
-from parameterized import parameterized
 
 from ..helpers.quantizer import (
     KMeansQuantization,
@@ -41,7 +38,6 @@ class TestKMeansQuantization:
     def setUp(self) -> None:
         self.k = 5
         self.x = torch.randint(0, 255, (224, 224, 3), dtype=torch.uint8)
-        # self.i = torch.randint(0, self.k, (224, 224), dtype=torch.uint8)
 
     @pytest.mark.parametrize(
         "codebook_dtype", [torch.uint8, torch.float16, torch.float32]
@@ -49,12 +45,12 @@ class TestKMeansQuantization:
     def test_quantize(self, codebook_dtype: torch.dtype):
         self.setUp()
         model = KMeansQuantization(self.k, codebook_dtype=codebook_dtype)
-        i = model.quantize([self.x.float()])
+        i = model.quantize(self.x.float())
 
-        assert i[0].shape == torch.Size((224, 224))
-        assert i[0].dtype == torch.uint8
-        assert model.codebook[0].shape == torch.Size((self.k, 3))
-        assert model.codebook[0].dtype == codebook_dtype
+        assert i.shape == torch.Size((224, 224))
+        assert i.dtype == torch.uint8
+        assert model.codebook.shape == torch.Size((self.k, 3))
+        assert model.codebook.dtype == codebook_dtype
 
     @pytest.mark.parametrize(
         "codebook_dtype", [torch.uint8, torch.float16, torch.float32]
@@ -62,8 +58,8 @@ class TestKMeansQuantization:
     def test_reconstruct(self, codebook_dtype: torch.dtype):
         self.setUp()
         model = KMeansQuantization(self.k, codebook_dtype=codebook_dtype)
-        i = model.quantize([self.x.float()])
-        x_prime = model.reconstruct(i[0].long())
+        i = model.quantize(self.x.float())
+        x_prime = model.reconstruct(i.long())
 
         assert x_prime.shape == torch.Size((224, 224, 3))
         assert x_prime.dtype == codebook_dtype
