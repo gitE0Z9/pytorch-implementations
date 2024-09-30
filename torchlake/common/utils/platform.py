@@ -1,7 +1,7 @@
 import os
+import platform
 from pathlib import Path
 from typing import Literal
-import platform
 
 
 def get_num_workers() -> int:
@@ -25,4 +25,4 @@ def get_file_size(
     }
     divider = mapping[unit]
 
-    return f"{round(path.stat().st_size / divider, 2)}{unit}B"
+    return f"{round(path.stat().st_size / divider, 2)}{unit}iB"
