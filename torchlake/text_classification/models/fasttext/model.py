@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.language_model.constants.enum import LossType
-from torchlake.language_model.models.subword.model import SubwordEmbedding
+from torchlake.language_model.models.subword.network import SubwordEmbedding
 
 
 class FastText(nn.Module):

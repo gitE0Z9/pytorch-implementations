@@ -1,11 +1,12 @@
 import pytest
 import torch
-from ..models.subword.model import SubwordEmbedding, SubwordLM
-from ..constants.enum import Word2VecModelType, LossType
-from ..models.word2vec.loss import HierarchicalSoftmax, NegativeSampling
-from ..models.subword.enum import NgramCombinationMethod
-from ...common.schemas.nlp import NlpContext
 from torch import nn
+
+from ...common.schemas.nlp import NlpContext
+from ..constants.enum import LossType, NgramCombinationMethod, Word2VecModelType
+from ..models.subword.model import SubwordLM
+from ..models.subword.network import SubwordEmbedding
+from ..models.word2vec.loss import HierarchicalSoftmax, NegativeSampling
 
 BATCH_SIZE = 16
 BUCKET_SIZE = 100
@@ -45,7 +46,7 @@ class TestSubwordEmbedding:
 
 
 class TestSubWordLM:
-    def setup(self):
+    def setUp(self):
         # gram
         self.gram_ngram = [
             torch.randint(0, VOCAB_SIZE, (SUBSEQ_LEN * 2,))
@@ -69,7 +70,7 @@ class TestSubWordLM:
         ]
 
     def test_cb_ce_shape(self):
-        self.setup()
+        self.setUp()
 
         model = SubwordLM(
             BUCKET_SIZE,
@@ -99,7 +100,7 @@ class TestSubWordLM:
         assert not torch.isnan(loss)
 
     def test_sg_ce_shape(self):
-        self.setup()
+        self.setUp()
 
         model = SubwordLM(
             BUCKET_SIZE,
@@ -131,7 +132,7 @@ class TestSubWordLM:
         assert not torch.isnan(loss)
 
     def test_cb_ns_shape(self):
-        self.setup()
+        self.setUp()
 
         model = SubwordLM(
             BUCKET_SIZE,
@@ -163,7 +164,7 @@ class TestSubWordLM:
         assert not torch.isnan(loss)
 
     def test_sg_ns_shape(self):
-        self.setup()
+        self.setUp()
 
         model = SubwordLM(
             BUCKET_SIZE,
@@ -197,7 +198,7 @@ class TestSubWordLM:
         assert not torch.isnan(loss)
 
     def test_cb_hs_shape(self):
-        self.setup()
+        self.setUp()
 
         model = SubwordLM(
             BUCKET_SIZE,
@@ -224,7 +225,7 @@ class TestSubWordLM:
         assert not torch.isnan(loss)
 
     def test_sg_hs_shape(self):
-        self.setup()
+        self.setUp()
 
         model = SubwordLM(
             BUCKET_SIZE,
