@@ -158,7 +158,7 @@ class Word2Vec(nn.Module):
         return model
 
     @property
-    def embeddings(self) -> nn.Module:
+    def embeddings(self) -> nn.Embedding:
         return self.model.embeddings
 
     @staticmethod

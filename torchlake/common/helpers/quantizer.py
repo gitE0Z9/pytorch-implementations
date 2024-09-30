@@ -59,7 +59,9 @@ class KMeansQuantization(Quantizer):
         model = KMeans(self.k)
         index = model.fit(vector).to(self.indices_dtype)
 
-        self.codebook = model.centroids.to(self.codebook_dtype)
+        self.codebook = nn.Parameter(model.centroids, requires_grad=False).to(
+            self.codebook_dtype
+        )
         return index
 
     def reconstruct(self, indices: torch.Tensor) -> torch.Tensor:
@@ -119,10 +121,12 @@ class ProductQuantization(Quantizer):
         subquantizer_class = subquantizer_constructor()
 
         if subquantizer_class == KMeansQuantization:
-            return [
-                subquantizer_constructor()(self.b, codebook_dtype=codebook_dtype)
-                for _ in range(self.k)
-            ]
+            return nn.ModuleList(
+                [
+                    subquantizer_constructor()(self.b, codebook_dtype=codebook_dtype)
+                    for _ in range(self.k)
+                ]
+            )
         else:
             raise NotImplementedError("Welcome to implment other subquantizer")
 

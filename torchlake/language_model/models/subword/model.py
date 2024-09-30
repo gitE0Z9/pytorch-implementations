@@ -36,7 +36,7 @@ class SubwordLM(nn.Module):
         super(SubwordLM, self).__init__()
         self.model_type = model_type
 
-        self.embeddings = SubwordEmbedding(
+        self.embed: SubwordEmbedding = SubwordEmbedding(
             bucket_size,
             embed_dim,
             ngram_reduction=ngram_reduction,
@@ -51,6 +51,10 @@ class SubwordLM(nn.Module):
         )
 
         self._set_head()
+
+    @property
+    def embeddings(self) -> nn.Embedding:
+        return self.embed.embeddings
 
     def forward(
         self,
@@ -102,7 +106,7 @@ class SubwordLM(nn.Module):
             torch.Tensor: embedding vector of ngrams
         """
         # batch_size * 1 or neighbor_size, s, h
-        y: torch.Tensor = self.embeddings(ngrams, words, word_spans)
+        y: torch.Tensor = self.embed(ngrams, words, word_spans)
         n, seq_len, embed_dim = y.shape
         # batch_size, 1 or neighbor_size, s, h
         return y.view(batch_size, n // batch_size, seq_len, embed_dim)

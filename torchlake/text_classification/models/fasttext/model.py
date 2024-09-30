@@ -25,7 +25,7 @@ class FastText(nn.Module):
         """
         super(FastText, self).__init__()
 
-        self.embeddings = SubwordEmbedding(
+        self.embed: SubwordEmbedding = SubwordEmbedding(
             bucket_size,
             embed_dim,
             context=context,
@@ -37,6 +37,10 @@ class FastText(nn.Module):
             else nn.Identity()
         )
 
+    @property
+    def embeddings(self) -> nn.Embedding:
+        return self.embed.embeddings
+
     def get_sentence_vector(
         self,
         ngrams: list[torch.Tensor],
@@ -44,7 +48,7 @@ class FastText(nn.Module):
         word_spans: list[torch.Tensor],
     ) -> torch.Tensor:
         # b, s, h
-        y: torch.Tensor = self.embeddings.forward(ngrams, words, word_spans)
+        y: torch.Tensor = self.embed.forward(ngrams, words, word_spans)
         # b, h
         return y.mean(axis=1)
 
