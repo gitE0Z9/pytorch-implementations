@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from torchlake.common.schemas.nlp import NlpContext
-from torch.nn.functional import binary_cross_entropy_with_logits, one_hot
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 
 class NCE(nn.Module):
@@ -49,16 +49,20 @@ class NCE(nn.Module):
             target (torch.Tensor): shape(batch_size, 1 or neighbor_size, #subsequence)
 
         Returns:
-            torch.Tensor: sampled token by noise distribution, shape is (B, neighbor, subseq, #neg)
+            torch.Tensor: sampled token by noise distribution, shape is (B, context-1, subseq * #neg)
         """
-        # (B, neighbor, subseq), #neg
+        n: int = target.numel()
+        y = self.distribution.repeat(n, 1)
+        # remove positive vocab
+        # TODO: skipgram use target view as well
+        # cbow could benefit from view but not skipgram
+        y[torch.arange(n), target.reshape(-1)] = 0
+
         return (
-            self.distribution.repeat(*target.shape, 1)
-            .masked_fill(
-                one_hot(target, self.vocab_size).bool(), 0
-            )  # remove positive vocab
-            .view(-1, self.vocab_size)  # only 2 dim supported
-            .multinomial(self.negative_ratio)  # last dim for dist
+            y
+            # only 2 dim supported
+            .multinomial(self.negative_ratio)
+            # (B, context-1, subseq, neg)
             .view(target.size(0), target.size(1), target.size(2) * self.negative_ratio)
         )
 
