@@ -5,6 +5,7 @@ import torchvision
 from torch import nn
 
 from .imagenet_normalization import ImageNetNormalization
+from torchvision.models.vgg import VGG16_Weights
 
 
 class VggFeatureExtractor(nn.Module):
@@ -23,7 +24,9 @@ class VggFeatureExtractor(nn.Module):
 
     def build_feature_extractor(self, network_name: str) -> nn.Module:
         model_class = getattr(torchvision.models, network_name)
-        feature_extractor: nn.Module = model_class(weights="DEFAULT").features.eval()
+        feature_extractor: nn.Module = model_class(
+            weights=VGG16_Weights.DEFAULT
+        ).features.eval()
 
         if not self.trainable:
             for param in feature_extractor.parameters():
