@@ -39,8 +39,15 @@ LABEL_COLORS = np.array(
 
 
 class VocSegmentation(Dataset):
-    def __init__(self, root: str, year: str = "2012", transform=None):
+    def __init__(
+        self,
+        root: str,
+        year: str = "2012",
+        transform=None,
+        label_transform=None,
+    ):
         self.transform = transform
+        self.label_transform = label_transform
         self.year = year
         self.root = Path(root) / f"VOCdevkit/VOC{self.year}/"
 
@@ -66,5 +73,8 @@ class VocSegmentation(Dataset):
         if self.transform:
             transformed = self.transform(image=image, mask=mask)
             image, mask = transformed["image"], transformed["mask"]
+
+        if self.label_transform:
+            mask = self.label_transform(mask)
 
         return image, mask
