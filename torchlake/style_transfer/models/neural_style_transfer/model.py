@@ -1,13 +1,13 @@
 from typing import Literal
 import torch
 from torch import nn
-from torchlake.common.models import VggFeatureExtractor
+from torchlake.common.models import VGGFeatureExtractor
 
 
 class NeuralStyleTransfer(nn.Module):
     def __init__(
         self,
-        feature_extractor: VggFeatureExtractor,
+        feature_extractor: VGGFeatureExtractor,
         content_layer_names: list[str],
         style_layer_names: list[str],
     ):

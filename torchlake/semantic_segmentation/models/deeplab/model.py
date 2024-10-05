@@ -10,7 +10,7 @@ from annotated_types import T
 import torch
 from torch import nn
 
-from torchlake.common.models import VggFeatureExtractor
+from torchlake.common.models import VGGFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 from torchvision.transforms import CenterCrop
 
@@ -61,8 +61,8 @@ class DeepLab(nn.Module):
             ]
         )
 
-    def build_backbone(self, frozen_backbone: bool) -> VggFeatureExtractor:
-        backbone = VggFeatureExtractor(
+    def build_backbone(self, frozen_backbone: bool) -> VGGFeatureExtractor:
+        backbone = VGGFeatureExtractor(
             "vgg16",
             "maxpool",
             trainable=not frozen_backbone,
@@ -70,8 +70,9 @@ class DeepLab(nn.Module):
         feature_layers = backbone.feature_extractor
         # stage 5 convs
         for i in range(1, 4):
-            feature_layers[-1 - i * 2].dilation = (2, 2)
-            feature_layers[-1 - i * 2].padding = (2, 2)
+            conv_layer: nn.Conv2d = feature_layers[-1 - i * 2]
+            conv_layer.dilation = (2, 2)
+            conv_layer.padding = (2, 2)
 
         # skip subsampling and keep 8x
         stage = 0

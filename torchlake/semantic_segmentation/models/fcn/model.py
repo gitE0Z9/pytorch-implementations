@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import VggFeatureExtractor
+from torchlake.common.models import VGGFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 from torchvision.transforms import CenterCrop
 
@@ -23,7 +23,7 @@ class FCNLegacy(nn.Module):
         """
         super(FCNLegacy, self).__init__()
         self.num_skip_connection = num_skip_connection
-        self.backbone = VggFeatureExtractor(
+        self.backbone = VGGFeatureExtractor(
             "vgg16",
             "maxpool",
             trainable=not frozen_backbone,
@@ -116,8 +116,8 @@ class FCN(nn.Module):
             ]
         )
 
-    def build_backbone(self, frozen_backbone: bool) -> VggFeatureExtractor:
-        backbone = VggFeatureExtractor(
+    def build_backbone(self, frozen_backbone: bool) -> VGGFeatureExtractor:
+        backbone = VGGFeatureExtractor(
             "vgg16",
             "maxpool",
             trainable=not frozen_backbone,

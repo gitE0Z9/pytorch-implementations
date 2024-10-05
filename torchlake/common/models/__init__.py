@@ -10,7 +10,7 @@ from .residual import ResBlock
 from .se import SqueezeExcitation2d
 from .topk_pool import KmaxPool1d
 from .multikernel_conv import MultiKernelConvModule
-from .vgg_feature_extractor import VggFeatureExtractor
+from .vgg_feature_extractor import VGGFeatureExtractor
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -21,7 +21,7 @@ __all__ = [
     "FlattenFeature",
     "KmaxPool1d",
     "ImageNetNormalization",
-    "VggFeatureExtractor",
+    "VGGFeatureExtractor",
     "ConvBnRelu",
     "KernelPCA",
     "KMeans",

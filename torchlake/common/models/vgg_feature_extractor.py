@@ -8,14 +8,14 @@ from .imagenet_normalization import ImageNetNormalization
 from torchvision.models.vgg import VGG16_Weights
 
 
-class VggFeatureExtractor(nn.Module):
+class VGGFeatureExtractor(nn.Module):
     def __init__(
         self,
         network_name: str,
         layer_type: Literal["conv", "relu", "maxpool"],
         trainable: bool = True,
     ):
-        super(VggFeatureExtractor, self).__init__()
+        super(VGGFeatureExtractor, self).__init__()
         self.layer_type = layer_type
         self.trainable = trainable
 

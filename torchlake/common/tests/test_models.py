@@ -18,7 +18,7 @@ from ..models import (
     ResBlock,
     SqueezeExcitation2d,
     ImageNetNormalization,
-    VggFeatureExtractor,
+    VGGFeatureExtractor,
     ConvBnRelu,
     MultiKernelConvModule,
     KernelPCA,
