@@ -3,18 +3,19 @@ from typing import Literal
 import torch
 import torchvision
 from torch import nn
+from torchvision.models._api import Weights
 from torchvision.models.resnet import (
+    ResNet,
     ResNet50_Weights,
     ResNet101_Weights,
     ResNet152_Weights,
-    ResNet,
 )
 
+from .feature_extractor_base import ExtractorBase
 from .imagenet_normalization import ImageNetNormalization
-from torchvision.models._api import Weights
 
 
-class ResNetFeatureExtractor(nn.Module):
+class ResNetFeatureExtractor(ExtractorBase):
     def __init__(
         self,
         network_name: Literal["resnet50", "resnet101", "resnet152"],
@@ -22,16 +23,9 @@ class ResNetFeatureExtractor(nn.Module):
         trainable: bool = True,
         drop_fc: bool = True,
     ):
-        super().__init__()
-        self.layer_type = layer_type
-        self.trainable = trainable
         self.drop_fc = drop_fc
-
+        super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
-        self.weights: Weights = self.get_weight(network_name)
-        self.feature_extractor: ResNet = self.build_feature_extractor(
-            network_name, self.weights
-        )
 
     def get_weight(self, network_name: str) -> Weights:
         return {
@@ -51,9 +45,9 @@ class ResNetFeatureExtractor(nn.Module):
         if self.drop_fc:
             del feature_extractor.fc
 
-        # fuse head
+        # fuse foot
         feature_extractor.add_module(
-            "head",
+            "foot",
             nn.Sequential(
                 feature_extractor.conv1,
                 feature_extractor.bn1,
@@ -61,12 +55,9 @@ class ResNetFeatureExtractor(nn.Module):
                 feature_extractor.maxpool,
             ),
         )
-        # del feature_extractor.conv1
-        # del feature_extractor.bn1
-        # del feature_extractor.relu
-        # del feature_extractor.maxpool
+
         feature_extractor = nn.Sequential(
-            feature_extractor.head,
+            feature_extractor.foot,
             feature_extractor.layer1,
             feature_extractor.layer2,
             feature_extractor.layer3,
@@ -79,7 +70,7 @@ class ResNetFeatureExtractor(nn.Module):
     def forward(
         self,
         img: torch.Tensor,
-        target_layer_names: list[str],
+        target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"],
     ) -> list[torch.Tensor]:
         if not self.layer_type == "maxpool":
             raise NotImplementedError

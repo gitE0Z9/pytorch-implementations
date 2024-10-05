@@ -11,25 +11,19 @@ from torchvision.models.vgg import (
     VGG19_Weights,
 )
 
+from .feature_extractor_base import ExtractorBase
 from .imagenet_normalization import ImageNetNormalization
 
 
-class VGGFeatureExtractor(nn.Module):
+class VGGFeatureExtractor(ExtractorBase):
     def __init__(
         self,
         network_name: Literal["vgg11", "vgg13", "vgg16", "vgg19"],
         layer_type: Literal["conv", "relu", "maxpool"],
         trainable: bool = True,
     ):
-        super(VGGFeatureExtractor, self).__init__()
-        self.layer_type = layer_type
-        self.trainable = trainable
-
+        super(VGGFeatureExtractor, self).__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
-        self.weights: Weights = self.get_weight(network_name)
-        self.feature_extractor = self.build_feature_extractor(
-            network_name, self.weights
-        )
 
     def get_weight(self, network_name: str) -> Weights:
         return {
