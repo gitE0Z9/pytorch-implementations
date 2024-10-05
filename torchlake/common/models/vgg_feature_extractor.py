@@ -3,7 +3,13 @@ from typing import Literal
 import torch
 import torchvision
 from torch import nn
-from torchvision.models.vgg import VGG16_Weights
+from torchvision.models._api import Weights
+from torchvision.models.vgg import (
+    VGG11_Weights,
+    VGG13_Weights,
+    VGG16_Weights,
+    VGG19_Weights,
+)
 
 from .imagenet_normalization import ImageNetNormalization
 
@@ -11,7 +17,7 @@ from .imagenet_normalization import ImageNetNormalization
 class VGGFeatureExtractor(nn.Module):
     def __init__(
         self,
-        network_name: Literal["vgg16", "vgg19"],
+        network_name: Literal["vgg11", "vgg13", "vgg16", "vgg19"],
         layer_type: Literal["conv", "relu", "maxpool"],
         trainable: bool = True,
     ):
@@ -20,13 +26,22 @@ class VGGFeatureExtractor(nn.Module):
         self.trainable = trainable
 
         self.normalization = ImageNetNormalization()
-        self.feature_extractor = self.build_feature_extractor(network_name)
+        self.weights: Weights = self.get_weight(network_name)
+        self.feature_extractor = self.build_feature_extractor(
+            network_name, self.weights
+        )
 
-    def build_feature_extractor(self, network_name: str) -> nn.Module:
+    def get_weight(self, network_name: str) -> Weights:
+        return {
+            "vgg11": VGG11_Weights.DEFAULT,
+            "vgg13": VGG13_Weights.DEFAULT,
+            "vgg16": VGG16_Weights.DEFAULT,
+            "vgg19": VGG19_Weights.DEFAULT,
+        }[network_name]
+
+    def build_feature_extractor(self, network_name: str, weights: Weights) -> nn.Module:
         model_class = getattr(torchvision.models, network_name)
-        feature_extractor: nn.Module = model_class(
-            weights=VGG16_Weights.DEFAULT
-        ).features.eval()
+        feature_extractor: nn.Module = model_class(weights=weights).features.eval()
 
         if not self.trainable:
             for param in feature_extractor.parameters():
@@ -52,15 +67,16 @@ class VGGFeatureExtractor(nn.Module):
 
         img = self.normalization(img)
 
+        y = img
         block_count = 1
         layer_count = 1
         for layer in self.feature_extractor:
-            img = layer(img)
+            y = layer(y)
 
             layer_name = f"{block_count}_{layer_count}"
             if isinstance(layer, layer_class):
                 if layer_name in target_layer_names:
-                    features.append(img)
+                    features.append(y)
                 layer_count += 1
             if isinstance(layer, nn.MaxPool2d):
                 block_count += 1
