@@ -19,6 +19,7 @@ from ..models import (
     SqueezeExcitation2d,
     ImageNetNormalization,
     VGGFeatureExtractor,
+    ResNetFeatureExtractor,
     ConvBnRelu,
     MultiKernelConvModule,
     KernelPCA,
@@ -275,3 +276,37 @@ class TestMultiKernelConvModule:
         assert len(y) == 3
         for ele, k in zip(y, [3, 5, 7]):
             assert ele.shape == torch.Size((8, 10, 32 - k + 1, 32 - k + 1))
+
+
+class TestResNetFeatureExtractor:
+    def setUp(self):
+        self.x = torch.rand(1, 3, 224, 224)
+
+    @pytest.mark.parametrize(
+        "network_name,num_layers",
+        [
+            ["resnet50", [3, 4, 6, 3]],
+            ["resnet101", [3, 4, 23, 3]],
+            ["resnet152", [3, 8, 36, 3]],
+        ],
+    )
+    def test_backbone(self, network_name: str, num_layers: list[int]):
+        model = ResNetFeatureExtractor(network_name=network_name, layer_type="maxpool")
+
+        for block, num_layer in zip(iter(model.feature_extractor), [4, *num_layers, 1]):
+            # skip avgpool, since no len
+            if getattr(block, "__len__", None):
+                assert len(block) == num_layer
+
+    @pytest.mark.parametrize("network_name", ["resnet50", "resnet101", "resnet152"])
+    def test_output_shape(self, network_name: str):
+        self.setUp()
+        model = ResNetFeatureExtractor(network_name=network_name, layer_type="maxpool")
+        y = model.forward(self.x, ["0_1", "1_1", "2_1", "3_1", "4_1", "output"])
+
+        for ele, dim, scale in zip(
+            y[:-1], [64, 256, 512, 1024, 2048], [56, 56, 28, 14, 7]
+        ):
+            assert ele.shape == torch.Size((1, dim, scale, scale))
+
+        assert y.pop().shape == torch.Size((1, 2048))

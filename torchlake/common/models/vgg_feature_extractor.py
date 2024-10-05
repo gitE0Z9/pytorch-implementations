@@ -3,15 +3,15 @@ from typing import Literal
 import torch
 import torchvision
 from torch import nn
+from torchvision.models.vgg import VGG16_Weights
 
 from .imagenet_normalization import ImageNetNormalization
-from torchvision.models.vgg import VGG16_Weights
 
 
 class VGGFeatureExtractor(nn.Module):
     def __init__(
         self,
-        network_name: str,
+        network_name: Literal["vgg16", "vgg19"],
         layer_type: Literal["conv", "relu", "maxpool"],
         trainable: bool = True,
     ):
