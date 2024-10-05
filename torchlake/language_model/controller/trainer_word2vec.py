@@ -45,7 +45,4 @@ class CbowTrainer(ClassificationTrainer):
         gram, _ = row
         gram: torch.Tensor = gram.to(self.device)
 
-        if self.feature_last:
-            y_hat = y_hat.permute(0, -1, *range(1, len(y_hat.shape) - 1))
-
         return criterion(y_hat, gram)

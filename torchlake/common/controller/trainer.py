@@ -62,6 +62,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
             self.build_predict_function_by_data_type(iter(data))
 
         model.train()
+        model = model.to(self.device)
         for e in range(self.epoches):
             running_loss = 0.0
             data_size = 0
@@ -86,6 +87,10 @@ class TrainerBase(PredictFunctionMixin, ABC):
                     data_size += len(x)
 
                 output = self._predict(row, model, *args, **kwargs)
+                # for output that has feature in last
+                if self.feature_last:
+                    output = output.permute(0, -1, *range(1, len(output.shape) - 1))
+
                 loss: torch.Tensor = self._calc_loss(output, row, criterion)
 
                 loss /= self.acc_iters
@@ -124,10 +129,6 @@ class ClassificationTrainer(TrainerBase):
         _, y = row
         y: torch.Tensor = y.to(self.device)
 
-        # batch, context, seq, embed
-        if self.feature_last:
-            y_hat = y_hat.permute(0, -1, *range(1, len(y_hat.shape) - 1))
-
         return criterion(y_hat, y.long())
 
 
@@ -145,8 +146,17 @@ class RegressionTrainer(TrainerBase):
         _, y = row
         y: torch.Tensor = y.to(self.device)
 
-        # batch, context, seq, embed
-        if self.feature_last:
-            y_hat = y_hat.permute(0, -1, *range(1, len(y_hat.shape) - 1))
-
         return criterion(y_hat, y.float())
+
+
+class MutltOutputClassificationTrainer(ClassificationTrainer):
+    def _calc_loss(
+        self,
+        y_hat: tuple[torch.Tensor],
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        _, y = row
+        y: torch.Tensor = y.to(self.device)
+
+        return criterion(*y_hat, y.long())
