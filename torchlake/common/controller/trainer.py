@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.optim.optimizer import Optimizer
 from tqdm import tqdm
-
+from torch.optim.lr_scheduler import LRScheduler
 from ..mixins.controller import PredictFunctionMixin
 
 
@@ -53,16 +53,16 @@ class TrainerBase(PredictFunctionMixin, ABC):
         model: nn.Module,
         optimizer: Optimizer,
         criterion: nn.Module,
+        scheduler: LRScheduler | None = None,
         *args,
         **kwargs,
     ) -> list[float]:
-        training_loss = []
-
         if not hasattr(self, "_predict"):
             self.build_predict_function_by_data_type(iter(data))
 
+        training_loss = []
         model.train()
-        model = model.to(self.device)
+        model = model.to(self.device)  # some model extended layer when train
         for e in range(self.epoches):
             running_loss = 0.0
             data_size = 0
@@ -101,9 +101,13 @@ class TrainerBase(PredictFunctionMixin, ABC):
                     optimizer.step()
                     optimizer.zero_grad()
 
-            training_loss.append(running_loss / data_size)
+            mean_loss = running_loss / data_size
+            training_loss.append(mean_loss)
 
-            print(f"epoch {e+1} : {running_loss / data_size}")
+            if scheduler:
+                scheduler.step(mean_loss)
+
+            print(f"epoch {e+1} : {mean_loss}")
 
         return training_loss
 
