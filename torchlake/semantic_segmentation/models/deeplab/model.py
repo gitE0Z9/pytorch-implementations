@@ -6,10 +6,9 @@
 # COCO FOV: bi_w = 5, bi_xy_std = 69, bi_rgb_std = 5, pos_w = 3, pos_xy_std = 3
 # multiscale + FOV + COCO: bi_w = 4, bi_xy_std = 59, bi_rgb_std = 5, pos_w = 3, pos_xy_std = 3
 
-from annotated_types import T
 import torch
+from annotated_types import T
 from torch import nn
-
 from torchlake.common.models import VGGFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 from torchvision.transforms import CenterCrop

@@ -1,17 +1,18 @@
 import torch
-from ..models import DaNet
+
+from ..models.dual_attention import DANet
 from ..models.dual_attention.network import (
+    ChannelAttention2d,
     DualAttention2d,
     SpatialAttention2d,
-    ChannelAttention2d,
 )
 
 
-class TestDaNet:
+class TestDANet:
     def test_training_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
 
-        model = DaNet(2048, 21)
+        model = DANet(2048, 21)
 
         y, aux = model(x)
 
@@ -21,7 +22,7 @@ class TestDaNet:
     def test_eval_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
 
-        model = DaNet(2048, 21).eval()
+        model = DANet(2048, 21).eval()
 
         y = model(x)
 

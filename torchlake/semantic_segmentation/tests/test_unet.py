@@ -1,5 +1,5 @@
 import torch
-from ..models import UNet
+from ..models.unet import UNet
 
 
 def test_forward_shape():

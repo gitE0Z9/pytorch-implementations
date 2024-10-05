@@ -3,10 +3,10 @@ import torch.nn.functional as F
 from torch import nn
 
 
-class PspLoss(nn.Module):
+class PSPLoss(nn.Module):
 
     def __init__(self, auxiliary_weight: float = 0.4):
-        super(PspLoss, self).__init__()
+        super(PSPLoss, self).__init__()
         self.auxiliary_weight = auxiliary_weight
 
     def forward(
@@ -15,7 +15,7 @@ class PspLoss(nn.Module):
         aux: torch.Tensor,
         target: torch.Tensor,
     ) -> torch.Tensor:
-        """x is for psp output classification loss, aux is for shallower layer classification loss
+        """prediction head classification loss and shallower layer classification loss
 
         Args:
             pred (torch.Tensor): prediction
@@ -23,7 +23,7 @@ class PspLoss(nn.Module):
             target (torch.Tensor): target
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: loss
         """
         return F.cross_entropy(pred, target) + self.auxiliary_weight * F.cross_entropy(
             aux, target

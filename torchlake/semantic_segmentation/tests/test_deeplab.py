@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ..models import DeepLab
+from ..models.deeplab import DeepLab
 
 
 @pytest.mark.parametrize(

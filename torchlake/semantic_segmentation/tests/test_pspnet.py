@@ -1,14 +1,14 @@
 import torch
-from ..models import PspNet
-from ..models.pspnet.network import PyramidPool2d
-from ..models.pspnet.loss import PspLoss
+
+from ..models.pspnet import PSPNet, PSPLoss, PyramidPool2d
 
 
-class TestPspNet:
+class TestPSPNet:
     def test_training_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
 
-        model = PspNet(2048, 21)
+        model = PSPNet(2048, 21)
+        model.train()
 
         y, aux = model(x)
 
@@ -18,7 +18,7 @@ class TestPspNet:
     def test_eval_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
 
-        model = PspNet(2048, 21).eval()
+        model = PSPNet(2048, 21).eval()
 
         y = model(x)
 
@@ -36,13 +36,13 @@ class TestPyramidPool2d:
         assert y.shape == torch.Size((16, 2048 * 2, 7, 7))
 
 
-class TestPspLoss:
+class TestPSPLoss:
     def test_forward(self):
         pred = torch.rand((16, 21, 224, 224))
         aux = torch.rand((16, 21, 224, 224))
         target = torch.randint(0, 21, (16, 224, 224))
 
-        model = PspLoss()
+        model = PSPLoss()
 
         loss = model(pred, aux, target)
 
@@ -51,11 +51,11 @@ class TestPspLoss:
     def test_backward(self):
         x = torch.rand((16, 3, 224, 224))
         target = torch.randint(0, 21, (16, 224, 224))
-        model = PspNet(2048, 21).eval()
+        model = PSPNet(2048, 21).eval()
         model.train()
 
         y = model(x)
-        model = PspLoss()
+        model = PSPLoss()
 
         loss = model(*y, target)
         loss.backward()

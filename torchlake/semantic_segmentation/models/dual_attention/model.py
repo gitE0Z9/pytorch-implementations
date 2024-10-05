@@ -7,7 +7,7 @@ from torchvision.ops import Conv2dNormActivation
 from .network import DualAttention2d
 
 
-class DaNet(nn.Module):
+class DANet(nn.Module):
 
     def __init__(
         self,
@@ -23,7 +23,7 @@ class DaNet(nn.Module):
             latent_dim (int): dimension of latent representation
             num_class (int, optional): number of class. Defaults to 1.
         """
-        super(DaNet, self).__init__()
+        super(DANet, self).__init__()
         self.load_backbone(resent_no)
         inter_channel = latent_dim // reduction_ratio
         self.att = DualAttention2d(latent_dim, reduction_ratio)

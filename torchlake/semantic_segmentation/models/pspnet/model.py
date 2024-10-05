@@ -1,90 +1,111 @@
+from typing import Literal
+
 import torch
 import torch.nn.functional as F
-import torchvision
+from annotated_types import T
 from torch import nn
+from torchlake.common.models import ResNetFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 
 from .network import PyramidPool2d
 
 
-class PspNet(nn.Module):
+class PSPNet(nn.Module):
 
     def __init__(
         self,
-        latent_dim: int = 1,
-        num_class: int = 1,
+        latent_dim: int,
+        output_size: int = 1,
         bins_size: list[int] = [1, 2, 3, 6],
-        dropout: float = 0.5,
-        resent_no: 18 | 34 | 50 | 101 | 152 = 50,
+        dropout_prob: float = 0.5,
+        network_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        frozen_backbone: bool = False,
     ):
         """Pyramid spatial pooling network [1612.01105v2]
 
         Args:
-            num_class (int, optional): number of class. Defaults to 1.
-            backbone (nn.Module, optional): backbone. Defaults to resnet50().
+            latent_dim (int): latent dimension of pyramid pooling.
+            output_size (int, optional): output size. Defaults to 1.
+            bins_size (list[int], optional): size of pooled feature maps. Defaults to [1, 2, 3, 6].
+            dropout_prob (float, optional): dropout probability. Defaults to 0.5.
+            network_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
         """
-        super(PspNet, self).__init__()
-        self.load_backbone(resent_no)
+        super(PSPNet, self).__init__()
+        self.dropout_prob = dropout_prob
+        self.output_size = output_size
+        self.backbone = self.build_backbone(network_name, frozen_backbone)
         self.psp_layer = PyramidPool2d(latent_dim, bins_size)
         self.fc = nn.Sequential(
             Conv2dNormActivation(latent_dim * 2, 512, 3),
-            nn.Dropout2d(dropout),
-            nn.Conv2d(512, num_class, 1),
+            nn.Dropout2d(dropout_prob),
+            nn.Conv2d(512, output_size, 1),
         )
 
-        if self.training:
-            self.aux = nn.Sequential(
-                Conv2dNormActivation(1024, 256, 3),
-                nn.Dropout2d(p=dropout),
-                nn.Conv2d(256, num_class, 1),
-            )
-
-    def load_backbone(
+    def build_backbone(
         self,
-        resent_no: 18 | 34 | 50 | 101 | 152 = 50,
-    ):
-        self.cnn = getattr(torchvision.models, f"resnet{resent_no}", None)(
-            weights="DEFAULT"
+        network_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        frozen_backbone: bool = False,
+    ) -> ResNetFeatureExtractor:
+        """build resnet backbone of PSPNet
+
+        Args:
+            network_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
+
+        Returns:
+            ResNetFeatureExtractor: feature extractor
+        """
+        backbone = ResNetFeatureExtractor(
+            network_name,
+            "maxpool",
+            trainable=not frozen_backbone,
         )
-        assert self.cnn, "resent_no not recognized"
+
+        feature_extractor = backbone.feature_extractor
 
         # dilation
         # memory hungry !!!
         # https://github.com/hszhao/semseg/blob/4f274c3f276778228bc14a4565822d46359f0cc8/model/pspnet.py#L49
-        for key, layer in self.cnn.layer3.named_modules():
+        for key, layer in feature_extractor[3].named_modules():
+            layer: nn.Conv2d
             if "conv2" in key:
                 layer.dilation, layer.padding, layer.stride = (2, 2), (2, 2), (1, 1)
             elif "downsample.0" in key:
                 layer.stride = (1, 1)
-        for key, layer in self.cnn.layer4.named_modules():
+        for key, layer in feature_extractor[4].named_modules():
             if "conv2" in key:
                 layer.dilation, layer.padding, layer.stride = (4, 4), (4, 4), (1, 1)
             elif "downsample.0" in key:
                 layer.stride = (1, 1)
 
-    def get_features(self, x: torch.Tensor) -> list[torch.Tensor]:
-        features = []
+        return backbone
 
-        y = self.cnn.conv1(x)
-        y = self.cnn.bn1(y)
-        y = self.cnn.relu(y)
-        y = self.cnn.maxpool(y)
-        y = self.cnn.layer1(y)
-        y = self.cnn.layer2(y)
-        y = self.cnn.layer3(y)
-        if self.training:
-            features.append(y)
-        y = self.cnn.layer4(y)
-        features.append(y)
+    def train(self: T, mode: bool = True) -> T:
+        result = super().train(mode)
 
-        return features
+        if not hasattr(self, "aux"):
+            self.aux = nn.Sequential(
+                Conv2dNormActivation(1024, 256, 3),
+                nn.Dropout2d(p=self.dropout_prob),
+                nn.Conv2d(256, self.output_size, 1),
+            )
+
+        return result
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        features = self.get_features(x)
+        # extract features
+        feature_names = ["4_1"]
+        if self.training:
+            feature_names.append("3_1")
+        features = self.backbone(x, feature_names)
+
         if self.training:
             aux, y = features
         else:
-            y = features[0]
+            y = features.pop()
+
+        # head
         y = self.psp_layer(y)
         y = self.fc(y)
         y = F.interpolate(y, x.shape[2:], mode="bilinear")
