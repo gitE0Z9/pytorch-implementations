@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Iterable, Iterator
+from typing import Iterator
 
 import numpy as np
 import torch

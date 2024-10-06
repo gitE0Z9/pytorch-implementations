@@ -51,7 +51,11 @@ class PredictFunctionMixin:
     ) -> torch.Tensor | Any:
         x, _ = row
         x: torch.Tensor = x.to(self.device)
-        return model(x, *args, **kwargs)
+        output = model(x, *args, **kwargs)
+        # for output that has feature in last
+        if self.feature_last:
+            output = output.permute(0, -1, *range(1, len(output.shape) - 1))
+        return output
 
     def _predict_with_tensors(
         self,
@@ -63,8 +67,12 @@ class PredictFunctionMixin:
         x, _ = row
         for i in range(len(x)):
             x[i] = x[i].to(self.device)
-
-        return model(*x, *args, **kwargs)
+        output = model(*x, *args, **kwargs)
+        # for output that has feature in last
+        if self.feature_last:
+            for i in range(len(output)):
+                output[i] = output[i].permute(0, -1, *range(1, len(output.shape) - 1))
+        return output
 
     def _predict_do_nothing(
         self,

@@ -3,9 +3,10 @@ from typing import Iterable, Iterator
 
 import torch
 from torch import nn
+from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from tqdm import tqdm
-from torch.optim.lr_scheduler import LRScheduler
+
 from ..mixins.controller import PredictFunctionMixin
 
 
@@ -87,10 +88,6 @@ class TrainerBase(PredictFunctionMixin, ABC):
                     data_size += len(x)
 
                 output = self._predict(row, model, *args, **kwargs)
-                # for output that has feature in last
-                if self.feature_last:
-                    output = output.permute(0, -1, *range(1, len(output.shape) - 1))
-
                 loss: torch.Tensor = self._calc_loss(output, row, criterion)
 
                 loss /= self.acc_iters
