@@ -19,7 +19,7 @@ class ResNetFeatureExtractor(ExtractorBase):
     def __init__(
         self,
         network_name: Literal["resnet50", "resnet101", "resnet152"],
-        layer_type: Literal["maxpool"],
+        layer_type: Literal["block"],
         trainable: bool = True,
         drop_fc: bool = True,
     ):
@@ -36,7 +36,7 @@ class ResNetFeatureExtractor(ExtractorBase):
 
     def build_feature_extractor(self, network_name: str, weights: Weights) -> nn.Module:
         model_class = getattr(torchvision.models, network_name)
-        feature_extractor: ResNet = model_class(weights=weights).eval()
+        feature_extractor: ResNet = model_class(weights=weights)  # .eval()
 
         if not self.trainable:
             for param in feature_extractor.parameters():
@@ -72,7 +72,7 @@ class ResNetFeatureExtractor(ExtractorBase):
         img: torch.Tensor,
         target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"],
     ) -> list[torch.Tensor]:
-        if not self.layer_type == "maxpool":
+        if self.layer_type != "block":
             raise NotImplementedError
 
         features = []
