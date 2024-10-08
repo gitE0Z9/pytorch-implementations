@@ -11,13 +11,15 @@ class FlattenFeature(nn.Module):
         reduction: Literal["mean", "max"] | None = "mean",
         dimension: Literal["1d", "2d", "3d"] = "2d",
         start_dim: int = 1,
+        end_dim: int = -1,
     ):
         """_summary_
 
         Args:
-            reduction (Literal[mean] | Literal[max] | None, optional): redution mode. Defaults to "mean".
-            dimension (Literal["1d"] | Literal["2d"] | Literal["3d"], optional): 1d, 2d or 3d. Defaults to "2d".
-            start_dim: first dim to flatten (default = 1).
+            reduction (Literal["mean", "max"] | None, optional): redution mode. Defaults to "mean".
+            dimension (Literal["1d", "2d", "3d"], optional): 1d, 2d or 3d. Defaults to "2d".
+            start_dim: first dim to flatten. Defaults to 1.
+            end_dim: first dim to flatten. Defaults to -1.
         """
         super(FlattenFeature, self).__init__()
         pooling_layer = (
@@ -39,7 +41,7 @@ class FlattenFeature(nn.Module):
 
         self.pool = nn.Sequential(
             pooling_layer,
-            nn.Flatten(start_dim),
+            nn.Flatten(start_dim, end_dim),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
