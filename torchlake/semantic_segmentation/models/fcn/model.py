@@ -21,7 +21,7 @@ class FCNLegacy(nn.Module):
             num_skip_connection (int, optional): number of skip connection, e.g. 2 means FCN-8s, 1 means FCN-16s, 0 means FCN-32s. Defaults to 2.
             fronzen_backbone (bool, optional): froze the vgg backbone or not. Defaults to False.
         """
-        super(FCNLegacy, self).__init__()
+        super().__init__()
         self.num_skip_connection = num_skip_connection
         self.backbone = VGGFeatureExtractor(
             "vgg16",
@@ -80,7 +80,7 @@ class FCN(nn.Module):
             num_skip_connection (int, optional): number of skip connection, e.g. 2 means FCN-8s, 1 means FCN-16s, 0 means FCN-32s. Defaults to 2.
             fronzen_backbone (bool, optional): froze the vgg backbone or not. Defaults to False.
         """
-        super(FCN, self).__init__()
+        super().__init__()
         self.num_skip_connection = num_skip_connection
         self.backbone = self.build_backbone(frozen_backbone)
         self.conv = nn.Sequential(

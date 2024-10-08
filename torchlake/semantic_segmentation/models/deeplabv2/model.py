@@ -18,19 +18,17 @@ class DeepLabV2(nn.Module):
         backbone: VGGFeatureExtractor | ResNetFeatureExtractor,
         output_size: int = 1,
         dilations: list[int] = [6, 12, 18, 24],
-        feature_dim: int = 512,
     ):
-        """Fully Convolutional Networks for Semantic Segmentation in paper [1605.06211v1]
+        """DeepLab v2 in paper [1606.00915v2]
 
         Args:
             backbone (VGGFeatureExtractor | ResNetFeatureExtractor): either vgg family or resnet family.
             output_size (int, optional): output size. Defaults to 1.
             dilations (list[int], optional): dilation size of ASPP, for ASPP-S, it is [2,4,8,12], ASPP-L is default value. Defaults to [6, 12, 18, 24].
-            feature_dim (int, optional): input channel of ASPP. Defaults to 512.
         """
-        super(DeepLabV2, self).__init__()
+        super().__init__()
         self.dilations = dilations
-        self.feature_dim = feature_dim
+        self.feature_dim = 512
         self.backbone = self.build_backbone(backbone)
         self.head = self.build_head(output_size)
 
@@ -97,10 +95,11 @@ class DeepLabV2(nn.Module):
         Returns:
             ShallowASPP | ASPP: ASPP module
         """
-        if isinstance(self.backbone, ResNetFeatureExtractor):
-            return ShallowASPP(self.feature_dim, output_size, dilations=self.dilations)
+        # shallow head perform worse, yet heavy head is too heavy about 122M parameters
+        # if isinstance(self.backbone, ResNetFeatureExtractor):
+        #     return ShallowASPP(self.feature_dim, output_size, dilations=self.dilations)
 
-        return ASPP(512, 1024, output_size, dilations=self.dilations)
+        return ASPP(self.feature_dim, 1024, output_size, dilations=self.dilations)
 
     def eval(self: T) -> T:
         """during eval mode, deeplab v2 will upsample prediction to full size

@@ -14,57 +14,56 @@ class PSPNet(nn.Module):
 
     def __init__(
         self,
-        latent_dim: int,
         output_size: int = 1,
         bins_size: list[int] = [1, 2, 3, 6],
         dropout_prob: float = 0.5,
-        network_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        backbone_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
         frozen_backbone: bool = False,
     ):
         """Pyramid spatial pooling network [1612.01105v2]
 
         Args:
-            latent_dim (int): latent dimension of pyramid pooling.
             output_size (int, optional): output size. Defaults to 1.
             bins_size (list[int], optional): size of pooled feature maps. Defaults to [1, 2, 3, 6].
             dropout_prob (float, optional): dropout probability. Defaults to 0.5.
-            network_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            backbone_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
             fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
         """
-        super(PSPNet, self).__init__()
+        super().__init__()
+        hidden_dim = 2048
         self.dropout_prob = dropout_prob
         self.output_size = output_size
-        self.backbone = self.build_backbone(network_name, frozen_backbone)
-        self.psp_layer = PyramidPool2d(latent_dim, bins_size)
-        self.fc = nn.Sequential(
-            Conv2dNormActivation(latent_dim * 2, 512, 3),
+        self.backbone = self.build_backbone(backbone_name, frozen_backbone)
+        self.neck = PyramidPool2d(hidden_dim, bins_size)
+        self.head = nn.Sequential(
+            Conv2dNormActivation(hidden_dim * 2, hidden_dim // 4, 3),
             nn.Dropout2d(dropout_prob),
-            nn.Conv2d(512, output_size, 1),
+            nn.Conv2d(hidden_dim // 4, output_size, 1),
         )
 
     def build_backbone(
         self,
-        network_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        backbone_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
         frozen_backbone: bool = False,
     ) -> ResNetFeatureExtractor:
         """build resnet backbone of PSPNet
 
         Args:
-            network_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            backbone_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
             fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
 
         Returns:
             ResNetFeatureExtractor: feature extractor
         """
         backbone = ResNetFeatureExtractor(
-            network_name,
-            "maxpool",
+            backbone_name,
+            "block",
             trainable=not frozen_backbone,
         )
 
         feature_extractor = backbone.feature_extractor
 
-        # dilation
+        # deeplab v2 style
         # memory hungry !!!
         # https://github.com/hszhao/semseg/blob/4f274c3f276778228bc14a4565822d46359f0cc8/model/pspnet.py#L49
         for key, layer in feature_extractor[3].named_modules():
@@ -85,10 +84,11 @@ class PSPNet(nn.Module):
         result = super().train(mode)
 
         if not hasattr(self, "aux"):
+            hidden_dim = 1024
             self.aux = nn.Sequential(
-                Conv2dNormActivation(1024, 256, 3),
+                Conv2dNormActivation(hidden_dim, hidden_dim // 4, 3),
                 nn.Dropout2d(p=self.dropout_prob),
-                nn.Conv2d(256, self.output_size, 1),
+                nn.Conv2d(hidden_dim // 4, self.output_size, 1),
             )
 
         return result
@@ -98,7 +98,7 @@ class PSPNet(nn.Module):
         feature_names = ["4_1"]
         if self.training:
             feature_names.append("3_1")
-        features = self.backbone(x, feature_names)
+        features: list[torch.Tensor] = self.backbone(x, feature_names)
 
         if self.training:
             aux, y = features
@@ -106,8 +106,8 @@ class PSPNet(nn.Module):
             y = features.pop()
 
         # head
-        y = self.psp_layer(y)
-        y = self.fc(y)
+        y = self.neck(y)
+        y = self.head(y)
         y = F.interpolate(y, x.shape[2:], mode="bilinear")
 
         if self.training:

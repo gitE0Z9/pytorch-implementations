@@ -17,7 +17,7 @@ class PyramidPool2d(nn.Module):
             input_channel (int): input channel size
             bins_size (list[int], optional): size of pooled feature maps. Defaults to [1, 2, 3, 6].
         """
-        super(PyramidPool2d, self).__init__()
+        super().__init__()
         self.layers = nn.ModuleList(
             [
                 nn.Sequential(

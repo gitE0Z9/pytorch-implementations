@@ -5,7 +5,7 @@ from .network import DoubleConv, DownSampling, UpSampling
 
 class UNet(nn.Module):
     def __init__(self, num_class: int):
-        super(UNet, self).__init__()
+        super().__init__()
         self.convhead = DoubleConv(3, 64)  # 64, x
         self.down1 = DownSampling(64, 128)  # 128, x/2
         self.down2 = DownSampling(128, 256)  # 256, x/4

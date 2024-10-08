@@ -6,7 +6,7 @@ from torch import nn
 class PSPLoss(nn.Module):
 
     def __init__(self, auxiliary_weight: float = 0.4):
-        super(PSPLoss, self).__init__()
+        super().__init__()
         self.auxiliary_weight = auxiliary_weight
 
     def forward(

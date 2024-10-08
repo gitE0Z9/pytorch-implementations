@@ -5,7 +5,7 @@ from torchvision.ops import Conv2dNormActivation
 
 class DoubleConv(nn.Module):
     def __init__(self, in_ch: int, out_ch: int):
-        super(DoubleConv, self).__init__()
+        super().__init__()
         self.conv1 = Conv2dNormActivation(in_ch, out_ch, 3)
         self.conv2 = Conv2dNormActivation(out_ch, out_ch, 3)
 
@@ -20,7 +20,7 @@ class DoubleConv(nn.Module):
 
 class DownSampling(nn.Module):
     def __init__(self, in_ch: int, out_ch: int):
-        super(DownSampling, self).__init__()
+        super().__init__()
         self.pool = nn.MaxPool2d(2, 2)
         self.convs = DoubleConv(in_ch, out_ch)
 
@@ -32,7 +32,7 @@ class DownSampling(nn.Module):
 
 class UpSampling(nn.Module):
     def __init__(self, in_ch: int, out_ch: int):
-        super(UpSampling, self).__init__()
+        super().__init__()
         self.up = nn.ConvTranspose2d(in_ch, in_ch // 2, 2, stride=2)
         self.convs = DoubleConv(in_ch, out_ch)
 

@@ -7,7 +7,7 @@ class TestPSPNet:
     def test_training_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
 
-        model = PSPNet(2048, 21)
+        model = PSPNet(21)
         model.train()
 
         y, aux = model(x)
@@ -18,7 +18,7 @@ class TestPSPNet:
     def test_eval_forward_shape(self):
         x = torch.rand((16, 3, 224, 224))
 
-        model = PSPNet(2048, 21).eval()
+        model = PSPNet(21).eval()
 
         y = model(x)
 
@@ -51,7 +51,7 @@ class TestPSPLoss:
     def test_backward(self):
         x = torch.rand((16, 3, 224, 224))
         target = torch.randint(0, 21, (16, 224, 224))
-        model = PSPNet(2048, 21).eval()
+        model = PSPNet(21).eval()
         model.train()
 
         y = model(x)

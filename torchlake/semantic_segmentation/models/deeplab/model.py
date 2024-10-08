@@ -19,17 +19,17 @@ class DeepLab(nn.Module):
     def __init__(
         self,
         output_size: int = 1,
-        frozen_backbone: bool = True,
         large_fov: bool = True,
+        frozen_backbone: bool = True,
     ):
-        """Fully Convolutional Networks for Semantic Segmentation in paper [1605.06211v1]
+        """DeepLab v1 in paper [1412.7062v4]
 
         Args:
             output_size (int, optional): output size. Defaults to 1.
-            fronzen_backbone (bool, optional): froze the vgg backbone or not. Defaults to False.
             large_fov (bool, optional): use larger field of view. Defaults to True.
+            fronzen_backbone (bool, optional): froze the vgg backbone or not. Defaults to False.
         """
-        super(DeepLab, self).__init__()
+        super().__init__()
         input_channel = 3
         self.backbone = self.build_backbone(frozen_backbone)
         fc_dim = 1024 if large_fov else 4096
@@ -61,6 +61,14 @@ class DeepLab(nn.Module):
         )
 
     def build_backbone(self, frozen_backbone: bool) -> VGGFeatureExtractor:
+        """build backbone
+
+        Args:
+            fronzen_backbone (bool, optional): froze the backbone or not. Defaults to False.
+
+        Returns:
+            VGGFeatureExtractor: feature extractor
+        """
         backbone = VGGFeatureExtractor(
             "vgg16",
             "maxpool",

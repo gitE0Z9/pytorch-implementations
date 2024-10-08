@@ -1,7 +1,10 @@
+from typing import Literal
+
 import torch
 import torch.nn.functional as F
-import torchvision
+from annotated_types import T
 from torch import nn
+from torchlake.common.models import ResNetFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 
 from .network import DualAttention2d
@@ -11,81 +14,97 @@ class DANet(nn.Module):
 
     def __init__(
         self,
-        latent_dim: int = 1,
-        num_class: int = 1,
+        output_size: int = 1,
         reduction_ratio: float = 32,
         dropout_prob: float = 0.1,
-        resent_no: 18 | 34 | 50 | 101 | 152 = 50,
+        backbone_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        frozen_backbone: bool = False,
     ):
         """Dual Attention Network for Scene Segmentation [1809.02983v4]
 
         Args:
-            latent_dim (int): dimension of latent representation
-            num_class (int, optional): number of class. Defaults to 1.
+            output_size (int, optional): output size. Defaults to 1.
+            reduction_ratio (float, optional): _description_. Defaults to 32.
+            dropout_prob (float, optional): dropout probability. Defaults to 0.5.
+            backbone_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
         """
-        super(DANet, self).__init__()
-        self.load_backbone(resent_no)
-        inter_channel = latent_dim // reduction_ratio
-        self.att = DualAttention2d(latent_dim, reduction_ratio)
+        super().__init__()
+        hidden_dim = 2048
+        self.dropout_prob = dropout_prob
+        self.output_size = output_size
+        self.backbone = self.build_backbone(backbone_name, frozen_backbone)
+        self.neck = DualAttention2d(hidden_dim, reduction_ratio)
         self.head = nn.Sequential(
             nn.Dropout2d(dropout_prob, False),
-            nn.Conv2d(inter_channel, num_class, 1),
+            nn.Conv2d(hidden_dim // reduction_ratio, output_size, 1),
         )
 
-        if self.training:
-            self.aux = nn.Sequential(
-                Conv2dNormActivation(1024, 256),
-                nn.Dropout2d(dropout_prob),
-                nn.Conv2d(256, num_class, 1),
-            )
-
-    def load_backbone(
+    def build_backbone(
         self,
-        resent_no: 18 | 34 | 50 | 101 | 152 = 50,
-    ):
-        self.cnn = getattr(torchvision.models, f"resnet{resent_no}", None)(
-            weights="DEFAULT"
-        )
-        assert self.cnn, "resent_no not recognized"
+        backbone_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        frozen_backbone: bool = False,
+    ) -> ResNetFeatureExtractor:
+        """build resnet backbone of DANet
 
-        # dilation
+        Args:
+            backbone_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
+
+        Returns:
+            ResNetFeatureExtractor: feature extractor
+        """
+        backbone = ResNetFeatureExtractor(
+            backbone_name,
+            "block",
+            trainable=not frozen_backbone,
+        )
+
+        feature_extractor = backbone.feature_extractor
+
+        # deeplab v2 style
         # memory hungry !!!
         # https://github.com/hszhao/semseg/blob/4f274c3f276778228bc14a4565822d46359f0cc8/model/pspnet.py#L49
-        for key, layer in self.cnn.layer3.named_modules():
+        for key, layer in feature_extractor[3].named_modules():
+            layer: nn.Conv2d
             if "conv2" in key:
                 layer.dilation, layer.padding, layer.stride = (2, 2), (2, 2), (1, 1)
             elif "downsample.0" in key:
                 layer.stride = (1, 1)
-        for key, layer in self.cnn.layer4.named_modules():
+        for key, layer in feature_extractor[4].named_modules():
             if "conv2" in key:
                 layer.dilation, layer.padding, layer.stride = (4, 4), (4, 4), (1, 1)
             elif "downsample.0" in key:
                 layer.stride = (1, 1)
 
-    def get_features(self, x: torch.Tensor) -> list[torch.Tensor]:
-        features = []
+        return backbone
 
-        y = self.cnn.conv1(x)
-        y = self.cnn.bn1(y)
-        y = self.cnn.relu(y)
-        y = self.cnn.maxpool(y)
-        y = self.cnn.layer1(y)
-        y = self.cnn.layer2(y)
-        y = self.cnn.layer3(y)
-        if self.training:
-            features.append(y)
-        y = self.cnn.layer4(y)
-        features.append(y)
+    def train(self: T, mode: bool = True) -> T:
+        result = super().train(mode)
 
-        return features
+        if not hasattr(self, "aux"):
+            hidden_dim = 1024
+            self.aux = nn.Sequential(
+                Conv2dNormActivation(hidden_dim, hidden_dim // 4),
+                nn.Dropout2d(p=self.dropout_prob),
+                nn.Conv2d(hidden_dim // 4, self.output_size, 1),
+            )
+
+        return result
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor] | torch.Tensor:
-        features = self.get_features(x)
+        # extract features
+        feature_names = ["4_1"]
+        if self.training:
+            feature_names.append("3_1")
+        features: list[torch.Tensor] = self.backbone(x, feature_names)
+
         if self.training:
             aux, y = features
         else:
-            y = features[0]
-        y = self.att(y)
+            y = features.pop()
+
+        y = self.neck(y)
         y = self.head(y)
         y = F.interpolate(y, x.shape[2:], mode="bilinear")
 

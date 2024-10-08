@@ -18,7 +18,7 @@ class UpSamplingLegacy(nn.Module):
             kernel (int): kernel size of deconvolution layer
             stride (int, optional): stride of deconvolution layer. Defaults to 1.
         """
-        super(UpSamplingLegacy, self).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.ConvTranspose2d(input_channel, output_channel, kernel, stride=stride),
             nn.ReLU(inplace=True),
@@ -44,7 +44,7 @@ class UpSampling(nn.Module):
             kernel (int): kernel size of deconvolution layer
             stride (int, optional): stride of deconvolution layer. Defaults to 1.
         """
-        super(UpSampling, self).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.ConvTranspose2d(
                 input_channel,

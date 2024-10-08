@@ -21,7 +21,7 @@ class ASPP(nn.Module):
             dilations (list[int], optional): dilation size of ASPP, for ASPP-S, it is [2,4,8,12], ASPP-L is default value. Defaults to [6, 12, 18, 24].
         """
         super().__init__()
-        self.convs = nn.ModuleList(
+        self.blocks = nn.ModuleList(
             [
                 nn.Sequential(
                     Conv2dNormActivation(
@@ -52,14 +52,14 @@ class ASPP(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.convs[0](x)
-        for conv in self.convs[1:]:
+        y = self.blocks[0](x)
+        for conv in self.blocks[1:]:
             y = y + conv(x)
 
         return y
 
 
-class ShallowASPP(ASPP):
+class ShallowASPP(nn.Module):
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class ShallowASPP(ASPP):
             dilations (list[int], optional): dilation size of ASPP, for ASPP-S, it is [2,4,8,12], ASPP-L is default value. Defaults to [6, 12, 18, 24].
         """
         super().__init__()
-        self.convs = nn.ModuleList(
+        self.blocks = nn.ModuleList(
             [
                 Conv2dNormActivation(
                     input_channel,
@@ -89,3 +89,10 @@ class ShallowASPP(ASPP):
                 for dilation in dilations
             ]
         )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.blocks[0](x)
+        for conv in self.blocks[1:]:
+            y = y + conv(x)
+
+        return y

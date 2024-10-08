@@ -6,11 +6,11 @@ from torchvision.ops import Conv2dNormActivation
 
 
 class SpatialAttention2d(nn.Module):
-    """Position attention module"""
 
     # Ref from SAGAN
     def __init__(self, in_dim: int):
-        super(SpatialAttention2d, self).__init__()
+        """Position attention module"""
+        super().__init__()
 
         self.query_conv = nn.Conv2d(
             in_channels=in_dim,
@@ -49,10 +49,10 @@ class SpatialAttention2d(nn.Module):
 
 
 class ChannelAttention2d(nn.Module):
-    """Channel attention module"""
 
     def __init__(self):
-        super(ChannelAttention2d, self).__init__()
+        """Channel attention module"""
+        super().__init__()
 
         self.beta = nn.Parameter(torch.zeros(1))
 
@@ -86,7 +86,13 @@ class DualAttention2d(nn.Module):
         input_channel: int,
         reduction_ratio: float = 1,
     ):
-        super(DualAttention2d, self).__init__()
+        """Dual attention 2d
+
+        Args:
+            input_channel (int): input channel size
+            reduction_ratio (float, optional): reduction ratio. Defaults to 1.
+        """
+        super().__init__()
         inter_channel = input_channel // reduction_ratio
 
         self.sa_conv = nn.Sequential(
