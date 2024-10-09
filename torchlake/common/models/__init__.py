@@ -12,6 +12,7 @@ from .topk_pool import KmaxPool1d
 from .multikernel_conv import MultiKernelConvModule
 from .vgg_feature_extractor import VGGFeatureExtractor
 from .resnet_feature_extractor import ResNetFeatureExtractor
+from .mobilenet_feature_extractor import MobileNetFeatureExtractor
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -24,6 +25,7 @@ __all__ = [
     "ImageNetNormalization",
     "VGGFeatureExtractor",
     "ResNetFeatureExtractor",
+    "MobileNetFeatureExtractor",
     "ConvBnRelu",
     "KernelPCA",
     "KMeans",

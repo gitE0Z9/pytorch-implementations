@@ -36,7 +36,7 @@ class ResNetFeatureExtractor(ExtractorBase):
 
     def build_feature_extractor(self, network_name: str, weights: Weights) -> nn.Module:
         model_class = getattr(torchvision.models, network_name)
-        feature_extractor: ResNet = model_class(weights=weights)  # .eval()
+        feature_extractor: ResNet = model_class(weights=weights)
 
         if not self.trainable:
             for param in feature_extractor.parameters():

@@ -20,6 +20,7 @@ from ..models import (
     ImageNetNormalization,
     VGGFeatureExtractor,
     ResNetFeatureExtractor,
+    MobileNetFeatureExtractor,
     ConvBnRelu,
     MultiKernelConvModule,
     KernelPCA,
@@ -291,7 +292,7 @@ class TestResNetFeatureExtractor:
         ],
     )
     def test_backbone(self, network_name: str, num_layers: list[int]):
-        model = ResNetFeatureExtractor(network_name=network_name, layer_type="block")
+        model = ResNetFeatureExtractor(network_name, layer_type="block")
 
         for block, num_layer in zip(iter(model.feature_extractor), [4, *num_layers, 1]):
             # skip avgpool, since no len
@@ -301,7 +302,7 @@ class TestResNetFeatureExtractor:
     @pytest.mark.parametrize("network_name", ["resnet50", "resnet101", "resnet152"])
     def test_output_shape(self, network_name: str):
         self.setUp()
-        model = ResNetFeatureExtractor(network_name=network_name, layer_type="block")
+        model = ResNetFeatureExtractor(network_name, layer_type="block")
         y = model.forward(self.x, ["0_1", "1_1", "2_1", "3_1", "4_1", "output"])
 
         for ele, dim, scale in zip(
@@ -314,7 +315,7 @@ class TestResNetFeatureExtractor:
     @pytest.mark.parametrize("network_name", ["resnet50", "resnet101", "resnet152"])
     def test_equalness(self, network_name: str):
         self.setUp()
-        model = ResNetFeatureExtractor(network_name=network_name, layer_type="block")
+        model = ResNetFeatureExtractor(network_name, layer_type="block")
         features = model.forward(self.x, ["0_1", "1_1", "2_1", "3_1", "4_1", "output"])
 
         from torchvision import models
@@ -363,10 +364,38 @@ class TestVGGFeatureExtractor:
         layer_type: str,
     ):
         self.setUp()
-        model = VGGFeatureExtractor(network_name=network_name, layer_type=layer_type)
+        model = VGGFeatureExtractor(network_name, layer_type=layer_type)
         y = model.forward(self.x, ["1_1", "2_1", "3_1", "4_1", "5_1"])
 
         for ele, dim, scale in zip(y, [64, 128, 256, 512, 512], [112, 56, 28, 14, 7]):
             if layer_type != "maxpool":
                 scale *= 2
             assert ele.shape == torch.Size((1, dim, scale, scale))
+
+
+class TestMobileNetFeatureExtractor:
+    def setUp(self):
+        self.x = torch.rand(1, 3, 224, 224)
+
+    @pytest.mark.parametrize(
+        "network_name,expected_dim,expected_scale",
+        [
+            ["mobilenet_v2", [32, 24, 32, 64, 160, 1280], [112, 56, 28, 14, 7]],
+            ["mobilenet_v3_small", [16, 16, 24, 40, 96, 576], [112, 56, 28, 14, 7]],
+            ["mobilenet_v3_large", [16, 24, 40, 80, 160, 960], [112, 56, 28, 14, 7]],
+        ],
+    )
+    def test_output_shape(
+        self,
+        network_name: str,
+        expected_dim: list[int],
+        expected_scale: list[int],
+    ):
+        self.setUp()
+        model = MobileNetFeatureExtractor(network_name, layer_type="block")
+        y = model.forward(self.x, ["0_1", "1_1", "2_1", "3_1", "4_1", "output"])
+
+        for ele, dim, scale in zip(y[:-1], expected_dim, expected_scale):
+            assert ele.shape == torch.Size((1, dim, scale, scale))
+
+        assert y.pop().shape == torch.Size((1, expected_dim[-1]))
