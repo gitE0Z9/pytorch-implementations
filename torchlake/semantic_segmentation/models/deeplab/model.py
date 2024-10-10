@@ -9,12 +9,12 @@
 import torch
 from annotated_types import T
 from torch import nn
-from torchlake.common.models import VGGFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 from torchvision.transforms import CenterCrop
+from ...mixins.vgg_backbone import DeepLabStyleVGGBackboneMixin
 
 
-class DeepLab(nn.Module):
+class DeepLab(DeepLabStyleVGGBackboneMixin, nn.Module):
 
     def __init__(
         self,
@@ -31,8 +31,9 @@ class DeepLab(nn.Module):
         """
         super().__init__()
         input_channel = 3
-        self.backbone = self.build_backbone(frozen_backbone)
         fc_dim = 1024 if large_fov else 4096
+
+        self.backbone = self.build_backbone("vgg16", frozen_backbone)
         self.conv = nn.Sequential(
             Conv2dNormActivation(
                 512,
@@ -59,41 +60,6 @@ class DeepLab(nn.Module):
                 for dim in [512, 256, 128, 64, input_channel]
             ]
         )
-
-    def build_backbone(self, frozen_backbone: bool) -> VGGFeatureExtractor:
-        """build backbone
-
-        Args:
-            fronzen_backbone (bool, optional): froze the backbone or not. Defaults to False.
-
-        Returns:
-            VGGFeatureExtractor: feature extractor
-        """
-        backbone = VGGFeatureExtractor(
-            "vgg16",
-            "maxpool",
-            trainable=not frozen_backbone,
-        )
-        feature_layers = backbone.feature_extractor
-        # stage 5 convs
-        for i in range(1, 4):
-            conv_layer: nn.Conv2d = feature_layers[-1 - i * 2]
-            conv_layer.dilation = (2, 2)
-            conv_layer.padding = (2, 2)
-
-        # skip subsampling and keep 8x
-        stage = 0
-        for layer in feature_layers:
-            if isinstance(layer, nn.MaxPool2d):
-                stage += 1
-                layer.padding = (1, 1)
-                layer.kernel_size = (3, 3)
-
-                # stage 4, 5
-                if stage >= 4:
-                    layer.stride = (1, 1)
-
-        return backbone
 
     def train(self: T, mode: bool = True) -> T:
         result = super().train(mode)

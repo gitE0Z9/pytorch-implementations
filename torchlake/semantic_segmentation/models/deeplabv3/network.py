@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
 
-from ....common.models import FlattenFeature
+from torchlake.common.models import FlattenFeature
 from ....image_classification.models.resnet import BottleNeckB, ResBlock
 
 

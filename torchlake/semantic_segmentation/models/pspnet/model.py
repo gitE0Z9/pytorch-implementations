@@ -7,10 +7,11 @@ from torch import nn
 from torchlake.common.models import ResNetFeatureExtractor
 from torchvision.ops import Conv2dNormActivation
 
+from ...mixins.resnet_backbone import DeepLabStyleResNetBackboneMixin
 from .network import PyramidPool2d
 
 
-class PSPNet(nn.Module):
+class PSPNet(DeepLabStyleResNetBackboneMixin, nn.Module):
 
     def __init__(
         self,
@@ -40,45 +41,6 @@ class PSPNet(nn.Module):
             nn.Dropout2d(dropout_prob),
             nn.Conv2d(hidden_dim // 4, output_size, 1),
         )
-
-    def build_backbone(
-        self,
-        backbone_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
-        frozen_backbone: bool = False,
-    ) -> ResNetFeatureExtractor:
-        """build resnet backbone of PSPNet
-
-        Args:
-            backbone_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
-            fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
-
-        Returns:
-            ResNetFeatureExtractor: feature extractor
-        """
-        backbone = ResNetFeatureExtractor(
-            backbone_name,
-            "block",
-            trainable=not frozen_backbone,
-        )
-
-        feature_extractor = backbone.feature_extractor
-
-        # deeplab v2 style
-        # memory hungry !!!
-        # https://github.com/hszhao/semseg/blob/4f274c3f276778228bc14a4565822d46359f0cc8/model/pspnet.py#L49
-        for key, layer in feature_extractor[3].named_modules():
-            layer: nn.Conv2d
-            if "conv2" in key:
-                layer.dilation, layer.padding, layer.stride = (2, 2), (2, 2), (1, 1)
-            elif "downsample.0" in key:
-                layer.stride = (1, 1)
-        for key, layer in feature_extractor[4].named_modules():
-            if "conv2" in key:
-                layer.dilation, layer.padding, layer.stride = (4, 4), (4, 4), (1, 1)
-            elif "downsample.0" in key:
-                layer.stride = (1, 1)
-
-        return backbone
 
     def train(self: T, mode: bool = True) -> T:
         result = super().train(mode)

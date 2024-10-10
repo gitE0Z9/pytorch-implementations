@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torchvision.transforms import CenterCrop
 
-from ....common.models import MobileNetFeatureExtractor
+from torchlake.common.models import MobileNetFeatureExtractor
 from ..deeplabv3.network import ASPP
 
 
