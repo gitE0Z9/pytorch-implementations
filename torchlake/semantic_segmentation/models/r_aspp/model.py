@@ -3,7 +3,6 @@ from typing import Literal
 
 import torch
 from torch import nn
-from torchvision.ops import Conv2dNormActivation
 from torchvision.transforms import CenterCrop
 
 from ....common.models import MobileNetFeatureExtractor
@@ -37,13 +36,7 @@ class MobileNetV2Seg(nn.Module):
             backbone_name, frozen_backbone
         )
         self.neck = self.build_neck()
-        self.head = Conv2dNormActivation(
-            self.feature_dim // self.reduction_ratio,
-            output_size,
-            1,
-            norm_layer=None,
-            activation_layer=None,
-        )
+        self.head = nn.Conv2d(self.feature_dim // self.reduction_ratio, output_size, 1)
         self.upsample = nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
 
     def build_backbone(
