@@ -66,7 +66,11 @@ class DeepLab(DeepLabStyleVGGBackboneMixin, nn.Module):
 
         # every feature map downsample to 8x
         for block, s in zip(result.pool_convs, [1, 1, 2, 4, 8]):
-            block[0][0].stride = (s, s)
+            # only modify first encountered conv2dnormactivation
+            for layer in block:
+                if isinstance(layer, Conv2dNormActivation):
+                    layer[0].stride = (s, s)
+                    break
 
         # no upsampling
         # result.upsamples = nn.ModuleList([nn.Identity()] * 5)
@@ -78,7 +82,11 @@ class DeepLab(DeepLabStyleVGGBackboneMixin, nn.Module):
 
         # no downsample for multi scale prediction
         for block in result.pool_convs:
-            block[0][0].stride = (1, 1)
+            # only modify first encountered conv2dnormactivation
+            for layer in block:
+                if isinstance(layer, Conv2dNormActivation):
+                    layer[0].stride = (1, 1)
+                    break
 
         # upsample every prediction
         result.upsamples = nn.ModuleList(
