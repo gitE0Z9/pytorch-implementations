@@ -22,6 +22,13 @@ class VGGFeatureExtractor(ExtractorBase):
         layer_type: Literal["conv", "relu", "maxpool"],
         trainable: bool = True,
     ):
+        """vgg feature extractor
+
+        Args:
+            network_name (Literal["vgg11", "vgg13", "vgg16", "vgg19"]): torchvision vgg model
+            layer_type (Literal["conv", "relu", "maxpool"]): extract which type of layer
+            trainable (bool, optional): backbone is trainable or not. Defaults to True.
+        """
         super(VGGFeatureExtractor, self).__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 

@@ -21,9 +21,14 @@ class ResNetFeatureExtractor(ExtractorBase):
         network_name: Literal["resnet50", "resnet101", "resnet152"],
         layer_type: Literal["block"],
         trainable: bool = True,
-        drop_fc: bool = True,
     ):
-        self.drop_fc = drop_fc
+        """resnet feature extractor
+
+        Args:
+            network_name (Literal["resnet50", "resnet101", "resnet152"]): torchvision resnet model
+            layer_type (Literal["block"]): extract which type of layer
+            trainable (bool, optional): backbone is trainable or not. Defaults to True.
+        """
         super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
@@ -42,8 +47,7 @@ class ResNetFeatureExtractor(ExtractorBase):
             for param in feature_extractor.parameters():
                 param.requires_grad = False
 
-        if self.drop_fc:
-            del feature_extractor.fc
+        del feature_extractor.fc
 
         # fuse foot
         feature_extractor.add_module(

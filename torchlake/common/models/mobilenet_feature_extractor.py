@@ -25,6 +25,13 @@ class MobileNetFeatureExtractor(ExtractorBase):
         layer_type: Literal["block"],
         trainable: bool = True,
     ):
+        """mobilenet feature extractor
+
+        Args:
+            network_name (Literal[ "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"]): torchvision mobilenet model
+            layer_type (Literal["block"]): extract which type of layer
+            trainable (bool, optional): backbone is trainable or not. Defaults to True.
+        """
         super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
