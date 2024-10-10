@@ -1,12 +1,11 @@
-from copy import deepcopy
 from functools import partial
 from typing import Literal
 
 import torch
 from torch import nn
 from torchlake.common.models import ResNetFeatureExtractor
-from torchvision.transforms import CenterCrop
 from torchvision.ops import Conv2dNormActivation
+from torchvision.transforms import CenterCrop
 
 from .network import ASPP, CascadeASPP
 
