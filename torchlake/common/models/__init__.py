@@ -13,6 +13,7 @@ from .multikernel_conv import MultiKernelConvModule
 from .vgg_feature_extractor import VGGFeatureExtractor
 from .resnet_feature_extractor import ResNetFeatureExtractor
 from .mobilenet_feature_extractor import MobileNetFeatureExtractor
+from .l2_norm import L2Norm
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -30,4 +31,5 @@ __all__ = [
     "KernelPCA",
     "KMeans",
     "MultiKernelConvModule",
+    "L2Norm",
 ]
