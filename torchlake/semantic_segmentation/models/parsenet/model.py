@@ -46,6 +46,6 @@ class ParseNet(DeepLabStyleVGGBackboneMixin, nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        features = self.backbone.forward(x, ["4_1"])
+        features = self.backbone.forward(x, ["5_1"])
         y = self.neck(features.pop())
         return self.head(y)
