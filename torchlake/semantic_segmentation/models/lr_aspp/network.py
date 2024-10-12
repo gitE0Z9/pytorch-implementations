@@ -41,6 +41,8 @@ class LRASPP(nn.Module):
         input_channels: list[int],
         hidden_dim: int,
         output_channel: int,
+        pool_kernel_size: tuple[int] = (49, 49),
+        pool_stride: tuple[int] = (16, 20),
     ):
         """Lite reduced ASPP in paper [1905.02244v5]
 
@@ -48,11 +50,13 @@ class LRASPP(nn.Module):
             input_channels (list[int]): input channel
             hidden_dim (int): hidden dimension
             output_channel (int): output channel
+            pool_kernel_size (tuple[int], optional): kernel size of pool. Defaults to (49, 49).
+            pool_stride (tuple[int], optional): stride of pool. Defaults to (16, 20).
         """
         super().__init__()
         shallow_input_channel, deep_input_channel = input_channels
         self.block = nn.Sequential(
-            SEBlock(deep_input_channel, hidden_dim),
+            SEBlock(deep_input_channel, hidden_dim, pool_kernel_size, pool_stride),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
             nn.Conv2d(hidden_dim, output_channel, 1),
         )

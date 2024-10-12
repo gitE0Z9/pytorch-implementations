@@ -14,7 +14,9 @@ class MobileNetV3Seg(nn.Module):
     def __init__(
         self,
         output_size: int = 1,
-        reduction_ratio: int = 8,
+        hidden_dim: int = 128,
+        pool_kernel_size: tuple[int] = (49, 49),
+        pool_stride: tuple[int] = (16, 20),
         backbone_name: Literal[
             "mobilenet_v2",
             "mobilenet_v3_small",
@@ -26,12 +28,13 @@ class MobileNetV3Seg(nn.Module):
 
         Args:
             output_size (int, optional): output size. Defaults to 1.
-            reduction_ratio (int, optional): prediction head dimension reduced ratio. Defaults to 8.
+            hidden_dim (int): dimension of lr-aspp layer
+            pool_kernel_size (tuple[int], optional): kernel size of pool. Defaults to (49, 49).
+            pool_stride (tuple[int], optional): stride of pool. Defaults to (16, 20).
             backbone_name (Literal[ "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"], optional): mobilenet network name. Defaults to "mobilenet_v3_large".
             fronzen_backbone (bool, optional): froze the backbone or not. Defaults to False.
         """
         super().__init__()
-        self.reduction_ratio = reduction_ratio
         self.backbone: MobileNetFeatureExtractor = self.build_backbone(
             backbone_name, frozen_backbone
         )
@@ -39,7 +42,12 @@ class MobileNetV3Seg(nn.Module):
             self.backbone.get_feature_dim()[-3][-1],
             self.backbone.get_feature_dim()[-1][-2],
         ]
-        self.neck: LRASPP = self.build_head(128, output_size)
+        self.head: LRASPP = self.build_head(
+            hidden_dim,
+            output_size,
+            pool_kernel_size,
+            pool_stride,
+        )
         self.upsample = nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
 
     def build_backbone(
@@ -73,14 +81,27 @@ class MobileNetV3Seg(nn.Module):
             for key, layer in feature_extractor[index].named_modules():
                 layer: nn.Conv2d
                 if "block.1.0" in key or "conv.1.0" in key:
-                    layer.dilation, layer.padding = (2, 2), (2, 2)
+                    kernel = layer.kernel_size[0]
+                    dilation = 2
+                    pad = (dilation * (kernel - 1)) // 2
+
+                    layer.dilation, layer.padding = (2, 2), (pad, pad)
 
         penultimate_index = block_indices[-1]
         for index in penultimate_index:
             for key, layer in feature_extractor[index].named_modules():
                 layer: nn.Conv2d
                 if "block.1.0" in key or "conv.1.0" in key:
-                    layer.dilation, layer.padding, layer.stride = (4, 4), (8, 8), (1, 1)
+                    # o = i - d(k-1) + 2p
+                    kernel = layer.kernel_size[0]
+                    dilation = 4
+                    pad = (dilation * (kernel - 1)) // 2
+
+                    layer.dilation, layer.padding, layer.stride = (
+                        (4, 4),
+                        (pad, pad),  # +0 for v2, +2 for v3-S, +4 for v3-L
+                        (1, 1),
+                    )
 
         backbone.forward = partial(
             backbone.forward,
@@ -92,22 +113,35 @@ class MobileNetV3Seg(nn.Module):
 
         return backbone
 
-    def build_head(self, hidden_dim: int, output_size: int) -> LRASPP:
+    def build_head(
+        self,
+        hidden_dim: int,
+        output_size: int,
+        pool_kernel_size: tuple[int] = (49, 49),
+        pool_stride: tuple[int] = (16, 20),
+    ) -> LRASPP:
         """lr aspp
 
         Args:
             hidden_dim (int): dimension of intermediate layer
             output_size (int, optional): output size.
-
+            pool_kernel_size (tuple[int], optional): kernel size of pool. Defaults to (49, 49).
+            pool_stride (tuple[int], optional): stride of pool. Defaults to (16, 20).
         Returns:
             LRASPP: lr aspp
         """
-        return LRASPP(self.feature_dims, hidden_dim, output_size)
+        return LRASPP(
+            self.feature_dims,
+            hidden_dim,
+            output_size,
+            pool_kernel_size,
+            pool_stride,
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # 8x
         features: list[torch.Tensor] = self.backbone(x)
-        y = self.neck.forward(*features)
+        y = self.head.forward(*features)
 
         cropper = CenterCrop(x.shape[2:])
         y = self.upsample(y)

@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from ..models.lr_aspp import LRASPP, MobileNetV3Seg
@@ -16,9 +17,12 @@ class TestMobileNetV3Seg:
         for scale, dim, feature in zip([8, 16], [40, 160], features):
             assert feature.shape == torch.Size((2, dim, 1024 // scale, 2048 // scale))
 
-    def test_forward_shape(self):
+    @pytest.mark.parametrize(
+        "backbone_name", ["mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"]
+    )
+    def test_forward_shape(self, backbone_name: str):
         self.setUp()
-        model = MobileNetV3Seg(21)
+        model = MobileNetV3Seg(21, backbone_name=backbone_name)
 
         y = model(self.x)
 
