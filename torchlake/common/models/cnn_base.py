@@ -16,6 +16,7 @@ class ModelBase(nn.Module, ABC):
         super(ModelBase, self).__init__()
         self.build_foot(input_channel)
         self.build_blocks()
+        self.build_neck()
         self.build_head(output_size)
 
     @property
@@ -34,6 +35,9 @@ class ModelBase(nn.Module, ABC):
     def build_blocks(self):
         self.blocks = ...
 
+    def build_neck(self):
+        self.neck = nn.Identity()
+
     def build_head(self, output_size: int):
         self.head = nn.Sequential(
             FlattenFeature(),
@@ -43,4 +47,5 @@ class ModelBase(nn.Module, ABC):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x)
         y = self.blocks(y)
+        y = self.neck(y)
         return self.head(y)
