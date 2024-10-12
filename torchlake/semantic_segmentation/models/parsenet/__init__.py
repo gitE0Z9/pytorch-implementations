@@ -1,8 +1,7 @@
-from .model import ParseNetFCN, ParseNetDeepLab
+from .model import ParseNet
 from .network import GlobalContextModule
 
 __all__ = [
-    "ParseNetFCN",
-    "ParseNetDeepLab",
+    "ParseNet",
     "GlobalContextModule",
 ]
