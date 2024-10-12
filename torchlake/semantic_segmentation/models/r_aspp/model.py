@@ -48,7 +48,7 @@ class MobileNetV2Seg(nn.Module):
         ],
         frozen_backbone: bool,
     ) -> MobileNetFeatureExtractor:
-        """build backbone, we use 8x like vgg and dilation of resnet
+        """build backbone, we use mobilenet
 
         Args:
             backbone_name (Literal[ "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"], optional): mobilenet network name.
