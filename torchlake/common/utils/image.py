@@ -1,4 +1,3 @@
-from functools import lru_cache
 from pathlib import Path
 
 import cv2
@@ -44,6 +43,15 @@ def load_image(
 
 
 def save_img_array(array: np.ndarray, file_path: str):
+    """save image array of float (0~1) or uint8 (0~255)
+
+    Args:
+        array (np.ndarray): image array
+        file_path (str): output path
+
+    Raises:
+        NotImplementedError: if array type is not float32 or uint8
+    """
     if array.dtype == np.float32:
         array = (array.clip(0, 1) * 255).clip(0, 255).astype(np.uint8)
     elif array.dtype == np.uint8:
@@ -55,6 +63,15 @@ def save_img_array(array: np.ndarray, file_path: str):
 
 
 def decode_segmap(image: np.ndarray, colors: np.ndarray) -> np.ndarray:
+    """decode segmentation label from uint8 color to RGB color
+
+    Args:
+        image (np.ndarray): segmentation label
+        colors (np.ndarray): palette
+
+    Returns:
+        np.ndarray: colorized segmentation map
+    """
     r: np.ndarray = np.zeros_like(image).astype(np.uint8)
     g = r.copy()
     b = r.copy()
@@ -69,7 +86,38 @@ def decode_segmap(image: np.ndarray, colors: np.ndarray) -> np.ndarray:
     return rgb
 
 
+def overlay_image(image: np.ndarray, mask: np.ndarray, coef: float) -> np.ndarray:
+    """overlay mask over image
+
+    Args:
+        image (np.ndarray): target image, the one being overlaid
+        mask (np.ndarray): mask image, the one overlay target image
+        coef (float): the coeffcient of mask, the larger the stronger mask.
+
+    Returns:
+        np.ndarray: result
+    """
+    overlay_image = image.copy()
+    # channel last
+    c = overlay_image.shape[-1]
+    for channel_idx in range(c):
+        overlay_image[:, :, channel_idx] = (
+            overlay_image[:, :, channel_idx] * (1 - coef)
+            + mask[:, :, channel_idx] * coef
+        )
+
+    return overlay_image
+
+
 def yiq_transform(x: torch.Tensor) -> torch.Tensor:
+    """YIQ transform, transform RGB(Red-Green-Blue) space to YIQ(luma-chrominance) space
+
+    Args:
+        x (torch.Tensor): RGB image tensor
+
+    Returns:
+        torch.Tensor: YIQ image tensor
+    """
     A = torch.Tensor(
         [
             [
@@ -84,6 +132,14 @@ def yiq_transform(x: torch.Tensor) -> torch.Tensor:
 
 
 def yiq_inverse_transform(x: torch.Tensor) -> torch.Tensor:
+    """YIQ inverse transform, transform YIQ(luma-chrominance) space to RGB(Red-Green-Blue) space
+
+    Args:
+        x (torch.Tensor): YIQ image tensor
+
+    Returns:
+        torch.Tensor: RGB image tensor
+    """
     A = torch.Tensor(
         [
             [
@@ -98,6 +154,15 @@ def yiq_inverse_transform(x: torch.Tensor) -> torch.Tensor:
 
 
 def luminance_transfer(content: torch.Tensor, style: torch.Tensor) -> torch.Tensor:
+    """transfer luminance of style image to content image
+
+    Args:
+        content (torch.Tensor): content image
+        style (torch.Tensor): style image
+
+    Returns:
+        torch.Tensor: result
+    """
     content_yiq = yiq_transform(content)
     style_yiq = yiq_transform(style)
 
@@ -110,7 +175,16 @@ def color_histogram_matching(
     content: torch.Tensor,
     style: torch.Tensor,
 ) -> torch.Tensor:
-    n, c, _, _ = style.shape
+    """transfer color of style image to content image by histogram information
+
+    Args:
+        content (torch.Tensor): content image
+        style (torch.Tensor): style image
+
+    Returns:
+        torch.Tensor: result
+    """
+    # n, c, _, _ = style.shape
 
     x, y = torch.flatten(style, start_dim=2), torch.flatten(content, start_dim=2)
 
