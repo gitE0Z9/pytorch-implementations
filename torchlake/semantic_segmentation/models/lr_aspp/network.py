@@ -56,6 +56,9 @@ class LRASPP(nn.Module):
         super().__init__()
         shallow_input_channel, deep_input_channel = input_channels
         self.block = nn.Sequential(
+            # pool size should generate a 2x5 feature map
+            # K1 + S1*(2-1) = H // 16 + 1
+            # K2 + S2*(5-1) = W // 16 + 1
             SEBlock(deep_input_channel, hidden_dim, pool_kernel_size, pool_stride),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
             nn.Conv2d(hidden_dim, output_channel, 1),
