@@ -10,407 +10,310 @@
 
 接下來的開發方向會往 monorepo 延伸
 
-<table>
-  <tr>
-    <th>領域(domain)</th>
-    <th>模型(model)</th>
-  </tr>
-  <tr>
-    <td>
-      <b>少樣本學習(few shot learning)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed">
-            Siamese network
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21">
-            Prototypical network
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>圖像分類(image classification)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43">
-            ResNet50, ResNet-B, ResNet-C, ResNet-D
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-resnext-019a1528cfd7">
-            ResNeXt50-32x4d
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
-            ResNeSt50
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-res2net-4287e5507a24">
-            Res2Net50
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
-            SE-ResNet50
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
-            SE-ResNeXt50
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197">
-            SKNet
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-and-its-variants-2-f8f77cef8e2b">
-            Residual attention network(AttentionNet56)
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976">
-            DenseNet
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-highway-network-1e8bd63e432f">
-            Highway Network
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e">
-            MobileNet v1
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e">
-            MobileNet v2
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc">
-            MobileNet v3
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnet-10b0bab4110e">
-            GhostNet
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d">
-            ShuffleNet
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d">
-            ShuffleNetV2
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316">
-            SqueezeNet
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316">
-            SqueezeNeXt
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>物件偵測(object detection)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22">
-            YOLOv1
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43">
-            YOLOv2
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>語意分割(semantic segmentation)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%8D%81-unet-545efa00ad99">
-            UNet
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b">
-            FCN
-          </a>
-        </li>
-        <li>
-          <a href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221">
-            PSPNet
-          </a>
-        </li>
-        <li>
-          <a href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a">
-            Dual attention(DANet)
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>圖像生成(image generation)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539">
-            VAE
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd">
-            GAN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030">
-            DCGAN
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>光學文字辨識(optical character recognition)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698">
-            CRNN
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>風格遷移(style transfer)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620">
-            Neural style transfer
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-neural-doodle-80bb55108836">
-            Neural Doodle
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395">
-            Fast style transfer
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b">
-            AdaIN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39">
-            Pix2pix
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>文本分類(text classification)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c">
-            TextCNN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-charcnn-47020fdc76d4">
-            CharCNN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vdcnn-0bfdf5681d45">
-            VDCNN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-rcnn-for-text-classification-17880a540591">
-            RCNN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dcnn-a9241a1ff418">
-            DCNN
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>命名實體辨識(named entity recognition)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6">
-            BiLSTM-CRF
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>序列資料(sequence data)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641">
-            LSTM
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e">
-            BiLSTM
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gru-8510d5bf3261">
-            GRU
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d">
-            TCN
-          </a>
-        </li>
-        <li>
-          <a href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4">
-            Seq2Seq
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>語言模型(language model)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57">
-            Word2vec
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
-            GloVe
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
-            vLBL/ivLBL
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>表示學習(representation learning)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
-            PPMI
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a">
-            Hellinger PCA
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>圖神經網路(graph neural network)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf">
-            GCN
-          </a>
-        </li>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12">
-            GAT
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <b>增強學習(reinforcement learning)</b>
-    </td>
-    <td>
-      <ul>
-        <li>
-          <a target="_blank" rel="noopener noreferrer" href="https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337">
-            DQN
-          </a>
-        </li>
-      </ul>
-    </td>
-  </tr>
-</table>
+## 套件
+
+### 圖像分類
+
+套件名: `image_classification`
+
+- ResNet50, ResNet-B, ResNet-C, ResNet-D
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%83-resnet-690868d7af43)
+  - package: `resnet`
+
+- ResNeXt50-32x4d
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-resnext-019a1528cfd7)
+  - package: `resnext`
+
+- ResNeSt50
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197)
+  - package: `resnest`
+
+- Res2Net50
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-res2net-4287e5507a24)
+  - package: `res2net`
+
+- SE-ResNet50, SE-ResNeXt50
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197)
+  - package: `senet`
+
+- SKNet
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197)
+  - package: `sknet`
+
+- Residual attention network(AttentionNet56)
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-and-its-variants-2-f8f77cef8e2b)
+  - package: `residual_attention`
+
+- DenseNet
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976)
+  - package: `densenet`
+
+- Highway Network
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-highway-network-1e8bd63e432f)
+  - package: `highway`
+
+- MobileNet v1
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)
+  - package: `mobilenet`
+
+- MobileNet v2
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)
+  - package: `mobilenetv2`
+
+- MobileNet v3
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc)
+  - package: `mobilenetv3`
+
+- GhostNet
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnet-10b0bab4110e)
+  - package: `ghostnet`
+
+- ShuffleNet
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)
+  - package: `shufflenet`
+
+
+- ShuffleNetV2
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)
+  - package: `shufflenetv2`
+
+- SqueezeNet
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)
+  - package: `squeezenet`
+
+- SqueezeNeXt
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)
+  - package: `squeezenext`
+
+### 物件偵測
+
+套件名: `object_detection`
+
+- You only look once (YOLO)
+  - [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)
+  - package: `yolov1`
+
+
+- YOLOv2
+  - [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)
+  - package: `yolov2`
+
+
+### 語義分割
+
+套件名: `semantic_segmentation`
+
+
+- UNet
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%8D%81-unet-545efa00ad99)
+  - package: `unet`
+
+
+- Fully convolution network (FCN)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b)
+  - package: `fcn`
+
+
+- Pyramid spatial pooling network (PSPNet)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221)
+  - package: `pspnet`
+
+
+- Dual attention(DANet)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)
+  - package: `dual_attention`
+
+### 圖像生成
+
+套件名: `image_generation`
+
+- Variational autoencoder (VAE)
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539)
+  - package: `vae`
+
+
+- Generative adversarial network (GAN)
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd)
+  - package: `gan`
+
+
+- Deep convolution GAN (DCGAN)
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)
+  - package: `dcgan`
+
+
+### 光學文字辨識
+
+套件名: `ocr`
+
+
+- Convolution recurrent neural network (CRNN)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698)
+  - package: `crnn`
+
+
+
+### 風格遷移
+
+套件名: `style_transfer`
+
+
+- Neural style transfer
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B9%9D-image-style-transfer-371e161c5620)
+  - package: `neural_style_transfer`
+
+
+- Neural Doodle
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-neural-doodle-80bb55108836)
+  - package: `neural_doodle`
+
+
+- Fast style transfer
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)
+  - package: `fast_style_transfer`
+
+
+- Adaptive instance normalization (AdaIN)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b)
+  - package: `adain`
+
+
+- Pix2Pix
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39)
+  - package: `pix2pix`
+
+
+### 文本預測
+
+套件名: `text_classification`
+
+
+- TextCNN
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c)
+  - package: `textcnn`
+
+
+
+- Character CNN (CharCNN)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-charcnn-47020fdc76d4)
+  - package: `charcnn`
+
+
+- Very deep CNN (VDCNN)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vdcnn-0bfdf5681d45)
+  - package: `vdcnn`
+
+
+- Recurrent CNN (RCNN)
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-rcnn-for-text-classification-17880a540591)
+  - package: `rcnn`
+
+
+- Dynamic CNN (DCNN)
+  - [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dcnn-a9241a1ff418)
+  - package: `dcnn`
+
+
+### 標籤預測
+
+套件名: `tag_prediction`
+
+- Bidirectional LSTM - Conditional random field (BiLSTM-CRF)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6)
+  - package: `bilstm_crf`
+
+
+### 序列資料
+
+套件名: `sequence_data`
+
+
+- Long and short term memory (LSTM)
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641)
+  - package: `lstm`
+
+
+- Bidirectional LSTM (BiLSTM)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)
+  - package: `lstm`
+
+
+- Gated recurrent unit (GRU)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gru-8510d5bf3261)
+  - package: `gru`
+
+
+- Temporal convolution network (TCN)
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d)
+  - package: `tcn`
+
+- Seq2Seq
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)
+  - package: `seq2seq`
+
+
+### 語言模型
+
+套件名: `language_model`
+
+- Word2vec
+  - [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57)
+  - package: `word2vec`
+
+- GloVe
+  - [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)
+  - package: `glove`
+
+- Vector log-bilinear language model (vLBL/ivLBL)
+  - [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)
+  - package: `vlbl`
+
+
+### 少樣本學習
+
+ 套件名: `few_shot`
+
+- Siamese network: 
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed)
+  - package: `siamese`
+
+- Prototypical network: 
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)
+  - package: `prototypical`
+
+
+### 表示學習
+
+套件名: `representation`
+
+- Positive pairwise mutual information (PPMI)
+  - [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)
+  - package: `ppmi`
+
+- Hellinger PCA
+  - [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)
+  - package: `hellinger`
+  
+            
+### 圖神經網路
+
+套件名: `graph`
+
+- Graph Convolution Network (GCN)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf)
+  - package: `gcn`
+  
+- Graph Attention Network (GAT)
+  - [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12)
+  - package: `attention`
+
+### 增強學習
+
+套件名: `reinforcement_learning`
+
+- Deep Q Network
+  - [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337)
+  - package: `dqn`
 
 ## 開發環境
 
