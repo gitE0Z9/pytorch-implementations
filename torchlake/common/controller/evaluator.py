@@ -58,6 +58,8 @@ class ClassificationEvaluator(EvaluatorBase):
         self.label_size = label_size
         self.device = device
         self.feature_dim = feature_dim
+        # TODO: ugly fix
+        self.feature_last = False
 
     def _build_metric(self) -> IncrementalConfusionMatrix:
         return IncrementalConfusionMatrix(self.label_size)
