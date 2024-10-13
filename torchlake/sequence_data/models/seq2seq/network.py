@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
 import torch.nn.functional as F
-from ..lstm.model import LstmClassifier
+from ..lstm.model import LSTMClassifier
 from ..base.wrapper import SequenceModelFullFeatureExtractor
 
 
@@ -283,7 +283,7 @@ class Seq2SeqEncoder(nn.Module):
         將欲翻譯句子轉為隱向量
         """
         super(Seq2SeqEncoder, self).__init__()
-        self.rnn = LstmClassifier(
+        self.rnn = LSTMClassifier(
             vocab_size,
             embed_dim,
             hidden_dim,
@@ -342,7 +342,7 @@ class Seq2SeqDecoder(nn.Module):
         將隱向量與目標句子轉為欲翻譯句子
         """
         super(Seq2SeqDecoder, self).__init__()
-        self.rnn = LstmClassifier(
+        self.rnn = LSTMClassifier(
             vocab_size,
             embed_dim,
             hidden_dim,

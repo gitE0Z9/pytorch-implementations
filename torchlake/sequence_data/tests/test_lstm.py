@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from ..models.lstm.network import LstmCell, LstmLayer
-from ..models import LstmClassifier
+from ..models.lstm.network import LSTMCell, LSTMLayer
+from ..models import LSTMClassifier
 
 
 def test_forward_shape_cell():
@@ -13,7 +13,7 @@ def test_forward_shape_cell():
     h = torch.randn(batch_size, latent_dim)
     c = torch.randn(batch_size, latent_dim)
 
-    model = LstmCell(embed_dim, latent_dim)
+    model = LSTMCell(embed_dim, latent_dim)
 
     h, c = model(x, h, c)
 
@@ -68,7 +68,7 @@ def test_forward_shape(
     latent_dim = 8
     x = torch.randint(0, vocab_size, (batch_size, latent_dim))
 
-    model = LstmClassifier(
+    model = LSTMClassifier(
         vocab_size,
         latent_dim,
         latent_dim,

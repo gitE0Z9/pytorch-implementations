@@ -2,9 +2,9 @@ import torch
 from torch import nn
 
 
-class LstmCell(nn.Module):
+class LSTMCell(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int):
-        super(LstmCell, self).__init__()
+        super(LSTMCell, self).__init__()
         concat_dim = input_dim + latent_dim
 
         # fused input_gate, forgot_gate, output_gate
@@ -30,12 +30,12 @@ class LstmCell(nn.Module):
         return h, c
 
 
-class LstmLayer(nn.Module):
+class LSTMLayer(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int, batch_first: bool = True):
-        super(LstmLayer, self).__init__()
+        super(LSTMLayer, self).__init__()
         self.latent_dim = latent_dim
         self.batch_first = batch_first
-        self.cell = LstmCell(input_dim, latent_dim)
+        self.cell = LSTMCell(input_dim, latent_dim)
 
     def forward(
         self,
