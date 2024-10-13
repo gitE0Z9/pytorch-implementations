@@ -14,8 +14,8 @@ class Xception(ModelBase):
 
     def build_foot(self, input_channel):
         self.foot = nn.Sequential(
-            Conv2dNormActivation(input_channel, 32, 3, stride=2, norm_layer=None),
-            Conv2dNormActivation(32, 64, 3, norm_layer=None),
+            Conv2dNormActivation(input_channel, 32, 3, stride=2),
+            Conv2dNormActivation(32, 64, 3),
             *[
                 ResBlock(
                     in_c,
