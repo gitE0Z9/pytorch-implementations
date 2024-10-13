@@ -31,3 +31,21 @@ def log_sum_exp(x: torch.Tensor) -> torch.Tensor:
     """safe log softmax"""
     max_score, _ = x.max(-1, keepdim=True)  # B, L, 1
     return max_score + torch.exp(x - max_score).sum(-1, keepdim=True).log()
+
+
+def receptive_field(k, l):
+    if l == 0:
+        return 1
+    if l == 1:
+        return k
+    return (k - 1) ** (l - 1) + receptive_field(k, l - 1)
+
+
+def generate_grid(grid_x: int, grid_y: int) -> torch.Tensor:
+    x_offset, y_offset = torch.meshgrid(
+        torch.arange(grid_x),
+        torch.arange(grid_y),
+        indexing="xy",
+    )
+
+    return x_offset, y_offset
