@@ -7,7 +7,7 @@ from torchlake.common.schemas.nlp import NlpContext
 from .network import Block, Folding, WideConv1d
 
 
-class Dcnn(ModelBase):
+class DCNN(ModelBase):
 
     def __init__(
         self,
@@ -19,6 +19,17 @@ class Dcnn(ModelBase):
         topk: int = 4,
         context: NlpContext = NlpContext(),
     ):
+        """Dynamic convolution neural network in paper [1404.2188v1]
+
+        Args:
+            vocab_size (int): size of vocabulary
+            embed_dim (int, optional): dimension of embedding vector. Defaults to 48.
+            output_size (int, optional): output size. Defaults to 1.
+            kernels (tuple[int], optional): kernel size of convolution layers. Defaults to (7, 5).
+            hidden_dims (tuple[int], optional): hidden dim of convolution layers. Defaults to (6, 14).
+            topk (int, optional): top k to retain for final max pool. Defaults to 4.
+            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+        """
         assert len(hidden_dims) == len(
             kernels
         ), "kernels and hidden_dims should have same lengths."
@@ -29,7 +40,7 @@ class Dcnn(ModelBase):
         self.hidden_dims = hidden_dims
         self.topk = topk
         self.context = context
-        super(Dcnn, self).__init__(1, output_size)
+        super().__init__(1, output_size)
 
     @property
     def feature_dim(self) -> int:

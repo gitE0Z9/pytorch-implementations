@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import torch
 
-from ..models import FastText
+from ..models.fasttext import FastText
 
 BATCH_SIZE = 16
 BUCKET_SIZE = 100

@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from ..models import Dcnn
-from ..models.dcnn.network import Block, DynamicKmaxPool1d, Folding, WideConv1d
+from ..models.dcnn import DCNN, DynamicKmaxPool1d
+from ..models.dcnn.network import Block, Folding, WideConv1d
 
 
 def test_wide_conv_output_shape():
@@ -44,7 +44,7 @@ def test_folding_output_shape():
 
 
 def test_dcnn_output_shape():
-    model = Dcnn(10, topk=3)
+    model = DCNN(10, topk=3)
 
     x = torch.randint(0, 10, (4, 256))
     output = model.forward(x)

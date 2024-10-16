@@ -7,7 +7,7 @@ from torchlake.common.schemas.nlp import NlpContext
 from .network import Block
 
 
-class Vdcnn(ModelBase):
+class VDCNN(ModelBase):
 
     def __init__(
         self,
@@ -30,14 +30,13 @@ class Vdcnn(ModelBase):
             enable_shortcut (bool, optional): enable shortcut. Defaults to True.
             context (NlpContext, optional): nlp context. Defaults to NlpContext(max_seq_len=1024).
         """
-        self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.max_seq_len = context.max_seq_len
         self.topk = topk
         self.depth_multipier = depth_multipier
         self.enable_shortcut = enable_shortcut
         self.context = context
-        super(Vdcnn, self).__init__(1, output_size)  # dummy in_c
+        super().__init__(vocab_size, output_size)  # dummy in_c
 
     @property
     def feature_dim(self) -> int:
@@ -54,8 +53,8 @@ class Vdcnn(ModelBase):
             [256, 512, num_repeat],
         ]
 
-    def build_foot(self, input_channel: int):
-        embed = nn.Embedding(self.vocab_size, self.embed_dim)
+    def build_foot(self, vocab_size: int):
+        embed = nn.Embedding(vocab_size, self.embed_dim)
         conv = nn.Conv1d(self.embed_dim, 64, 3, padding=1)
 
         self.foot = nn.ModuleDict({"embed": embed, "conv": conv})

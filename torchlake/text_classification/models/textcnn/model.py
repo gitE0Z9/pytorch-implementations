@@ -2,9 +2,10 @@ import torch
 from torch import nn
 
 from torchlake.common.models import MultiKernelConvModule
+from torchlake.common.models.model_base import ModelBase
 
 
-class TextCnn(nn.Module):
+class TextCNN(ModelBase):
     def __init__(
         self,
         vocab_size: int,
@@ -12,7 +13,7 @@ class TextCnn(nn.Module):
         hidden_dim: int = 100,
         output_size: int = 1,
         padding_idx: int | None = None,
-        kernel_size: list[int] = [3, 4, 5],
+        kernels: list[int] = [3, 4, 5],
         dropout_prob: float = 0.5,
     ):
         """TextCNN in paper[1408.5882]
@@ -23,33 +24,46 @@ class TextCnn(nn.Module):
             hidden_dim (int, optional): dimension of convolution layer. Defaults to 100.
             output_size (int, optional): number of features of output. Defaults to 1.
             padding_idx (int | None, optional): index of padding token. Defaults to None.
-            kernel_size (list[int], optional): size of kernels. Defaults to [3,4,5].
-            dropout_prob (float, Defaults 0.5): dropout probability of fully connected layer. Defaults to 0.5.
+            kernels (list[int], optional): size of kernels. Defaults to [3,4,5].
+            dropout_prob (float, optional): dropout probability. Defaults to 0.5.
         """
-        super(TextCnn, self).__init__()
-        self.embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
-        self.pool = MultiKernelConvModule(
+        self.embed_dim = embed_dim
+        self.hidden_dim = hidden_dim
+        self.padding_idx = padding_idx
+        self.kernels = kernels
+        self.dropout_prob = dropout_prob
+        super().__init__(vocab_size, output_size)
+
+    def build_foot(self, vocab_size: int):
+        self.foot = nn.Embedding(
+            vocab_size,
+            self.embed_dim,
+            padding_idx=self.padding_idx,
+        )
+
+    def build_blocks(self):
+        self.blocks = MultiKernelConvModule(
             1,
-            hidden_dim,
-            [(k, embed_dim) for k in kernel_size],
+            self.hidden_dim,
+            [(k, self.embed_dim) for k in self.kernels],
             disable_padding=True,
             activation=nn.ReLU(inplace=True),
             reduction="max",
             concat_output=True,
         )
-        self.fc = nn.Linear(hidden_dim * len(kernel_size), output_size)
-        self.dropout = nn.Dropout(dropout_prob)
+
+    def build_head(self, output_size):
+        self.head = nn.Sequential(
+            nn.Dropout(self.dropout_prob),
+            nn.Linear(self.hidden_dim * len(self.kernels), output_size),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Batch_size, 1, Seq_len, embed_dim
-        y = self.embed(x).unsqueeze(1)
+        y = self.foot(x).unsqueeze(1)
 
         # Batch_size, filter_number * hidden_dim
-        y = self.pool(y)
-
-        y = self.dropout(y)
+        y = self.blocks(y)
 
         # Batch_size, label_size
-        y = self.fc(y)
-
-        return y
+        return self.head(y)

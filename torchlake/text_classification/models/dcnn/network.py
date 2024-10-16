@@ -11,7 +11,7 @@ class WideConv1d(nn.Module):
         output_channel: int,
         kernel: int,
     ):
-        super(WideConv1d, self).__init__()
+        super().__init__()
         self.conv = nn.Conv1d(
             input_channel,
             output_channel,
@@ -42,7 +42,7 @@ class DynamicKmaxPool1d(KmaxPool1d):
             conv_layer_total (int): total number of convolution layer
         """
         self.topk = max(topk, int((1 - conv_layer_idx / conv_layer_total) * seq_len))
-        super(DynamicKmaxPool1d, self).__init__(self.topk)
+        super().__init__(self.topk)
 
 
 class Block(nn.Module):
@@ -57,7 +57,7 @@ class Block(nn.Module):
         conv_layer_idx: int,
         conv_layer_total: int,
     ):
-        super(Block, self).__init__()
+        super().__init__()
         self.block = nn.Sequential(
             WideConv1d(input_channel, output_channel, kernel),
             DynamicKmaxPool1d(topk, seq_len, conv_layer_idx, conv_layer_total),
@@ -74,7 +74,7 @@ class Block(nn.Module):
 class Folding(nn.Module):
 
     def __init__(self):
-        super(Folding, self).__init__()
+        super().__init__()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, c, s = x.shape

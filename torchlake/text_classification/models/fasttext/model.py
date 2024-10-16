@@ -3,9 +3,10 @@ from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.language_model.constants.enum import LossType
 from torchlake.language_model.models.subword.network import SubwordEmbedding
+from torchlake.common.models.model_base import ModelBase
 
 
-class FastText(nn.Module):
+class FastText(ModelBase):
     def __init__(
         self,
         bucket_size: int,
@@ -23,23 +24,30 @@ class FastText(nn.Module):
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
-        super(FastText, self).__init__()
-
-        self.embed: SubwordEmbedding = SubwordEmbedding(
-            bucket_size,
-            embed_dim,
-            context=context,
-        )
-
-        self.fc = (
-            nn.Linear(embed_dim, output_size)
-            if loss_type == LossType.CROSS_ENTROPY
-            else nn.Identity()
-        )
+        self.embed_dim = embed_dim
+        self.loss_type = loss_type
+        self.context = context
+        super().__init__(bucket_size, output_size)
 
     @property
     def embeddings(self) -> nn.Embedding:
-        return self.embed.embeddings
+        return self.foot.embeddings
+
+    def build_foot(self, bucket_size: int):
+        self.foot = SubwordEmbedding(
+            bucket_size,
+            self.embed_dim,
+            context=self.context,
+        )
+
+    def build_blocks(self):
+        self.blocks = ...
+
+    def build_head(self, output_size: int):
+        if self.loss_type == LossType.CROSS_ENTROPY:
+            self.head = nn.Linear(self.embed_dim, output_size)
+        else:
+            self.head = nn.Identity()
 
     def get_sentence_vector(
         self,
@@ -48,7 +56,7 @@ class FastText(nn.Module):
         word_spans: list[torch.Tensor],
     ) -> torch.Tensor:
         # b, s, h
-        y: torch.Tensor = self.embed.forward(ngrams, words, word_spans)
+        y: torch.Tensor = self.foot.forward(ngrams, words, word_spans)
         # b, h
         return y.mean(axis=1)
 
@@ -69,4 +77,4 @@ class FastText(nn.Module):
             torch.Tensor: embedded vectors, shape is (batch_size, #subsequence, vocab_size)
         """
         y = self.get_sentence_vector(ngrams, words, word_spans)
-        return self.fc(y)
+        return self.head(y)

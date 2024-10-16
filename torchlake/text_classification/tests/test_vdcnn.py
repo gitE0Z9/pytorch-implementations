@@ -2,7 +2,7 @@ import pytest
 import torch
 from torchlake.common.schemas.nlp import NlpContext
 
-from ..models import Vdcnn
+from ..models.vdcnn import VDCNN
 from ..models.vdcnn.network import Block
 
 
@@ -21,7 +21,7 @@ def test_block_output_shape():
 def test_vdcnn_output_shape(depth_mutliplier: int, enable_shortcut: bool):
     """test output shape"""
     max_seq_len = 1024
-    model = Vdcnn(
+    model = VDCNN(
         70,
         10,
         depth_multipier=depth_mutliplier,

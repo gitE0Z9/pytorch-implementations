@@ -1,11 +1,11 @@
 import torch
 
-from ..models import Rcnn
+from ..models.rcnn import RCNN
 
 
 def test_rcnn_output_shape():
     """test output shape"""
-    model = Rcnn(100, 8, 8, 10)
+    model = RCNN(100, 8, 8, 10)
 
     x = torch.randint(0, 100, (4, 256))
     output = model.forward(x)

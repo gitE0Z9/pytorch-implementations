@@ -13,7 +13,7 @@ class Block(nn.Module):
         enable_shortcut: bool = True,
         enable_pool: bool = False,
     ):
-        super(Block, self).__init__()
+        super().__init__()
         self.enable_shortcut = enable_shortcut
         self.block = nn.Sequential(
             ConvBnRelu(

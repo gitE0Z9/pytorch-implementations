@@ -1,48 +1,77 @@
 import torch
 from torch import nn
+from torchlake.common.models import ConvBnRelu
+from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
 from .network import CharQuantization
 
 
-class CharCnn(nn.Module):
-    def __init__(self, char_size: int, label_size: int, context: NlpContext):
-        super(CharCnn, self).__init__()
+class CharCNN(ModelBase):
+    def __init__(
+        self,
+        char_size: int,
+        output_size: int = 1,
+        dropout_prob: float = 0.5,
+        context: NlpContext = NlpContext(),
+    ):
+        """Character CNN in paper [1509.01626]
+
+        Args:
+            char_size (int): size of characters
+            output_size (int, optional): output size. Defaults to 1.
+            dropout_prob (float, optional): dropout probability. Defaults to 0.5.
+            context (NlpContext, optional): . Defaults to NlpContext().
+        """
+        self.context = context
+        self.dropout_prob = dropout_prob
+        super().__init__(char_size, output_size)
+
+    @property
+    def feature_dim(self) -> int:
         # paper page 3
         # l_6 = (l_0 - 96) / 3**3
         # input dim = l_6 * frame_size
-        self.fc_channel_size = int((context.max_seq_len - 96) / 27 * 256)
+        return int((self.context.max_seq_len - 96) / 27 * 256)
 
-        self.quantization = CharQuantization(char_size, context)
-        self.conv = nn.Sequential(
-            nn.Conv1d(char_size, 256, 7),
-            nn.ReLU(True),
+    def build_foot(self, char_size: int):
+        self.foot = nn.ModuleDict(
+            {
+                "quantization": CharQuantization(char_size, self.context),
+                "conv": nn.Sequential(
+                    ConvBnRelu(char_size, 256, 7, enable_bn=False, dimension="1d"),
+                    nn.MaxPool1d(3, 3),
+                ),
+            }
+        )
+
+    def build_blocks(self):
+        self.blocks = nn.Sequential(
+            ConvBnRelu(256, 256, 7, enable_bn=False, dimension="1d"),
             nn.MaxPool1d(3, 3),
-            nn.Conv1d(256, 256, 7),
-            nn.ReLU(True),
-            nn.MaxPool1d(3, 3),
-            nn.Conv1d(256, 256, 3),
-            nn.ReLU(True),
-            nn.Conv1d(256, 256, 3),
-            nn.ReLU(True),
-            nn.Conv1d(256, 256, 3),
-            nn.ReLU(True),
-            nn.Conv1d(256, 256, 3),
-            nn.ReLU(True),
+            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
             nn.MaxPool1d(3, 3),
         )
-        self.fc = nn.Sequential(
-            nn.Linear(self.fc_channel_size, 1024),
-            nn.Dropout(),
+
+    def build_head(self, output_size: int):
+        self.head = nn.Sequential(
+            nn.Linear(self.feature_dim, 1024),
+            nn.Dropout(self.dropout_prob),
             nn.Linear(1024, 1024),
-            nn.Dropout(),
-            nn.Linear(1024, label_size),
+            nn.Dropout(self.dropout_prob),
+            nn.Linear(1024, output_size),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.quantization(x).transpose(-1, -2).float()
-        y = self.conv(y).transpose(-1, -2).reshape(-1, self.fc_channel_size)
+        # b, h, s
+        y = self.foot["quantization"](x).transpose(-1, -2).float()
+        # b, h, s
+        y = self.foot["conv"](y)
+        # b*s, h
+        y = self.blocks(y).transpose(-1, -2).reshape(-1, self.feature_dim)
 
-        y = self.fc(y)
-
-        return y
+        # b*s, o
+        return self.head(y)
