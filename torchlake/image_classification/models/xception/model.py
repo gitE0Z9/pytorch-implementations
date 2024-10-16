@@ -2,7 +2,7 @@ from itertools import pairwise
 
 from torch import nn
 from torchlake.common.models import DepthwiseSeparableConv2d, ResBlock
-from torchlake.common.models.cnn_base import ModelBase
+from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
 
