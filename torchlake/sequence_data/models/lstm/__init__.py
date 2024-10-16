@@ -1,5 +1,5 @@
-from .model import LSTMClassifier
+from .model import LSTMDiscriminator
 
 __all__ = [
-    "LSTMClassifier",
+    "LSTMDiscriminator",
 ]

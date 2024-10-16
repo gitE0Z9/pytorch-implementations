@@ -2,9 +2,9 @@ import torch
 from torch import nn
 
 
-class GruCell(nn.Module):
+class GRUCell(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int):
-        super(GruCell, self).__init__()
+        super().__init__()
         concat_dim = input_dim + latent_dim
 
         # fused input_gate, output_gate
@@ -24,12 +24,12 @@ class GruCell(nn.Module):
         return h
 
 
-class GruLayer(nn.Module):
+class GRULayer(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int, batch_first: bool = True):
-        super(GruLayer, self).__init__()
+        super().__init__()
         self.latent_dim = latent_dim
         self.batch_first = batch_first
-        self.cell = GruCell(input_dim, latent_dim)
+        self.cell = GRUCell(input_dim, latent_dim)
 
     def forward(self, x: torch.Tensor, h: torch.Tensor | None = None) -> torch.Tensor:
         if h is None:

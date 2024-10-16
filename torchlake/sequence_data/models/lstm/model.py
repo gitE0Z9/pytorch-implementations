@@ -1,8 +1,8 @@
 from torch import nn
 
-from ..base.wrapper import SequenceModelWrapper
+from ..base.rnn_discriminator import RNNDiscriminator
+from ..base.decorators import register_model_class
 
 
-class LSTMClassifier(SequenceModelWrapper):
-    def __init__(self, *args, **kwargs):
-        super(LSTMClassifier, self).__init__(model_class=nn.LSTM, *args, **kwargs)
+@register_model_class(nn.LSTM)
+class LSTMDiscriminator(RNNDiscriminator): ...

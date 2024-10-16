@@ -2,10 +2,10 @@ import torch
 from torch import nn
 
 
-class RnnCell(nn.Module):
+class RNNCell(nn.Module):
 
     def __init__(self, input_dim: int, latent_dim: int):
-        super(RnnCell, self).__init__()
+        super().__init__()
 
         # fused input date & memory gate
         self.w = nn.Linear(input_dim + latent_dim, latent_dim)
@@ -15,12 +15,12 @@ class RnnCell(nn.Module):
         return self.w(h_tilde).relu()
 
 
-class RnnLayer(nn.Module):
+class RNNLayer(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int, batch_first: bool = True):
-        super(RnnLayer, self).__init__()
+        super().__init__()
         self.latent_dim = latent_dim
         self.batch_first = batch_first
-        self.cell = RnnCell(input_dim, latent_dim)
+        self.cell = RNNCell(input_dim, latent_dim)
 
     def forward(self, x: torch.Tensor, h: torch.Tensor | None = None) -> torch.Tensor:
         if h is None:
