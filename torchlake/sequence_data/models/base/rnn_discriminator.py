@@ -89,7 +89,7 @@ class RNNDiscriminator(ModelBase):
         y: torch.Tensor,
         ht: torch.Tensor | None = None,
         *states: tuple[torch.Tensor],
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, tuple[torch.Tensor] | None]:
         """extract feature from RNN
 
         Args:
@@ -101,6 +101,7 @@ class RNNDiscriminator(ModelBase):
         Returns:
             tuple[torch.Tensor, torch.Tensor]: output and hidden states
         """
+        _, seq_len, _ = y.shape
         y = pack_sequence(
             y,
             x.ne(self.context.padding_idx).sum(dim=1).long().detach().cpu(),
@@ -123,7 +124,7 @@ class RNNDiscriminator(ModelBase):
         else:
             ht, states = states, tuple()
 
-        o = unpack_sequence(o, self.context.max_seq_len)
+        o = unpack_sequence(o, seq_len)
 
         return o, ht, states
 
