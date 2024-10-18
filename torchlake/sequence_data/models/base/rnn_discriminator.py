@@ -115,7 +115,12 @@ class RNNDiscriminator(ModelBase):
         if ht is not None:
             states = (ht, *states)
 
-        states = states if len(states) and states[0] is not None else None
+        if isinstance(states, tuple) and len(states):
+            if len(states) == 1:
+                states = states[0]
+        else:
+            states = None
+        # states = states if len(states) and states[0] is not None else None
 
         o, states = self.blocks(y, states)
 
