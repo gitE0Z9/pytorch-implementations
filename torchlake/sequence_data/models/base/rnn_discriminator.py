@@ -115,12 +115,13 @@ class RNNDiscriminator(ModelBase):
         if ht is not None:
             states = (ht, *states)
 
-        if isinstance(states, tuple) and len(states):
-            if len(states) == 1:
-                states = states[0]
-        else:
+        # for compatibility with torch
+        # e.g. rnn & gru only receive tensor & None
+        # e.g. lstm only receive tuple[tensor, tensor] & None
+        if len(states) == 0:
             states = None
-        # states = states if len(states) and states[0] is not None else None
+        elif len(states) == 1:
+            states = states[0]
 
         o, states = self.blocks(y, states)
 
