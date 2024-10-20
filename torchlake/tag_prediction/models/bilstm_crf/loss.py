@@ -52,7 +52,7 @@ class LinearCRFLoss(nn.Module):
 
             # message passing
             # B, O
-            alpha += (emit_score + transition_score).sum(1)
+            alpha = alpha + (emit_score + transition_score).sum(1)
 
             # early stopping
             if non_pad_length == t:
