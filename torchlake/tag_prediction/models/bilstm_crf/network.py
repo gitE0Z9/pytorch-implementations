@@ -21,20 +21,23 @@ class LinearCRF(nn.Module):
         # from i to j
         self.transition = nn.Parameter(torch.randn(output_size, output_size))
 
+        MUST_NOT = -1e4
+        MUST_HAPPEN = 0
+
         # prohibit transition to bos
-        self.transition.data[:, context.bos_idx] = 0
+        self.transition.data[:, context.bos_idx] = MUST_NOT
         # must transfer from the start tag
-        self.transition.data[context.bos_idx, :] = 1e4
+        self.transition.data[context.bos_idx, :] = MUST_HAPPEN
         # never transfer from the start to the end
-        self.transition.data[context.eos_idx, context.bos_idx] = 0
+        self.transition.data[context.eos_idx, context.bos_idx] = MUST_NOT
         # never transfer from the eos
-        self.transition.data[context.eos_idx, :] = 0
+        self.transition.data[context.eos_idx, :] = MUST_NOT
         # never transfer from the start to pad
-        self.transition.data[context.bos_idx, context.padding_idx] = 0
+        self.transition.data[context.bos_idx, context.padding_idx] = MUST_NOT
         # must absorb into pad
-        self.transition.data[context.eos_idx, context.padding_idx] = 1e4
+        self.transition.data[context.eos_idx, context.padding_idx] = MUST_HAPPEN
         # must absorb into pad
-        self.transition.data[context.padding_idx, context.padding_idx] = 1e4
+        self.transition.data[context.padding_idx, context.padding_idx] = MUST_HAPPEN
 
     def forward(
         self,
