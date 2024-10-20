@@ -1,9 +1,9 @@
-from .model import BiLSTM_CRF
+from .model import BiLSTMCRF
 from .network import LinearCRF
 from .loss import LinearCRFLoss
 
 __all__ = [
-    "BiLSTM_CRF",
+    "BiLSTMCRF",
     "LinearCRF",
     "LinearCRFLoss",
 ]

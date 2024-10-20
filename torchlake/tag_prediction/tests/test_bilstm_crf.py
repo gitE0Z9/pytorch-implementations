@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ..models.bilstm_crf import BiLSTM_CRF, LinearCRF, LinearCRFLoss
+from ..models.bilstm_crf import BiLSTMCRF, LinearCRF, LinearCRFLoss
 from .constants import (
     BATCH_SIZE,
     CONTEXT,
@@ -49,7 +49,7 @@ class TestBiLSTM_CRF:
     def test_forward(self, is_training: bool, expected_shape: tuple[int]):
         self.setUp()
 
-        model = BiLSTM_CRF(
+        model = BiLSTMCRF(
             VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,

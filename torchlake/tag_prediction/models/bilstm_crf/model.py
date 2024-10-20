@@ -6,7 +6,7 @@ from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 from .network import LinearCRF
 
 
-class BiLSTM_CRF(ModelBase):
+class BiLSTMCRF(ModelBase):
     def __init__(
         self,
         vocab_size: int,
