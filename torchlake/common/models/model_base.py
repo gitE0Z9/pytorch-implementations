@@ -31,12 +31,11 @@ class ModelBase(nn.Module, ABC):
     def build_foot(self, input_channel: int):
         self.foot = ...
 
-    @abstractmethod
     def build_blocks(self):
         self.blocks = ...
 
     def build_neck(self):
-        self.neck = nn.Identity()
+        self.neck = ...
 
     def build_head(self, output_size: int):
         self.head = nn.Sequential(
@@ -46,6 +45,11 @@ class ModelBase(nn.Module, ABC):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x)
-        y = self.blocks(y)
-        y = self.neck(y)
+
+        if self.blocks is not None:
+            y = self.blocks(y)
+
+        if self.neck is not None:
+            y = self.neck(y)
+
         return self.head(y)
