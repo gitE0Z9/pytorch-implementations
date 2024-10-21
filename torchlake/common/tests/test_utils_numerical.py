@@ -1,6 +1,11 @@
 import torch
 import pytest
-from ..utils.numerical import safe_sqrt, safe_negative_factorial, generate_grid
+from ..utils.numerical import (
+    safe_sqrt,
+    safe_negative_factorial,
+    generate_grid,
+    log_sum_exp,
+)
 from torch.testing import assert_close
 
 
@@ -28,6 +33,14 @@ def test_safe_negative_factorial(name, x):
     y = safe_negative_factorial(x, -0.5)
 
     assert not torch.isnan(y).any().item()
+
+
+def test_log_sum_exp():
+    x = torch.rand(2, 10)
+    y = log_sum_exp(x)
+
+    assert y.shape == torch.Size((2,))
+    assert not torch.isnan(y).any()
 
 
 def test_generate_grid():

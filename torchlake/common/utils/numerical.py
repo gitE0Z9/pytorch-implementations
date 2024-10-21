@@ -27,10 +27,26 @@ def safe_std(
     return x.var(dim, keepdim=keepdim).add(epsilon).sqrt()
 
 
-def log_sum_exp(x: torch.Tensor) -> torch.Tensor:
-    """safe log softmax"""
-    max_score, _ = x.max(-1, keepdim=True)  # B, L, 1
-    return max_score + torch.exp(x - max_score).sum(-1, keepdim=True).log()
+def log_sum_exp(x: torch.Tensor, keepdim: bool = False) -> torch.Tensor:
+    """safe log softmax
+    compute normalization constant of partition function
+
+    Args:
+        x (torch.Tensor): input tensor , shape is (X1, ..... XN)
+        keepdim (bool, optional): keep the axis of the reduced dimension, Defaults to False.
+
+    Returns:
+        torch.Tensor: output tensor, shape is (X1, ..... XN-1)
+    """
+    # max_score = x.max(dim, keepdim=True).values
+    # return max_score + torch.exp(x - max_score).sum(dim, keepdim=True).log()
+
+    y = x - x.log_softmax(-1)
+
+    if keepdim:
+        return y[..., 0:1]
+    else:
+        return y[..., 0]
 
 
 def receptive_field(k, l):
@@ -49,3 +65,8 @@ def generate_grid(grid_x: int, grid_y: int) -> torch.Tensor:
     )
 
     return x_offset, y_offset
+
+
+def gaussian_kernel(x: torch.Tensor, y: torch.Tensor, std: float) -> torch.Tensor:
+    z = torch.cdist(x, y) / std
+    return torch.exp(-(z**2) / 2)
