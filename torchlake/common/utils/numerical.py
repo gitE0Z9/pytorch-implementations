@@ -27,26 +27,27 @@ def safe_std(
     return x.var(dim, keepdim=keepdim).add(epsilon).sqrt()
 
 
-def log_sum_exp(x: torch.Tensor, keepdim: bool = False) -> torch.Tensor:
-    """safe log softmax
-    compute normalization constant of partition function
+def log_sum_exp(x: torch.Tensor, dim: int = -1, keepdim: bool = False) -> torch.Tensor:
+    """compute log softmax in numerically stable way
+    often used to compute normalization constant of partition function
 
     Args:
         x (torch.Tensor): input tensor , shape is (X1, ..... XN)
+        dim (int, optional): reduced dimension. Defaults to -1.
         keepdim (bool, optional): keep the axis of the reduced dimension, Defaults to False.
 
     Returns:
         torch.Tensor: output tensor, shape is (X1, ..... XN-1)
     """
+    # this is max value trick, since it is slower, left here for demonstration purpose only
     # max_score = x.max(dim, keepdim=True).values
     # return max_score + torch.exp(x - max_score).sum(dim, keepdim=True).log()
 
-    y = x - x.log_softmax(-1)
+    y = x - x.log_softmax(dim)
 
-    if keepdim:
-        return y[..., 0:1]
-    else:
-        return y[..., 0]
+    y = y.narrow(dim, 0, 1)
+
+    return y if keepdim else y.squeeze(dim)
 
 
 def receptive_field(k, l):
