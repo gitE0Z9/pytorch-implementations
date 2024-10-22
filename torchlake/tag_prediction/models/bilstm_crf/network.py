@@ -19,10 +19,10 @@ class LinearCRF(nn.Module):
         # transition matrix
         # store not prob but log likelihood
         # from i to j
-        self.transition = nn.Parameter(torch.randn(output_size, output_size))
+        self.transition = nn.Parameter(torch.rand(output_size, output_size))
 
-        MUST_NOT = -1e4
-        MUST_HAPPEN = 0
+        MUST_NOT = 0
+        MUST_HAPPEN = 1
 
         # prohibit transition to bos
         self.transition.data[:, context.bos_idx] = MUST_NOT

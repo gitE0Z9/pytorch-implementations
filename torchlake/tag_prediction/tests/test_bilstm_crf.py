@@ -80,7 +80,7 @@ class TestLinearCRFLoss:
         criterion = LinearCRFLoss()
         loss = criterion.calc_hypotheses_score(self.x, self.T, self.mask)
 
-        assert loss.shape == torch.Size((BATCH_SIZE, NUM_CLASS))
+        assert loss.shape == torch.Size((BATCH_SIZE,))
         assert not torch.isnan(loss).any()
 
     def test_null_hypothesis_score(self):

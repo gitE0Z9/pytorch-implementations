@@ -27,18 +27,18 @@ def viterbi_decode(
     backpointers = []
 
     # 1, O, O
-    transition_score = transition.unsqueeze(0)
+    transition_score = transition.unsqueeze(0).log_softmax(-1)
 
     # forward
 
     # P(y_t, ...., y_0|x) = PI{t:0..T} P(y_t|y_t-1, x) * P(y_t-1)
-    likelihood = torch.full((batch_size, num_class, 1), 0).to(x.device)
+    log_likelihood = torch.full((batch_size, num_class, 1), -1e4).to(x.device)
     # start from bos
-    likelihood[:, context.bos_idx, :] = 1e4
+    log_likelihood[:, context.bos_idx, :] = 0
 
     for t in range(seq_len):
         # batch_size, next_tag, current_tag -> B, O, 1 + 1, O, O
-        posterior_t = likelihood + transition_score
+        posterior_t = log_likelihood + transition_score
 
         # find most likely next tag
         # B, O
@@ -58,15 +58,15 @@ def viterbi_decode(
             mask_t = 0
 
         # B, O, 1
-        likelihood = (posterior_t * (1 - mask_t)).unsqueeze(-1)
+        log_likelihood = (posterior_t * (1 - mask_t)).unsqueeze(-1)
 
     # to eos ??
     # B, O, 1 + 1, O, 1 => B, O, 1
-    likelihood += transition_score[:, :, context.eos_idx].unsqueeze(-1)
+    log_likelihood += transition_score[:, :, context.eos_idx].unsqueeze(-1)
 
     # get best path and score w.r.t `to` label
     # B, 1
-    best_score, best_path = likelihood.max(dim=1)
+    best_score, best_path = log_likelihood.max(dim=1)
 
     # backward
     # B, S, O
@@ -75,6 +75,7 @@ def viterbi_decode(
     best_path: list[list[int]] = best_path.tolist()
     # 1
     for batch_idx, node in enumerate(best_path):
+        path = [node]
         # seq_len_i = seq_len - mask[batch_idx].sum() if mask is not None else seq_len
 
         # reverse order to backward for retrieving token
@@ -82,12 +83,12 @@ def viterbi_decode(
         # for ptr_t in reversed(backpointers[batch_idx, :seq_len_i]):
         for ptr_t in reversed(backpointers[batch_idx]):
             # 1
-            node = ptr_t[node].item()
-            best_path[batch_idx].append(node)
+            path.append(ptr_t[path[-1]].item())
         # pop first tag
-        best_path[batch_idx].pop()  # B x (S+1) -> B x (S)
+        # best_path[batch_idx].pop()  # B x (S+1) -> B x (S)
         # reverse order back to forward
-        best_path[batch_idx].reverse()
+        # best_path[batch_idx].reverse()
+        best_path[batch_idx] = path[1:][::-1]
 
     # B,S, # B
     return torch.Tensor(best_path), best_score.squeeze_(-1)

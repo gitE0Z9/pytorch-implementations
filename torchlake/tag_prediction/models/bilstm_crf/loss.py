@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.utils.numerical import log_sum_exp
 
 
 class LinearCRFLoss(nn.Module):
@@ -19,7 +20,7 @@ class LinearCRFLoss(nn.Module):
         transition: torch.Tensor,
         mask: torch.Tensor | None = None,
     ):
-        """predict path score
+        """predict normalization constant over all paths
 
         Args:
             x (torch.Tensor): predicted probability, shape is (batch_size, sequence_length, output_size)
@@ -36,14 +37,14 @@ class LinearCRFLoss(nn.Module):
 
         # edge potential
         # 1, O, O
-        transition_score = transition[None, :, :].log_softmax(-1)
+        transition_score = transition[None, :, :]
 
         # stop criteria
         non_pad_length = seq_len - mask.sum(1).max().item()
 
         # forward
-        # B, O
-        alpha = x[:, 0, :, :].squeeze(-1)
+        # B, O, 1
+        alpha = x[:, 0, :, :]
         for t in range(1, seq_len):
 
             # node potential
@@ -51,14 +52,23 @@ class LinearCRFLoss(nn.Module):
             emit_score = x[:, t, :, :]
 
             # message passing
-            # B, O
-            alpha = alpha + (emit_score + transition_score).sum(1)
+            # B, O, O
+            posterior = emit_score + transition_score * (1 - mask[:, t : t + 1, None])
+
+            # normalize
+            # skip to faster training
+            posterior = posterior.log_softmax(-1)
+
+            # B, 1, O
+            # sum over state i => marginal of state j, then transform back to log prob
+            alpha = log_sum_exp(posterior + alpha, dim=-2, keepdim=True)
 
             # early stopping
-            if non_pad_length == t:
+            if non_pad_length <= t:
                 break
 
-        return alpha
+        # B
+        return log_sum_exp(alpha, -1).squeeze((-1, -2))
 
     def calc_null_hypothesis_score(
         self,
@@ -78,21 +88,30 @@ class LinearCRFLoss(nn.Module):
         Returns:
             torch.Tensor: score, shape is (batch_size)
         """
+        # stop criteria
+        seq_len = x.size(1)
+        non_pad_length = seq_len - mask.sum(1).max().item()
+
+        x = x[:, :non_pad_length]
+        y = y[:, :non_pad_length]
+
         # B, S
         emit_score = x.gather(2, y.unsqueeze(-1)).squeeze(-1)
 
         # B, S-1
-        transition_score = transition.log_softmax(-1)[y[:, :-1], y[:, 1:]]
-        if mask is not None:
-            transition_score *= 1 - mask[:, 1:]
+        transition_score = transition[y[:, :-1], y[:, 1:]]
+        # if mask is not None:
+        #     transition_score = transition_score * (1 - mask[:, 1:])
 
-        # B, S-1 + B, S-1 + B,1 => B, S-1
+        # B + B => B
         # emit score of `to` token is what we need
         # plus emit score of bos
-        score = transition_score + emit_score[:, 1:] + emit_score[:, 0:1]
+        score = transition_score.sum(-1) + emit_score.sum(-1)
+        # if mask is not None:
+        #     score *= 1 - mask[:, 1:]
 
         # B
-        return score.sum(1)
+        return score
 
     def forward(
         self,
@@ -114,11 +133,16 @@ class LinearCRFLoss(nn.Module):
         mask = gt.eq(self.context.padding_idx).int()
 
         # B, S, O
-        pred *= 1 - mask[:, :, None]
+        # node potential
         pred = pred.log_softmax(-1)
+        # hide those padded
+        pred = pred * (1 - mask[:, :, None])
 
-        # B, O
+        # O, O
+        transition = transition.log_softmax(-1)
+
+        # B
         forward_score = self.calc_hypotheses_score(pred, transition, mask)
         # B
         gold_score = self.calc_null_hypothesis_score(pred, gt, transition, mask)
-        return (forward_score - gold_score[:, None]).mean()
+        return -(gold_score - forward_score).mean()
