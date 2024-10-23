@@ -36,6 +36,8 @@ class RNNDiscriminator(ModelBase):
             context (NlpContext, optional): nlp context. Defaults to NlpContext().
             model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
         """
+        self.input_channel = input_channel  # for record
+        self.output_size = output_size  # for record
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers

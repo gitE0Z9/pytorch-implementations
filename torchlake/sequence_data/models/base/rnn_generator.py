@@ -3,26 +3,21 @@ from functools import partial
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.utils.text import get_input_sequence
 
 from .rnn_discriminator import RNNDiscriminator
 
 
 class RNNGenerator(nn.Module):
-    def __init__(
-        self,
-        input_channel: int,
-        model: RNNDiscriminator,
-    ):
+    def __init__(self, model: RNNDiscriminator):
         """Wrapper for sequence model generator
 
         Args:
-            input_channel (int): input channel size
             model (RNNDiscriminator): RNN discriminator
         """
         super().__init__()
         assert isinstance(model, RNNDiscriminator), "model is not a RNNDiscriminator"
 
-        self.input_channel = input_channel
         self.model = model
         self.model.forward = partial(self.model.forward, output_state=True)
 
@@ -41,12 +36,16 @@ class RNNGenerator(nn.Module):
     def loss_forward(
         self,
         y: torch.Tensor,
+        ht: torch.Tensor | None = None,
+        *states: tuple[torch.Tensor],
         teacher_forcing_ratio: float = 0.5,
     ) -> torch.Tensor:
         """training loss forward
 
         Args:
             y (torch.Tensor): groundtruth sequence, shape is (batch_size, seq_len)
+            ht (torch.Tensor, optional): hidden state. shape is (bidirectional * num_layers, batch_size, hidden_dim). Defaults to None.
+            *states (tuple[torch.Tensor]): other hidden states.
             teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
 
         Returns:
@@ -54,24 +53,23 @@ class RNNGenerator(nn.Module):
         """
         context: NlpContext = self.model.context
         batch_size = y.size(0)
-        vocab_size = self.input_channel
+        output_size = self.model.output_size
         max_seq_len = context.max_seq_len
         device = context.device
 
         # tensor to store generated log likelihood
-        outputs = [torch.full((batch_size, vocab_size), 1e-4).to(device)]
+        outputs = [torch.full((batch_size, output_size), 1e-4).to(device)]
         # start from <bos>
         outputs[0][:, context.bos_idx] = 0
 
-        internal_states = tuple()
-
         # next token prediction (first one)
-        input_seq = torch.full((batch_size, 1), context.bos_idx).to(device)
+        input_seq = get_input_sequence((batch_size, 1), context)
         for t in range(1, max_seq_len, 1):
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
             # B, h
-            output, internal_states = self.model.forward(input_seq, *internal_states)
+            output, states = self.model.forward(input_seq, ht, *states)
+            ht, states = states[0], states[1:]
 
             # place predictions in a tensor holding predictions for each token
             # B, h
@@ -99,11 +97,19 @@ class RNNGenerator(nn.Module):
 
         return outputs
 
-    def predict(self, x: torch.Tensor, topk: int = 1) -> torch.Tensor:
+    def predict(
+        self,
+        primer: torch.Tensor | None = None,
+        ht: torch.Tensor | None = None,
+        *states: tuple[torch.Tensor],
+        topk: int = 1,
+    ) -> torch.Tensor:
         """predict sequence with beam search
 
         Args:
-            x (torch.Tensor): source sequence, shape in (batch, seq)
+            primer (torch.Tensor|None, optional): leading sequence, shape in (batch, seq). Defaults to None.
+            ht (torch.Tensor, optional): hidden state. shape is (bidirectional * num_layers, batch_size, hidden_dim). Defaults to None.
+            *states (tuple[torch.Tensor]): other hidden states.
             topk (int, optional): beam search size. Defaults to 1.
 
         Returns:
@@ -112,18 +118,24 @@ class RNNGenerator(nn.Module):
         assert topk >= 1, "Top k should be at least 1"
 
         context: NlpContext = self.model.context
-        batch_size = x.size(0)
         max_seq_len = context.max_seq_len
         device = context.device
+        output_size = self.model.output_size
 
         # next token prediction (first one)
-        input_seq = torch.full((batch_size, 1), context.bos_idx).to(device)
-        # B, 1, V, (D, B, h)
-        output, internal_states = self.model(input_seq)
-        internal_states = tuple(state.repeat(1, topk, 1) for state in internal_states)
+        if primer is None:
+            input_seq = get_input_sequence((1, 1), context)
+        else:
+            input_seq = primer
+        batch_size = input_seq.size(0)
+
+        # (B, 1, V), (D, B, h)
+        output, states = self.model.forward(input_seq, ht, *states)
+        # D, topk*B, h
+        states = tuple(state.repeat(1, topk, 1) for state in states)
+
         # B, 1, topk
         topk_values, topk_indices = output.topk(topk, dim=-1)
-
         # beam search has topk hypothses
         # topk, B, 2
         paths = torch.cat(
@@ -136,9 +148,9 @@ class RNNGenerator(nn.Module):
             # topk, B, V
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
-            output, internal_states = self.model.forward(
+            output, states = self.model.forward(
                 paths.reshape(-1, paths.size(-1)),
-                *internal_states,
+                *states,
             )
             output = output.view(topk, batch_size, 1 + t, -1)[:, :, -1]
 
@@ -148,13 +160,13 @@ class RNNGenerator(nn.Module):
             )
 
             # B, topk
-            parents = topk_indices // self.input_channel
+            parents = topk_indices // output_size
 
             # topk, B, t
             paths = torch.cat(
                 [
                     paths[parents.T, torch.arange(batch_size)],
-                    topk_indices.T.unsqueeze(-1) % self.input_channel,
+                    topk_indices.T.unsqueeze(-1) % output_size,
                 ],
                 -1,
             )

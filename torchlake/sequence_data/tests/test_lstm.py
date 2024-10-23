@@ -1,11 +1,11 @@
 import pytest
 import torch
-
 from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.utils.text import get_input_sequence
 
-from ..models.lstm.network import LSTMCell, LSTMLayer
-from ..models.lstm import LSTMDiscriminator
 from ..models.base import RNNGenerator
+from ..models.lstm import LSTMDiscriminator
+from ..models.lstm.network import LSTMCell, LSTMLayer
 
 BATCH_SIZE = 2
 VOCAB_SIZE = 10
@@ -150,7 +150,7 @@ class TestDiscriminator:
 class TestGenerator:
     @pytest.mark.parametrize("bidirectional", [True, False])
     @pytest.mark.parametrize("num_layers", [1, 2])
-    def test_forward_during_train_shape(
+    def test_forward_shape_during_train(
         self,
         num_layers: int,
         bidirectional: bool,
@@ -167,7 +167,7 @@ class TestGenerator:
             context=CONTEXT,
         )
 
-        model = RNNGenerator(VOCAB_SIZE, model=discriminator)
+        model = RNNGenerator(discriminator)
         model.train()
 
         y = model.loss_forward(y)
@@ -177,13 +177,13 @@ class TestGenerator:
     @pytest.mark.parametrize("bidirectional", [True, False])
     @pytest.mark.parametrize("num_layers", [1, 2])
     @pytest.mark.parametrize("topk", [1, 3])
-    def test_forward_during_predict_shape(
+    def test_forward_shape_during_predict(
         self,
         num_layers: int,
         bidirectional: bool,
         topk: int,
     ) -> None:
-        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        x = get_input_sequence((BATCH_SIZE, 1), CONTEXT)
 
         discriminator = LSTMDiscriminator(
             VOCAB_SIZE,
@@ -195,7 +195,7 @@ class TestGenerator:
             context=CONTEXT,
         )
 
-        model = RNNGenerator(VOCAB_SIZE, model=discriminator)
+        model = RNNGenerator(discriminator)
         model.eval()
 
         y = model.predict(x, topk=topk)
