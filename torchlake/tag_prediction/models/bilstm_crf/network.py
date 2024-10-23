@@ -17,23 +17,42 @@ class LinearCRF(nn.Module):
         self.context = context
 
         # transition matrix
-        # store not prob but log likelihood
+        # store logit
         # from i to j
-        self.transition = nn.Parameter(torch.rand(output_size, output_size))
+        self.transition = nn.Parameter(torch.randn(output_size, output_size))
 
-        MUST_NOT = 0
-        MUST_HAPPEN = 1
+        MUST_NOT = -1e4
+        MUST_HAPPEN = 1e4
 
-        # prohibit transition to bos
+        #######################################
+        #         <unk> <bos> <eos> <pad> *
+        #  <unk>    v     0     v     0   v
+        #  <bos>    v     0     0     0   v
+        #  <eos>    0     0     0     1   0
+        #  <pad>    0     0     0     1   0
+        #    *      v     0     v     0   v
+        #######################################
+
+        # must not transfer from bos to bos, eos, pad
+        self.transition.data[
+            context.bos_idx,
+            [context.bos_idx, context.eos_idx, context.padding_idx],
+        ] = MUST_NOT
+        # must not transfer to bos
         self.transition.data[:, context.bos_idx] = MUST_NOT
-        # must transfer from the start tag
-        self.transition.data[context.bos_idx, :] = MUST_HAPPEN
-        # never transfer from the start to the end
-        self.transition.data[context.eos_idx, context.bos_idx] = MUST_NOT
+
+        # # prohibit transition to bos
+        # self.transition.data[:, context.bos_idx] = MUST_NOT
+        # self.transition.data[context.bos_idx, context.bos_idx] = MUST_NOT
+        # # must transfer from the start tag
+        # self.transition.data[context.bos_idx, :] = MUST_HAPPEN
+        # # never transfer from the start to the end
+        # self.transition.data[context.bos_idx, context.eos_idx] = MUST_NOT
         # never transfer from the eos
-        self.transition.data[context.eos_idx, :] = MUST_NOT
-        # never transfer from the start to pad
-        self.transition.data[context.bos_idx, context.padding_idx] = MUST_NOT
+        # self.transition.data[context.eos_idx, :] = MUST_NOT
+
+        # never transfer from any to pad
+        self.transition.data[:, context.padding_idx] = MUST_NOT
         # must absorb into pad
         self.transition.data[context.eos_idx, context.padding_idx] = MUST_HAPPEN
         # must absorb into pad
