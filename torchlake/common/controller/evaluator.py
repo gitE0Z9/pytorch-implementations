@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Iterator, Literal
 
 import numpy as np
 import torch
@@ -34,7 +34,7 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
                 _, y = row
                 output = self._predict(row, model)
                 output = self._decode_output(output)
-                metric.update(y.long(), output.detach().cpu())
+                metric.update(y.long(), output.detach().cpu().long())
 
             print(metric)
 
@@ -47,6 +47,7 @@ class ClassificationEvaluator(EvaluatorBase):
         label_size: int,
         device: torch.device,
         feature_dim: int | tuple[int] = 1,
+        reduction: Literal["max"] | None = "max",
     ):
         """Evaluator for classification task
 
@@ -54,10 +55,12 @@ class ClassificationEvaluator(EvaluatorBase):
             label_size (int): size of label
             device (torch.device): which device to use
             feature_dim (int | tuple[int], optional): which dimensions should be used as features. Defaults to 1.
+            reduction (Literal["max"] | None, optional): how to decode feature dim. Defaults to None.
         """
         self.label_size = label_size
         self.device = device
         self.feature_dim = feature_dim
+        self.reduction = reduction
         # TODO: ugly fix
         self.feature_last = False
 
@@ -68,7 +71,10 @@ class ClassificationEvaluator(EvaluatorBase):
         self,
         output: torch.Tensor | tuple[torch.Tensor],
     ) -> torch.Tensor | tuple[torch.Tensor]:
-        return output.argmax(dim=self.feature_dim)
+        if self.reduction == "max":
+            return output.argmax(dim=self.feature_dim)
+        else:
+            return output
 
     @staticmethod
     def get_matrix(
