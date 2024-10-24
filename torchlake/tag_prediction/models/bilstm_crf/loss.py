@@ -59,16 +59,16 @@ class LinearCRFLoss(nn.Module):
             # skip to faster training
             posterior = posterior.log_softmax(-1)
 
-            # B, 1, O
+            # B, O, 1
             # sum over state i => marginal of state j, then transform back to log prob
-            alpha = log_sum_exp(posterior + alpha, dim=-2, keepdim=True)
+            alpha = log_sum_exp(posterior + alpha, dim=-2).unsqueeze(-1)
 
             # early stopping
             if non_pad_length <= t:
                 break
 
         # B
-        return log_sum_exp(alpha, -1).squeeze((-1, -2))
+        return log_sum_exp(alpha, 1).squeeze((-1, -2))
 
     def calc_null_hypothesis_score(
         self,

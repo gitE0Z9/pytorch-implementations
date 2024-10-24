@@ -41,16 +41,6 @@ class LinearCRF(nn.Module):
         # must not transfer to bos
         self.transition.data[:, context.bos_idx] = MUST_NOT
 
-        # # prohibit transition to bos
-        # self.transition.data[:, context.bos_idx] = MUST_NOT
-        # self.transition.data[context.bos_idx, context.bos_idx] = MUST_NOT
-        # # must transfer from the start tag
-        # self.transition.data[context.bos_idx, :] = MUST_HAPPEN
-        # # never transfer from the start to the end
-        # self.transition.data[context.bos_idx, context.eos_idx] = MUST_NOT
-        # never transfer from the eos
-        # self.transition.data[context.eos_idx, :] = MUST_NOT
-
         # never transfer from any to pad
         self.transition.data[:, context.padding_idx] = MUST_NOT
         # must absorb into pad
