@@ -3,9 +3,11 @@ from functools import partial
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
-from torchlake.common.utils.text import get_input_sequence
+from torchlake.common.utils.sequence import get_input_sequence
 
 from .rnn_discriminator import RNNDiscriminator
+
+from torch.nn.utils.rnn import pad_sequence
 
 
 class RNNGenerator(nn.Module):
@@ -57,44 +59,59 @@ class RNNGenerator(nn.Module):
         max_seq_len = context.max_seq_len
         device = context.device
 
-        # tensor to store generated log likelihood
-        outputs = [torch.full((batch_size, output_size), 1e-4).to(device)]
+        # tensor to store generated logit
+        outputs = [torch.full((batch_size, output_size), -1e4).to(device)]
         # start from <bos>
-        outputs[0][:, context.bos_idx] = 0
+        outputs[0][:, context.bos_idx] = 1e4
 
         # next token prediction (first one)
         input_seq = get_input_sequence((batch_size, 1), context)
         for t in range(1, max_seq_len, 1):
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
-            # B, h
+            # B, V
             output, states = self.model.forward(input_seq, ht, *states)
             ht, states = states[0], states[1:]
 
             # place predictions in a tensor holding predictions for each token
-            # B, h
+            # B, V
             outputs.append(output)
 
             # 1506.03099: teacher forcing
             # decide if we are going to use teacher forcing or not
             # use actual next token as next input
             # if not, use the highest predicted token
-            # B, 1+t
-            input_seq = torch.cat(
-                [
-                    input_seq,
-                    torch.where(
-                        torch.rand(batch_size, 1).lt(teacher_forcing_ratio).to(device),
-                        y[:, t : t + 1],
-                        output.argmax(-1, keepdim=True),
-                    ),
-                ],
-                -1,
+            # B, 1
+            input_seq = torch.where(
+                torch.rand(batch_size, 1).lt(teacher_forcing_ratio).to(device),
+                y[:, t : t + 1],
+                output.argmax(-1, keepdim=True),
             )
 
-        # B, S, V
-        outputs = torch.stack(outputs, 1)
+            # early stopping
+            if (
+                input_seq[:, -1].eq(context.eos_idx).all()
+                or input_seq[:, -1].eq(context.padding_idx).all()
+            ):
+                break
 
+        # B, ?, V
+        outputs = torch.stack(outputs, 1)
+        # pad it back
+        need_pad_length = max_seq_len - outputs.size(1)
+        if need_pad_length > 0:
+            outputs = torch.cat(
+                [
+                    outputs,
+                    torch.full(
+                        (batch_size, need_pad_length, self.model.output_size), -1e4
+                    ).to(device),
+                ],
+                1,
+            )
+            outputs[:, -need_pad_length:, context.padding_idx] = 1e4
+
+        # B, S, V
         return outputs
 
     def predict(
