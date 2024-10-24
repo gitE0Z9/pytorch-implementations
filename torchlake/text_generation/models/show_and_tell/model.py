@@ -5,7 +5,7 @@ from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.sequence_data.models.base import RNNGenerator
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
-from torchlake.common.utils.text import get_input_sequence
+from torchlake.common.utils.sequence import get_input_sequence
 
 
 class NeuralImageCation(ModelBase):
@@ -17,12 +17,16 @@ class NeuralImageCation(ModelBase):
         embed_dim: int,
         hidden_dim: int,
         output_size: int = 1,
+        num_layers: int = 1,
+        bidirectional: bool = False,
         context: NlpContext = NlpContext(),
     ):
         input_channel = 3
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.bidirectional = bidirectional
         self.context = context
         super().__init__(input_channel, output_size)
         # XXX: pytorch module conflict
@@ -40,8 +44,8 @@ class NeuralImageCation(ModelBase):
             self.embed_dim,
             self.hidden_dim,
             output_size,
-            num_layers=2,
-            bidirectional=True,
+            num_layers=self.num_layers,
+            bidirectional=self.bidirectional,
             context=self.context,
         )
 

@@ -24,7 +24,7 @@ def test_forward_shape(is_train: bool, expected_shape: tuple[int]):
         512,
         HIDDEN_DIM,
         VOCAB_SIZE,
-        CONTEXT,
+        context=CONTEXT,
     )
 
     if is_train:
