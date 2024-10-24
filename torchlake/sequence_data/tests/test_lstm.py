@@ -1,7 +1,7 @@
 import pytest
 import torch
 from torchlake.common.schemas.nlp import NlpContext
-from torchlake.common.utils.text import get_input_sequence
+from torchlake.common.utils.sequence import get_input_sequence
 
 from ..models.base import RNNGenerator
 from ..models.lstm import LSTMDiscriminator
