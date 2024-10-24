@@ -8,13 +8,6 @@ from torchtext.vocab import Vocab, build_vocab_from_iterator
 from ..schemas import NlpContext
 
 
-def get_input_sequence(
-    shape: tuple[int],
-    context: NlpContext = NlpContext(),
-) -> torch.Tensor:
-    return torch.full(shape, context.bos_idx).to(context.device)
-
-
 def build_vocab(data: Iterable, context: NlpContext = NlpContext()) -> Vocab:
     vocab = build_vocab_from_iterator(
         data,
