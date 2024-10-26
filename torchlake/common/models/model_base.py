@@ -12,12 +12,16 @@ class ModelBase(nn.Module, ABC):
         self,
         input_channel: int = 3,
         output_size: int = 1,
+        foot_kwargs: dict | None = {},
+        blocks_kwargs: dict | None = {},
+        neck_kwargs: dict | None = {},
+        head_kwargs: dict | None = {},
     ):
         super(ModelBase, self).__init__()
-        self.build_foot(input_channel)
-        self.build_blocks()
-        self.build_neck()
-        self.build_head(output_size)
+        self.build_foot(input_channel, **foot_kwargs)
+        self.build_blocks(**blocks_kwargs)
+        self.build_neck(**neck_kwargs)
+        self.build_head(output_size, **head_kwargs)
 
     @property
     def feature_dim(self) -> int:
@@ -28,16 +32,16 @@ class ModelBase(nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def build_foot(self, input_channel: int):
+    def build_foot(self, input_channel: int, **kwargs):
         self.foot = ...
 
-    def build_blocks(self):
+    def build_blocks(self, **kwargs):
         self.blocks = ...
 
-    def build_neck(self):
+    def build_neck(self, **kwargs):
         self.neck = ...
 
-    def build_head(self, output_size: int):
+    def build_head(self, output_size: int, **kwargs):
         self.head = nn.Sequential(
             FlattenFeature(),
             nn.Linear(self.feature_dim, output_size),
