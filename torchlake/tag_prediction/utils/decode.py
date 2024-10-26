@@ -23,72 +23,81 @@ def viterbi_decode(
         tuple[torch.Tensor, torch.Tensor]: score of path, path
     """
     batch_size, seq_len, num_class = x.shape
-
-    backpointers = []
+    x = x.log_softmax(-1)
 
     # 1, O, O
     transition_score = transition.unsqueeze(0).log_softmax(-1)
 
     # forward
+    backpointers = []
 
-    # P(y_t, ...., y_0|x) = PI{t:0..T} P(y_t|y_t-1, x) * P(y_t-1)
-    log_likelihood = torch.full((batch_size, num_class, 1), -1e4).to(x.device)
+    # P(Y0)
+    # B, O, 1
+    alpha = torch.rand((batch_size, num_class, 1)).log().to(x.device)
     # start from bos
-    log_likelihood[:, context.bos_idx, :] = 0
+    alpha[:, context.bos_idx, :] = 0
+    alpha[:, context.eos_idx, :] = -1e4
+    alpha[:, context.padding_idx, :] = -1e4
+    alpha = alpha.log_softmax(1)
 
-    for t in range(seq_len):
+    # alpha = P(Y1, Y0 | x) = P(Y1|x) * P(Y0)
+    alpha += x[:, 0, :, None]
+
+    for t in range(1, seq_len - 1):
         # batch_size, next_tag, current_tag -> B, O, 1 + 1, O, O
-        posterior_t = log_likelihood + transition_score
+        # P(Y2|Y1) * P(Y1, Y0 | x)
+        posterior_t = alpha + transition_score
 
         # find most likely next tag
         # B, O
+        # P(Y2, Y1=y1, Y0 | x)
         posterior_t, bkptr_t = posterior_t.max(dim=-1)
-
-        # P(y_t-1|y_t) = P(y_t) * P(y_t|y_t-1) * P(y_t-1)
+        # debug
+        # print(posterior_t.softmax(-1), bkptr_t)
+        # P(Y2|x) * P(Y2, Y1=y1, Y0 | x)
         # B, O
         posterior_t += x[:, t, :]
-        # S x (B, O)
+        # S-2 x (B, O)
         backpointers.append(bkptr_t)
 
         # mask padding token
         if mask is not None:
-            # B, 1
-            mask_t = mask[:, t : t + 1].int()
+            # B, 1, 1
+            mask_t = mask[:, t : t + 1, None].int()
         else:
-            mask_t = 0
+            mask_t = torch.zeros((batch_size, 1, 1)).to(x.device)
 
         # B, O, 1
-        log_likelihood = (posterior_t * (1 - mask_t)).unsqueeze(-1)
+        alpha = posterior_t.unsqueeze(-1) * (1 - mask_t) + alpha * mask_t
 
     # to eos ??
     # B, O, 1 + 1, O, 1 => B, O, 1
-    log_likelihood += transition_score[:, :, context.eos_idx].unsqueeze(-1)
+    # alpha += transition_score[:, :, context.eos_idx, None]
 
     # get best path and score w.r.t `to` label
     # B, 1
-    best_score, best_path = log_likelihood.max(dim=1)
+    best_score, best_path = alpha.max(dim=1)
+    # debug
+    # print(alpha.softmax(1))
+    best_score.squeeze_(-1)
 
     # backward
-    # B, S, O
+    # B, S-2, O
     backpointers = torch.stack(backpointers, 1)
-    # B x 1
-    best_path: list[list[int]] = best_path.tolist()
-    # 1
-    for batch_idx, node in enumerate(best_path):
-        path = [node]
-        # seq_len_i = seq_len - mask[batch_idx].sum() if mask is not None else seq_len
+    # 1 x (B,1)
+    best_path = [best_path]
 
-        # reverse order to backward for retrieving token
-        # O
-        # for ptr_t in reversed(backpointers[batch_idx, :seq_len_i]):
-        for ptr_t in reversed(backpointers[batch_idx]):
-            # 1
-            path.append(ptr_t[path[-1]].item())
-        # pop first tag
-        # best_path[batch_idx].pop()  # B x (S+1) -> B x (S)
-        # reverse order back to forward
-        # best_path[batch_idx].reverse()
-        best_path[batch_idx] = path[1:][::-1]
+    for t in range(backpointers.size(1) - 2, -1, -1):
+        # B, O
+        bkptr_t = backpointers[:, t, :]
+        best_path.append(bkptr_t.gather(-1, best_path[-1]))
+
+    # S-2 x (B, 1)
+    best_path.reverse()
+    best_path.insert(0, torch.full((batch_size, 1), context.bos_idx).to(x.device))
+    best_path.append(torch.full((batch_size, 1), context.eos_idx).to(x.device))
+    # B, S-2
+    best_path = torch.cat(best_path, -1)
 
     # B,S, # B
-    return torch.Tensor(best_path), best_score.squeeze_(-1)
+    return best_path, best_score

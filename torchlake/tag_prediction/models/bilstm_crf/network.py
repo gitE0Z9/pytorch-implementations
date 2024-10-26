@@ -19,10 +19,11 @@ class LinearCRF(nn.Module):
         # transition matrix
         # store logit
         # from i to j
+        # let's init between -1.96 ~ 1.96
         self.transition = nn.Parameter(torch.randn(output_size, output_size))
 
-        MUST_NOT = -1e4
-        MUST_HAPPEN = 1e4
+        MUST_NOT = -3
+        MUST_HAPPEN = 3
 
         #######################################
         #         <unk> <bos> <eos> <pad> *

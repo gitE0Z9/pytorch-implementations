@@ -60,7 +60,7 @@ class TestBiLSTM_CRF:
             model.train()
         else:
             model.eval()
-        y = model.forward(self.x, self.mask)
+        y = model.forward(self.x)
 
         assert y.shape == torch.Size(expected_shape)
         assert not torch.isnan(y).any()

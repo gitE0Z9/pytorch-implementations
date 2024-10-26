@@ -19,7 +19,7 @@ class BiLSTMCRFTrainer(ClassificationTrainer):
         output: torch.Tensor = model(x, *args, **kwargs)
 
         # XXX: hacky
-        return output, model
+        return output, model.head.transition
 
     def _calc_loss(
         self,
@@ -30,6 +30,6 @@ class BiLSTMCRFTrainer(ClassificationTrainer):
         _, y = row
         y: torch.Tensor = y.to(self.device)
 
-        output, model = output
+        output, transition = output
 
-        return criterion.forward(output, y, model.head.transition)
+        return criterion.forward(output, y, transition)

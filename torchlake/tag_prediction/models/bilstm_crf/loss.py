@@ -5,13 +5,22 @@ from torchlake.common.utils.numerical import log_sum_exp
 
 
 class LinearCRFLoss(nn.Module):
-    def __init__(self, context: NlpContext = NlpContext()):
+    def __init__(
+        self,
+        crf_weight: float = 1,
+        cross_entroy_weight: float = 1,
+        context: NlpContext = NlpContext(),
+    ):
         """Linear CRF(conditional random field) loss
 
         Args:
+            crf_weight (float, optional): weight of crf weight. Defaults to 1.
+            cross_entroy_weight (float, optional): weight of cross entropy loss. Defaults to 1.
             context (NlpContext, optional): nlp context. Defaults to NlpContext().
         """
         super().__init__()
+        self.crf_weight = crf_weight
+        self.cross_entroy_weight = cross_entroy_weight
         self.context = context
 
     def calc_hypotheses_score(
@@ -68,7 +77,7 @@ class LinearCRFLoss(nn.Module):
                 break
 
         # B
-        return log_sum_exp(alpha, 1).squeeze((-1, -2))
+        return log_sum_exp(alpha, 1).squeeze(-1)
 
     def calc_null_hypothesis_score(
         self,
@@ -132,6 +141,15 @@ class LinearCRFLoss(nn.Module):
         # B, S
         mask = gt.eq(self.context.padding_idx).int()
 
+        if self.cross_entroy_weight > 0:
+            entropy = nn.functional.cross_entropy(
+                pred.transpose(-1, -2),
+                gt,
+                ignore_index=self.context.padding_idx,
+            )
+        else:
+            entropy = 0
+
         # B, S, O
         # node potential
         pred = pred.log_softmax(-1)
@@ -145,4 +163,8 @@ class LinearCRFLoss(nn.Module):
         forward_score = self.calc_hypotheses_score(pred, transition, mask)
         # B
         gold_score = self.calc_null_hypothesis_score(pred, gt, transition, mask)
-        return -(gold_score - forward_score).mean()
+
+        return (
+            self.crf_weight * -(gold_score - forward_score).mean()
+            + self.cross_entroy_weight * entropy
+        )

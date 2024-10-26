@@ -51,19 +51,19 @@ class BiLSTMCRF(ModelBase):
     def forward(
         self,
         x: torch.Tensor,
-        mask: torch.Tensor | None = None,
         output_score: bool = False,
     ) -> tuple[torch.Tensor] | torch.Tensor:
         """forward
 
         Args:
             x (torch.Tensor): input token tensor, shape is (batch_size, sequence_length)
-            mask (torch.Tensor | None, optional): mask for padding index. Defaults to None.
             output_score (bool, optional): return score of viterbi path. Defaults to False.
 
         Returns:
             tuple[torch.Tensor] | torch.Tensor: lstm output when training, crf paths when inference
         """
+        mask = x.eq(self.context.padding_idx).int()
+
         # B, S, O
         y = self.foot(x)
 
