@@ -1,11 +1,12 @@
-import torch
+from typing import Any
 from torch import nn
+from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
 from .network import GhostLayer
 
 
-class GhostNet(nn.Module):
+class GhostNet(ModelBase):
     def __init__(
         self,
         input_channel: int = 3,
@@ -19,52 +20,17 @@ class GhostNet(nn.Module):
             output_size (int, optional): output size. Defaults to 1.
             width_multiplier (float, optional): width multiplier alpha. Defaults to 1.
         """
-        super(GhostNet, self).__init__()
+        self.width_multiplier = width_multiplier
+        super().__init__(input_channel, output_size)
 
-        self.layers = nn.Sequential(
-            # head layer
-            Conv2dNormActivation(
-                input_channel,
-                int(16 * width_multiplier),
-                stride=2,
-            ),
-            # middle layers
-            *self.build_middle_layers(width_multiplier),
-            # final layers
-            Conv2dNormActivation(
-                int(160 * width_multiplier),
-                int(960 * width_multiplier),
-                1,
-            ),
-            Conv2dNormActivation(
-                int(960 * width_multiplier),
-                int(1280 * width_multiplier),
-                1,
-            ),
-        )
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Sequential(
-            Conv2dNormActivation(
-                int(1280 * width_multiplier),
-                output_size,
-                1,
-                norm_layer=None,
-                activation_layer=None,
-            ),
-            nn.Flatten(),
-        )
+    @property
+    def feature_dim(self) -> int:
+        return int(1280 * self.width_multiplier)
 
-    def build_middle_layers(
-        self,
-        width_multiplier: float = 1,
-    ) -> list[nn.Module]:
-        """Build middle layers.
-
-        Args:
-            width_multiplier (float, optional): width multiplier alpha. Defaults to 1.
-        """
-        # input_channel, output_channel, kernel, stride, expansion_size, enable_se
-        config = [
+    @property
+    def config(self) -> list[list[Any]]:
+        return [
+            # input_channel, output_channel, kernel, stride, expansion_size, enable_se
             (16, 16, 3, 1, 16, False),
             (16, 24, 3, 2, 48, False),
             (24, 24, 3, 1, 72, False),
@@ -83,19 +49,19 @@ class GhostNet(nn.Module):
             (160, 160, 5, 1, 960, True),
         ]
 
-        middle_layers = []
-        for (
-            in_c,
-            out_c,
-            kernel,
-            stride,
-            expansion_size,
-            enable_se,
-        ) in config:
-            middle_layers.append(
+    def build_foot(self, input_channel):
+        self.foot = Conv2dNormActivation(
+            input_channel,
+            int(16 * self.width_multiplier),
+            stride=2,
+        )
+
+    def build_blocks(self):
+        self.blocks = nn.Sequential(
+            *[
                 GhostLayer(
-                    int(in_c * width_multiplier),
-                    int(out_c * width_multiplier),
+                    int(in_c * self.width_multiplier),
+                    int(out_c * self.width_multiplier),
                     kernel,
                     stride=stride,
                     s=2,
@@ -103,11 +69,20 @@ class GhostNet(nn.Module):
                     expansion_size=expansion_size,
                     enable_se=enable_se,
                 )
-            )
+                for in_c, out_c, kernel, stride, expansion_size, enable_se in self.config
+            ]
+        )
 
-        return middle_layers
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.layers(x)
-        y = self.pool(y)
-        return self.fc(y)
+    def build_neck(self):
+        self.neck = nn.Sequential(
+            Conv2dNormActivation(
+                int(160 * self.width_multiplier),
+                int(960 * self.width_multiplier),
+                1,
+            ),
+            Conv2dNormActivation(
+                int(960 * self.width_multiplier),
+                int(1280 * self.width_multiplier),
+                1,
+            ),
+        )

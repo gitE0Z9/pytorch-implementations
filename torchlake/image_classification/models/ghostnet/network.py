@@ -25,10 +25,10 @@ class GhostModule(nn.Module):
             s (int): num of ghost features, split ratio of output features for depthwise convolution. Defaults to 2.
             d (int): kernel size of depthwise convolution layer. Defaults to 1.
         """
-        super(GhostModule, self).__init__()
+        super().__init__()
         self.s = s
         self.identity_channel = output_channel // s
-        transformed_channel = self.identity_channel * (s - 1)
+        transformed_channel = output_channel - self.identity_channel
 
         self.pointwise_conv = Conv2dNormActivation(
             input_channel,
@@ -88,7 +88,7 @@ class GhostBottleNeck(SeMixin, nn.Module):
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
         """
-        super(GhostBottleNeck, self).__init__()
+        super().__init__()
 
         # basic block
         self.block = self.build_block(
@@ -196,7 +196,7 @@ class GhostLayer(nn.Module):
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
         """
-        super(GhostLayer, self).__init__()
+        super().__init__()
 
         block = GhostBottleNeck(
             input_channel,
