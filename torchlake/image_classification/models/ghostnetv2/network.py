@@ -30,7 +30,6 @@ class DFCAttention(nn.Module):
                 input_channel,
                 output_channel,
                 1,
-                norm_layer=None,
                 activation_layer=None,
             ),
         )
@@ -39,7 +38,6 @@ class DFCAttention(nn.Module):
             output_channel,
             kernel_size=(horizontal_kernel, 1),
             groups=output_channel,
-            norm_layer=None,
             activation_layer=None,
         )
         self.va = Conv2dNormActivation(
@@ -47,7 +45,6 @@ class DFCAttention(nn.Module):
             output_channel,
             kernel_size=(1, vertical_kernel),
             groups=output_channel,
-            norm_layer=None,
             activation_layer=None,
         )
         self.activation = nn.Sigmoid()
