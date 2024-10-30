@@ -66,7 +66,7 @@ class GhostNet(ModelBase):
                     stride=stride,
                     s=2,
                     d=3,
-                    expansion_size=expansion_size,
+                    expansion_size=int(expansion_size * self.width_multiplier),
                     enable_se=enable_se,
                 )
                 for in_c, out_c, kernel, stride, expansion_size, enable_se in self.config
