@@ -11,6 +11,7 @@ class ResBlock(nn.Module):
         block: nn.Module,
         stride: int = 1,
         activation: nn.Module | None = nn.ReLU(True),
+        shortcut: nn.Module | None = None,
     ):
         """residual block
         skip connection is 1x1 conv shortcut if input_channel != output_channel
@@ -21,13 +22,16 @@ class ResBlock(nn.Module):
             block (nn.Module): block class
             stride (int, optional): stride of identity mapping. Defaults to 1.
             activation (tuple[nn.Module  |  None], optional): activation of residual output. Defaults to nn.ReLU(True).
+            shortcut (nn.Module, optional): shortcut class. Defaults to None.
         """
         super(ResBlock, self).__init__()
         self.activation = activation
 
         self.block = block
 
-        self.downsample = self.build_shortcut(input_channel, output_channel, stride)
+        self.downsample = shortcut or self.build_shortcut(
+            input_channel, output_channel, stride
+        )
 
     def build_shortcut(
         self,
