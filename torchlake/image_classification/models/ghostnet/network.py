@@ -39,10 +39,10 @@ class GhostModule(nn.Module):
         )
 
         self.ghost = Conv2dNormActivation(
-            transformed_channel,
+            self.identity_channel,
             transformed_channel,
             d,
-            groups=transformed_channel,
+            groups=self.identity_channel,
             norm_layer=None,
             activation_layer=None,
         )
@@ -52,13 +52,7 @@ class GhostModule(nn.Module):
         y = self.pointwise_conv(x)
 
         # b, c / s + c * (s-1) / s, h, w
-        return torch.cat(
-            [
-                y,
-                self.ghost(y.repeat(1, self.s - 1, 1, 1)),
-            ],
-            1,
-        )
+        return torch.cat([y, self.ghost(y)], 1)
 
 
 class GhostBottleNeck(SeMixin, nn.Module):
