@@ -62,7 +62,6 @@ class TestGhostLayer:
     @pytest.mark.parametrize("enable_se", [True, False])
     def test_forward_shape(
         self,
-        name: str,
         stride: int,
         s: int,
         d: int,
