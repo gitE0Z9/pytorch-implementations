@@ -2,10 +2,10 @@ from torch import nn
 
 from ..resnet.model import ResNet
 from ..resnet.network import ResBlock
-from .network import Bam2d
+from .network import BAM2d
 
 
-class BamResNet(ResNet):
+class BAMResNet(ResNet):
 
     def build_blocks(self):
         for block_index, (
@@ -28,7 +28,7 @@ class BamResNet(ResNet):
             if block_index not in [0, len(self.config) - 1]:
                 layers.extend(
                     [
-                        Bam2d(output_channel),
+                        BAM2d(output_channel),
                         nn.MaxPool2d(2, 2),
                     ]
                 )

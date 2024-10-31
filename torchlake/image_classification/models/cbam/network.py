@@ -6,7 +6,7 @@ from torchvision.ops import Conv2dNormActivation
 from ..resnet.network import BottleNeck
 
 
-class Cbam2d(nn.Module):
+class CBAM2d(nn.Module):
 
     def __init__(self, in_dim: int, reduction_ratio: float = 1):
         """Convolution block attention module
@@ -15,7 +15,7 @@ class Cbam2d(nn.Module):
             in_dim (int): input dimension
             reduction_ratio (float, optional): reduction ratio. Defaults to 1.
         """
-        super(Cbam2d, self).__init__()
+        super().__init__()
         self.ca = nn.Sequential(
             Conv2dNormActivation(
                 in_dim,
@@ -86,10 +86,10 @@ class BottleNeck(SeMixin, BottleNeck):
             stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
         """
-        super(BottleNeck, self).__init__(
+        super().__init__(
             input_channel,
             block_base_channel,
             stride,
             pre_activation,
         )
-        self.se = Cbam2d(block_base_channel * 4, 16)
+        self.se = CBAM2d(block_base_channel * 4, 16)

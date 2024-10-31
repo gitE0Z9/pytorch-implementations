@@ -15,7 +15,7 @@ class CoordinateAttention2d(nn.Module):
             in_dim (int): input dimension
             reduction_ratio (float, optional): reduction ratio. Defaults to 1.
         """
-        super(CoordinateAttention2d, self).__init__()
+        super().__init__()
         compressed_channel = in_dim // reduction_ratio
         self.conv = Conv2dNormActivation(in_dim, compressed_channel, 1)
         self.conv_x = nn.Conv2d(compressed_channel, in_dim, 1)
@@ -69,7 +69,7 @@ class BottleNeck(SeMixin, BottleNeck):
             stride (int, optional): stride of block. Defaults to 1.
             pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
         """
-        super(BottleNeck, self).__init__(
+        super().__init__(
             input_channel,
             block_base_channel,
             stride,

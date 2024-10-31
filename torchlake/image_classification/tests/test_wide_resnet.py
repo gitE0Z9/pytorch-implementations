@@ -3,7 +3,7 @@ from math import ceil
 import pytest
 import torch
 
-from ..models import BottleneckWideResNet, WideResNet
+from ..models.wide_resnet import BottleneckWideResNet, WideResNet
 from ..models.wide_resnet.network import DropoutConvBlock, BottleNeck
 
 

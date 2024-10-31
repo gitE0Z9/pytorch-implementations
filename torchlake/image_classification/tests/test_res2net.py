@@ -3,7 +3,7 @@ from math import ceil
 import pytest
 import torch
 
-from ..models import Res2Net
+from ..models.res2net.model import Res2Net
 from ..models.res2net.network import BottleNeck, Res2NetLayer
 
 

@@ -1,15 +1,15 @@
 import pytest
 import torch
 
-from ..models.bam.model import BamResNet
-from ..models.bam.network import Bam2d
+from ..models.bam.model import BAMResNet
+from ..models.bam.network import BAM2d
 
 
 class TestBam2d:
     def test_output_shape(self):
         x = torch.randn(8, 16, 112, 112)
 
-        model = Bam2d(16, 16)
+        model = BAM2d(16, 16)
 
         y = model(x)
 
@@ -21,7 +21,7 @@ class TestBamResNet:
     @pytest.mark.parametrize("pre_activation", [False, True])
     def test_resnet_forward_shape(self, key: int, pre_activation: bool):
         x = torch.randn(2, 3, 224, 224)
-        model = BamResNet(
+        model = BAMResNet(
             output_size=5,
             key=key,
             pre_activation=pre_activation,

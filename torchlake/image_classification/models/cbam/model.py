@@ -23,5 +23,5 @@ CONFIGS = {
 }
 
 
-class CbamResNet(ResNet):
+class CBAMResNet(ResNet):
     configs = CONFIGS

@@ -4,7 +4,7 @@ from torch import nn
 from torchvision.ops import Conv2dNormActivation
 
 
-class Bam2d(nn.Module):
+class BAM2d(nn.Module):
 
     def __init__(self, in_dim: int, reduction_ratio: float = 16, dilation: int = 4):
         """Bottleneck attention module
@@ -13,7 +13,7 @@ class Bam2d(nn.Module):
             in_dim (int): input dimension
             reduction_ratio (float, optional): reduction ratio. Defaults to 1.
         """
-        super(Bam2d, self).__init__()
+        super().__init__()
         compressed_dim = in_dim // reduction_ratio
 
         self.ca = nn.Sequential(

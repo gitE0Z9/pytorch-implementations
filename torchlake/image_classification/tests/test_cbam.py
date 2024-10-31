@@ -3,15 +3,15 @@ from math import ceil
 import pytest
 import torch
 
-from ..models.cbam.model import CbamResNet
-from ..models.cbam.network import BottleNeck, Cbam2d
+from ..models.cbam.model import CBAMResNet
+from ..models.cbam.network import BottleNeck, CBAM2d
 from ..models.resnet.network import ResBlock
 
 
 def test_cbam2d_forward_shape():
     x = torch.randn(8, 16, 7, 7)
 
-    model = Cbam2d(16, 16)
+    model = CBAM2d(16, 16)
 
     y = model(x)
 
@@ -82,7 +82,7 @@ def test_resblock_forward_shape(
 @pytest.mark.parametrize("pre_activation", [False, True])
 def test_resnet_forward_shape(key: int, pre_activation: bool):
     x = torch.randn(2, 3, 224, 224)
-    model = CbamResNet(
+    model = CBAMResNet(
         output_size=5,
         key=key,
         pre_activation=pre_activation,
