@@ -114,7 +114,6 @@ class GhostBottleNeckV2(nn.Module):
             self.se = SqueezeExcitation2d(
                 expansion_size,
                 reduction_ratio,
-                activations=(nn.ReLU(True), nn.Hardsigmoid()),
             )
 
         # depthwise conv
