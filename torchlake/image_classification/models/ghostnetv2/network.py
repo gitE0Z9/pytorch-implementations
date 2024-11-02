@@ -1,7 +1,11 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torchlake.common.models import ResBlock, SqueezeExcitation2d
+from torchlake.common.models import (
+    ResBlock,
+    SqueezeExcitation2d,
+    DepthwiseSeparableConv2d,
+)
 from torchvision.ops import Conv2dNormActivation
 
 from ..ghostnet.network import GhostModule
@@ -114,6 +118,7 @@ class GhostBottleNeckV2(nn.Module):
             self.se = SqueezeExcitation2d(
                 expansion_size,
                 reduction_ratio,
+                # activations=(nn.ReLU(True), nn.Hardsigmoid()),
             )
 
         # depthwise conv
@@ -197,6 +202,15 @@ class GhostLayerV2(nn.Module):
             vertical_kernel,
         )
 
+        shortcut = DepthwiseSeparableConv2d(
+            input_channel,
+            output_channel,
+            kernel,
+            stride,
+            padding=kernel // 2,
+            activations=(None, None),
+        )
+
         # packed into resblock
         self.block = ResBlock(
             input_channel,
@@ -204,6 +218,7 @@ class GhostLayerV2(nn.Module):
             block,
             stride,
             activation=None,
+            shortcut=shortcut,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

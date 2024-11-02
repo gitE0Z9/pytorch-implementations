@@ -4,7 +4,7 @@ from torchlake.common.models import (
     ResBlock,
     SqueezeExcitation2d,
 )
-from torchlake.common.mixins.network import SeMixin
+from torchlake.common.mixins.network import SEMixin
 from torchvision.ops import Conv2dNormActivation
 
 
@@ -55,7 +55,7 @@ class GhostModule(nn.Module):
         return torch.cat([y, self.ghost(y)], 1)
 
 
-class GhostBottleNeck(SeMixin, nn.Module):
+class GhostBottleNeck(SEMixin, nn.Module):
 
     def __init__(
         self,
@@ -95,14 +95,13 @@ class GhostBottleNeck(SeMixin, nn.Module):
             expansion_size,
         )
 
-        self.se = (
-            SqueezeExcitation2d(
+        self.se = None
+        if enable_se:
+            self.se = SqueezeExcitation2d(
                 output_channel,
                 reduction_ratio,
+                # activations=(nn.ReLU(True), nn.Hardsigmoid()),
             )
-            if enable_se
-            else nn.Identity()
-        )
 
     def build_block(
         self,
@@ -159,8 +158,7 @@ class GhostBottleNeck(SeMixin, nn.Module):
         return nn.Sequential(*block)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.block(x)
-        return self.se(y)
+        return self.block(x)
 
 
 class GhostLayer(nn.Module):

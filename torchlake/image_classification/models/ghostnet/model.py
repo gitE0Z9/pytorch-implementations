@@ -31,17 +31,22 @@ class GhostNet(ModelBase):
     def config(self) -> list[list[Any]]:
         return [
             # input_channel, output_channel, kernel, stride, expansion_size, enable_se
+            # stage 1
             (16, 16, 3, 1, 16, False),
+            # stage 2
             (16, 24, 3, 2, 48, False),
             (24, 24, 3, 1, 72, False),
+            # stage 3
             (24, 40, 5, 2, 72, True),
             (40, 40, 5, 1, 120, True),
+            # stage 4
             (40, 80, 5, 2, 240, False),
             (80, 80, 5, 1, 200, False),
             (80, 80, 5, 1, 184, False),
             (80, 80, 5, 1, 184, False),
             (80, 112, 5, 1, 480, True),
             (112, 112, 5, 1, 672, True),
+            # stage 5
             (112, 160, 5, 2, 672, True),
             (160, 160, 5, 1, 960, False),
             (160, 160, 5, 1, 960, True),

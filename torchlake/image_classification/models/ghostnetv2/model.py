@@ -24,25 +24,14 @@ class GhostNetV2(GhostNet):
 
     @property
     def config(self) -> list[list[Any]]:
-        return [
-            # input_channel, output_channel, kernel, stride, expansion_size, enable_se
-            (16, 16, 3, 1, 16, False),
-            (16, 24, 3, 2, 48, False),
-            (24, 24, 3, 1, 72, False),
-            (24, 40, 5, 2, 72, True),
-            (40, 40, 5, 1, 120, True),
-            (40, 80, 3, 2, 240, False),  # kernel: 5 -> 3 in following layers
-            (80, 80, 3, 1, 200, False),
-            (80, 80, 3, 1, 184, False),
-            (80, 80, 3, 1, 184, False),
-            (80, 112, 3, 1, 480, True),
-            (112, 112, 3, 1, 672, True),
-            (112, 160, 5, 2, 672, True),
-            (160, 160, 5, 1, 960, False),
-            (160, 160, 5, 1, 960, True),
-            (160, 160, 5, 1, 960, False),
-            (160, 160, 5, 1, 960, True),
-        ]
+        cfg = super().config
+        # kernel: 5 -> 3 in stage 4
+        for layer_idx in range(5, 11):
+            layer_cfg = list(cfg[layer_idx])
+            layer_cfg[2] = 3
+            cfg[layer_idx] = layer_cfg
+
+        return cfg
 
     def build_blocks(self):
         self.blocks = nn.Sequential(
