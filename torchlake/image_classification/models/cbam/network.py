@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.mixins.network import SeMixin
+from torchlake.common.mixins.network import SEMixin
 from torchvision.ops import Conv2dNormActivation
 
 from ..resnet.network import BottleNeck
@@ -68,7 +68,7 @@ class CBAM2d(nn.Module):
         return y
 
 
-class BottleNeck(SeMixin, BottleNeck):
+class BottleNeck(SEMixin, BottleNeck):
     def __init__(
         self,
         input_channel: int,

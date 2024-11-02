@@ -1,9 +1,12 @@
 import torch
 
 
-class SeMixin:
+class SEMixin:
     """Squeeze and excitation mixin, cbam work too"""
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = super().forward(x)
-        return self.se(y)
+        if self.se is not None:
+            return self.se(y)
+
+        return y

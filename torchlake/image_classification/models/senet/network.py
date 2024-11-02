@@ -1,4 +1,4 @@
-from torchlake.common.mixins.network import SeMixin
+from torchlake.common.mixins.network import SEMixin
 from torchlake.common.models import SqueezeExcitation2d
 
 from ..resnet.network import BottleNeck, ConvBlock
@@ -6,7 +6,7 @@ from ..resnext.network import BottleNeck as XBottleNeck
 from ..resnext.network import ConvBlock as XConvBlock
 
 
-class SeConvBlock(SeMixin, ConvBlock):
+class SeConvBlock(SEMixin, ConvBlock):
     def __init__(
         self,
         input_channel: int,
@@ -33,7 +33,7 @@ class SeConvBlock(SeMixin, ConvBlock):
         self.se = SqueezeExcitation2d(block_base_channel, 16)
 
 
-class SeBottleNeck(SeMixin, BottleNeck):
+class SeBottleNeck(SEMixin, BottleNeck):
     def __init__(
         self,
         input_channel: int,
@@ -60,7 +60,7 @@ class SeBottleNeck(SeMixin, BottleNeck):
         self.se = SqueezeExcitation2d(block_base_channel * 4, 16)
 
 
-class SeXConvBlock(SeMixin, XConvBlock):
+class SeXConvBlock(SEMixin, XConvBlock):
     def __init__(
         self,
         input_channel: int,
@@ -87,7 +87,7 @@ class SeXConvBlock(SeMixin, XConvBlock):
         self.se = SqueezeExcitation2d(block_base_channel, 16)
 
 
-class SeXBottleNeck(SeMixin, XBottleNeck):
+class SeXBottleNeck(SEMixin, XBottleNeck):
     def __init__(
         self,
         input_channel: int,
