@@ -6,11 +6,14 @@ from torch import nn
 from torchvision.models._api import Weights
 from torchvision.models.resnet import (
     ResNet,
+    ResNet18_Weights,
+    ResNet34_Weights,
     ResNet50_Weights,
     ResNet101_Weights,
     ResNet152_Weights,
 )
 
+from ..types import RESNET_NAMES
 from .feature_extractor_base import ExtractorBase
 from .imagenet_normalization import ImageNetNormalization
 
@@ -18,14 +21,14 @@ from .imagenet_normalization import ImageNetNormalization
 class ResNetFeatureExtractor(ExtractorBase):
     def __init__(
         self,
-        network_name: Literal["resnet50", "resnet101", "resnet152"],
+        network_name: RESNET_NAMES,
         layer_type: Literal["block"],
         trainable: bool = True,
     ):
         """resnet feature extractor
 
         Args:
-            network_name (Literal["resnet50", "resnet101", "resnet152"]): torchvision resnet model
+            network_name (Literal["resnet18", "resnet34", "resnet50", "resnet101", "resnet152"]): torchvision resnet model
             layer_type (Literal["block"]): extract which type of layer
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
@@ -34,6 +37,8 @@ class ResNetFeatureExtractor(ExtractorBase):
 
     def get_weight(self, network_name: str) -> Weights:
         return {
+            "resnet18": ResNet18_Weights.DEFAULT,
+            "resnet34": ResNet34_Weights.DEFAULT,
             "resnet50": ResNet50_Weights.DEFAULT,
             "resnet101": ResNet101_Weights.DEFAULT,
             "resnet152": ResNet152_Weights.DEFAULT,
