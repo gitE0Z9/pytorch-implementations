@@ -105,7 +105,7 @@ class MobileNetFeatureExtractor(ExtractorBase):
     def forward(
         self,
         img: torch.Tensor,
-        target_layer_names: list[str],
+        target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"],
     ) -> list[torch.Tensor]:
         if self.layer_type != "block":
             raise NotImplementedError
