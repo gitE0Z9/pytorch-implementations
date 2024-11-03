@@ -109,6 +109,18 @@ class TrainerBase(PredictFunctionMixin, ABC):
         return training_loss
 
 
+class DoNothingTrainer(TrainerBase):
+    def _calc_loss(
+        self,
+        y_hat: tuple[torch.Tensor],
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        _, y = row
+
+        return criterion(y_hat, y)
+
+
 class ClassificationTrainer(TrainerBase):
     @staticmethod
     def get_criterion(
