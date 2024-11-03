@@ -36,10 +36,10 @@ class ModelBase(nn.Module, ABC):
         self.foot = ...
 
     def build_blocks(self, **kwargs):
-        self.blocks = ...
+        self.blocks = None
 
     def build_neck(self, **kwargs):
-        self.neck = ...
+        self.neck = None
 
     def build_head(self, output_size: int, **kwargs):
         self.head = nn.Sequential(
