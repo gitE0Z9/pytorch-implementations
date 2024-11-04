@@ -1,6 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .random import rand_color
+
+
+def rand_color_map(class_names: list[str]) -> dict[str, list[int]]:
+    return {class_name: rand_color() for class_name in class_names}
+
 
 def plot_grids(
     images: list[np.ndarray],
@@ -20,6 +26,6 @@ def plot_grids(
         plt.axis("off")
 
         if is_gray_scale:
-            plt.imshow(image, cmap='gray')
+            plt.imshow(image, cmap="gray")
         else:
             plt.imshow(image)
