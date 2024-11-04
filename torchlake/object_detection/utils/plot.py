@@ -1,28 +1,15 @@
-import random
-from typing import Dict, List
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
 
-def rand_color() -> List[int]:
-    return random.choices(range(256), k=3)
-
-
-def tensor2np_uint8(img: torch.Tensor) -> np.ndarray:
-    assert img.dim() == 3, "please provide tensor in shape C,H,W."
-    return (img.permute(1, 2, 0).numpy().copy() * 255).astype(np.uint8)
-
-
-# labels
 def draw_label(
     img: np.ndarray,
     label: torch.Tensor,
-    class_names: List[str],
+    class_names: list[str],
     class_show: bool = True,
-    class_colors: Dict[str, List[int]] = None,
+    class_colors: dict[str, list[int]] = None,
 ):
     """draw detection label
 
@@ -73,10 +60,10 @@ def draw_label(
 def draw_pred(
     img: np.ndarray,
     bboxes: torch.Tensor,
-    class_names: List[str],
+    class_names: list[str],
     class_show: bool = True,
     verbose: bool = True,
-    class_colors: Dict[str, List[int]] = None,
+    class_colors: dict[str, list[int]] = {},
 ):
     """draw predicted bbox
 
@@ -86,7 +73,7 @@ def draw_pred(
         class_name (List[str]): class names
         class_show (bool, optional): show class and score. Defaults to True.
         verbose (bool, optional): print out class and score. Defaults to True.
-        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to None.
+        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
     """
 
     for bbox in bboxes:

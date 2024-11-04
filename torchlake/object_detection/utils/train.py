@@ -3,14 +3,14 @@ from typing import Tuple
 import torch
 
 
-def collate_fn(batch):
-    image_list = []
-    label_list = []
+def collate_fn(batch) -> tuple[torch.Tensor, list[list[list[int]]]]:
+    images = []
+    labels = []
     for img, label in batch:
-        image_list.append(img)
-        label_list.append(label)
+        images.append(img)
+        labels.append(label)
 
-    return torch.stack(image_list, 0), label_list
+    return torch.stack(images, 0), labels
 
 
 def generate_grid_train(grid_x: int, grid_y: int, center: bool = False) -> torch.Tensor:
