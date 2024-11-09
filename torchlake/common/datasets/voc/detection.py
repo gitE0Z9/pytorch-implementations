@@ -154,26 +154,13 @@ class VOCDetectionFromCSV(Dataset):
         self,
         root: str,
         csv_path: str,
-        # class_names: list[str] = VOC_CLASS_NAMES,
-        # mode: str = OperationMode.TEST.value,
         transform=None,
     ):
-        # self.config = DatasetCfg(
-        #     **load_config(Path(__file__).parent.joinpath("config.yml"))
-        # )
-        # self.root = Path(root or self.config.ROOT)
-        # self.csv_root = Path(csv_path or self.config.CSV_ROOT)
         self.root = Path(root)
         self.csv_path = Path(csv_path)
-        # self.mode = mode
-        # self.class_names = class_names or load_classes(
-        #     Path(__file__).parent.parent.parent.joinpath(self.config.CLASSES_PATH)
-        # )
-        # self.class_names = class_names
         self.transform = transform
 
         self.table = pd.read_csv(
-            # self.csv_path.joinpath(f"voc_{self.get_mode_filename()}.csv").as_posix(),
             self.csv_path.as_posix(),
             index_col="id",
             dtype={"class_id": pd.Int8Dtype()},
@@ -202,14 +189,6 @@ class VOCDetectionFromCSV(Dataset):
 
         return img, label
 
-    # def _get_mode_filename(self) -> str:
-    #     mapping = {
-    #         OperationMode.TRAIN.value: "trainval",
-    #         OperationMode.TEST.value: "test",
-    #     }
-
-    #     return mapping.get(self.mode, "test")
-
     def _get_img(self, path: str) -> np.ndarray:
         img_path = path.replace("Annotations", "JPEGImages").replace("xml", "jpg")
         img: np.ndarray = load_image(img_path, is_numpy=True)
@@ -223,9 +202,6 @@ class VOCDetectionFromCSV(Dataset):
         if isinstance(img_table, pd.Series):
             label = [label]
             path = img_table["name"]
-            # path = img_table["name"].apply(
-            #     lambda p: os.path.join(self.root, "VOCdevkit", p)
-            # )
         else:
             path = img_table.iloc[0]["name"]
 
