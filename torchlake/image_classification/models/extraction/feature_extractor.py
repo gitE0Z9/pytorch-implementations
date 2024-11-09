@@ -29,7 +29,7 @@ class ExtractionFeatureExtractor(ExtractorBase):
         return self.weight_path
 
     def build_feature_extractor(self, _: str, weight_path: str) -> Extraction:
-        feature_extractor = Extraction()
+        feature_extractor = Extraction(output_size=1000)
 
         if weight_path is not None:
             feature_extractor.load_state_dict(torch.load(weight_path))
