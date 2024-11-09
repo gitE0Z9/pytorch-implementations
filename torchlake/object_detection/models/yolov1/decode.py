@@ -20,9 +20,8 @@ def yolo_postprocess(
     Returns:
         list[torch.Tensor]: #batch * (#selected, 5 + #class)
     """
-    # decoded_output shape: (Batch, Anchor * X * Y, 5+C)
     decoded_output[:, :, 5:] *= decoded_output[:, :, 4:5]
-    cls_indices = decoded_output[:, :, 5:].argmax(2)
+    cls_indices = decoded_output[:, :, 5:].argmax(-1)
 
     processed_result = []
     for decoded, cls_idx in zip(decoded_output, cls_indices):
@@ -60,15 +59,15 @@ class Decoder:
             image_size (tuple[int, int]): (image_y, image_x)
 
         Returns:
-            torch.Tensor: shape (#batch, #anchor * #grid, 5 + #class)
+            torch.Tensor: shape (#batch, #anchor * #grid, 5 + #class), in format of (x,y,w,h)
         """
         num_anchors = self.context.num_anchors
         num_classes = self.context.num_classes
         batch_size, _, fm_h, fm_w = feature_map.shape
 
         # batch_size, boxes, 5, grid_y, grid_x
-        feature_map_coord = feature_map[:, : 5 * num_anchors, :, :].reshape(
-            batch_size, num_anchors, 5, fm_h, fm_w
+        feature_map_coord = feature_map[:, : 5 * num_anchors, :, :].unflatten(
+            1, (num_anchors, 5)
         )
 
         input_h, input_w = image_size
