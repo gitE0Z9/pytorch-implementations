@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import partial
 
 from torch import nn
 import torch
@@ -50,6 +51,12 @@ class ExtractorBase(nn.Module, ABC):
         Returns:
             nn.Module: model
         """
+
+    def fix_target_layers(self, layer_names: list[str]):
+        self.foot.forward = partial(
+            self.foot.forward,
+            target_layer_names=layer_names,
+        )
 
     @abstractmethod
     def forward(
