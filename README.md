@@ -42,10 +42,12 @@
 | MobileNet v2                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenetv2``        |
 | MobileNet v3                               | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc)               | ``mobilenetv3``        |
 | GhostNet                                   | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnet-10b0bab4110e)                   | ``ghostnet``           |
+| GhostNet v2                                | -                                                                                                                                     | ``ghostnetv2``         |
 | ShuffleNet                                 | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)            | ``shufflenet``         |
 | ShuffleNetV2                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)            | ``shufflenetv2``       |
 | SqueezeNet                                 | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)      | ``squeezenet``         |
 | SqueezeNeXt                                | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)      | ``squeezenext``        |
+| Extraction                                 | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)                       | ``extraction``         |
 
 
 ### 物件偵測
@@ -69,6 +71,19 @@
 | Fully convolution network (FCN)          | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b)                       | ``fcn``            |
 | Pyramid spatial pooling network (PSPNet) | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221)                    | ``pspnet``         |
 | Dual attention(DANet)                    | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)            | ``dual_attention`` |
+| DeepLab v1                               | -                                                                                                                                   | ``deeplabv1``      |
+| DeepLab v2                               | -                                                                                                                                   | ``deeplabv2``      |
+| DeepLab v3                               | -                                                                                                                                   | ``deeplabv3``      |
+
+
+
+### 光學文字辨識
+
+套件名: `ocr`
+
+| Model                                       | Article Link                                                                                                    | Package  |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
+| Convolution recurrent neural network (CRNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698) | ``crnn`` |
 
 
 ### 圖像生成
@@ -82,16 +97,6 @@
 | Deep convolution GAN (DCGAN)         | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)                                 | ``dcgan`` |
 
 
-### 光學文字辨識
-
-套件名: `ocr`
-
-| Model                                       | Article Link                                                                                                    | Package  |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
-| Convolution recurrent neural network (CRNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698) | ``crnn`` |
-
-
-
 ### 風格遷移
 
 套件名: `style_transfer`
@@ -103,26 +108,6 @@
 | Fast style transfer                     | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)                      | ``fast_style_transfer``   |
 | Adaptive instance normalization (AdaIN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b)                                    | ``adain``                 |
 | Pix2Pix                                 | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39)                     | ``pix2pix``               |
-
-### 文本分類
-
-套件名: `text_classification`
-
-| Model                   | Article Link                                                                                                                            | Package     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| TextCNN                 | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c)  | ``textcnn`` |
-| Character CNN (CharCNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-charcnn-47020fdc76d4)                      | ``charcnn`` |
-| Very deep CNN (VDCNN)   | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vdcnn-0bfdf5681d45)                         | ``vdcnn``   |
-| Recurrent CNN (RCNN)    | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-rcnn-for-text-classification-17880a540591) | ``rcnn``    |
-| Dynamic CNN (DCNN)      | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dcnn-a9241a1ff418)                         | ``dcnn``    |
-
-### 標籤預測
-
-套件名: `tag_prediction`
-
-| Model                                                      | Article Link                                                                                                          | Package        |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------- |
-| Bidirectional LSTM - Conditional random field (BiLSTM-CRF) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6) | ``bilstm_crf`` |
 
 
 ### 序列資料
@@ -147,6 +132,37 @@
 | Word2vec                                        | [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57) | ``word2vec`` |
 | GloVe                                           | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``glove``    |
 | Vector log-bilinear language model (vLBL/ivLBL) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``vlbl``     |
+
+
+### 文本分類
+
+套件名: `text_classification`
+
+| Model                   | Article Link                                                                                                                            | Package      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| TextCNN                 | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%94-textcnn-cd9442139f8c)  | ``textcnn``  |
+| Character CNN (CharCNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-charcnn-47020fdc76d4)                      | ``charcnn``  |
+| Very deep CNN (VDCNN)   | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vdcnn-0bfdf5681d45)                         | ``vdcnn``    |
+| Recurrent CNN (RCNN)    | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-rcnn-for-text-classification-17880a540591) | ``rcnn``     |
+| Dynamic CNN (DCNN)      | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dcnn-a9241a1ff418)                         | ``dcnn``     |
+| FastText                | -                                                                                                                                       | ``fasttext`` |
+
+### 標籤預測
+
+套件名: `tag_prediction`
+
+| Model                                                      | Article Link                                                                                                          | Package        |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Bidirectional LSTM - Conditional random field (BiLSTM-CRF) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-crf-7d2014a286f6) | ``bilstm_crf`` |
+
+### 文本生成
+
+
+套件名: `text_generation`
+
+| Model         | Article Link | Package           |
+| ------------- | ------------ | ----------------- |
+| Show and tell | -            | ``show_and_tell`` |
 
 
 ### 少樣本學習
@@ -212,16 +228,17 @@
 ├───controller
 ├───datasets
 │   └───dataset_name
+|       └───datasets.py
 ├───models
 │   ├───base
 │   └───model_name
+|       |───reference
+|       |   └───paper
 │       ├───model.py
 │       ├───network.py
 │       ├───loss.py
+│       ├───helper.py
 │       └───decode.py
-├───reference
-│   └───model_name
-│       └───paper
 ├───runs
 ├───scripts
 │   └───debug
