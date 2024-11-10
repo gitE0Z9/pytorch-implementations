@@ -93,7 +93,7 @@
 | Adaptive instance normalization (AdaIN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b)                                    | ``adain``                 |
 | Pix2Pix                                 | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39)                     | ``pix2pix``               |
 
-### 文本預測
+### 文本分類
 
 套件名: `text_classification`
 
