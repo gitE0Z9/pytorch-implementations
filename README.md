@@ -12,6 +12,17 @@
 
 ## 套件
 
+
+### 一般
+
+套件名: `common`
+
+| Model      | Article Link                                                                                                  | Package        |
+| ---------- | ------------------------------------------------------------------------------------------------------------- | -------------- |
+| K-Means    | -                                                                                                             | ``kmeans``     |
+| Kernel PCA | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``kernel_pca`` |
+
+
 ### 圖像分類
 
 套件名: `image_classification`
