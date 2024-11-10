@@ -25,6 +25,10 @@ class ExtractorBase(nn.Module, ABC):
             self.network_name, self.weights
         )
 
+    @property
+    def feature_dims(self) -> list[list[int]] | list[int]:
+        raise NotImplementedError
+
     @abstractmethod
     def get_weight(self, network_name: str) -> Weights:
         """get pytorch weight enum by network name
@@ -53,8 +57,8 @@ class ExtractorBase(nn.Module, ABC):
         """
 
     def fix_target_layers(self, layer_names: list[str]):
-        self.foot.forward = partial(
-            self.foot.forward,
+        self.forward = partial(
+            self.forward,
             target_layer_names=layer_names,
         )
 

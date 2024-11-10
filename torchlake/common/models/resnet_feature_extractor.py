@@ -35,6 +35,16 @@ class ResNetFeatureExtractor(ExtractorBase):
         super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
+    @property
+    def feature_dims(self) -> list[int]:
+        return {
+            "resnet18": [64, 128, 256, 512],
+            "resnet34": [64, 128, 256, 512],
+            "resnet50": [256, 512, 1024, 2048],
+            "resnet101": [256, 512, 1024, 2048],
+            "resnet152": [256, 512, 1024, 2048],
+        }[self.network_name]
+
     def get_weight(self, network_name: str) -> Weights:
         return {
             "resnet18": ResNet18_Weights.DEFAULT,

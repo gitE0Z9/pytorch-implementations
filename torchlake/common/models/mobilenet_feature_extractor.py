@@ -35,7 +35,8 @@ class MobileNetFeatureExtractor(ExtractorBase):
         super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
-    def get_feature_dim(self) -> int:
+    @property
+    def feature_dims(self) -> list[list[int]]:
         return {
             "mobilenet_v2": [
                 [32, 16],

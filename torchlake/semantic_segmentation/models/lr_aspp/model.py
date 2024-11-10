@@ -47,8 +47,8 @@ class MobileNetV3Seg(MobileNetBackboneMixin, nn.Module):
             ],
         )
         self.feature_dims = [
-            self.backbone.get_feature_dim()[-3][-1],
-            self.backbone.get_feature_dim()[-1][-2],
+            self.backbone.feature_dims[-3][-1],
+            self.backbone.feature_dims[-1][-2],
         ]
         self.head: LRASPP = self.build_head(
             hidden_dim,

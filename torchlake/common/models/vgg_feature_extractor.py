@@ -32,6 +32,10 @@ class VGGFeatureExtractor(ExtractorBase):
         super(VGGFeatureExtractor, self).__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
+    @property
+    def feature_dims(self) -> list[int]:
+        return [64, 128, 256, 512, 512]
+
     def get_weight(self, network_name: str) -> Weights:
         return {
             "vgg11": VGG11_Weights.DEFAULT,

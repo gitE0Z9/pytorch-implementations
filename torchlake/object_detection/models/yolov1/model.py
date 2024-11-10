@@ -1,5 +1,3 @@
-from functools import partial
-
 import torch
 import torch.nn as nn
 from torchlake.common.models.feature_extractor_base import ExtractorBase
@@ -19,9 +17,9 @@ class YOLOV1Original(ModelBase):
         """mimic original design of YOLOV1 in paper [1506.02640]
 
         Args:
-            backbone (ExtractorBase): _description_
-            context (DetectorContext): _description_
-            dropout_prob (float, optional): _description_. Defaults to 0.5.
+            backbone (ExtractorBase): feature extractor
+            context (DetectorContext): detector context
+            dropout_prob (float, optional): dropout prob. Defaults to 0.5.
         """
         self.dropout_prob = dropout_prob
         self.context = context
@@ -46,16 +44,12 @@ class YOLOV1Original(ModelBase):
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
-        self.foot.forward = partial(
-            self.foot.forward,
-            target_layer_names=["4_1"],
-        )
 
     def build_neck(self):
         # like paper, add 4 convs after backbone
         self.neck = nn.Sequential(
             Conv2dNormActivation(
-                512,  # TODO: convert back to 1024 for extraction
+                self.foot.feature_dims[-1],
                 1024,
                 3,
                 activation_layer=lambda: nn.LeakyReLU(0.1),
@@ -87,6 +81,7 @@ class YOLOV1Original(ModelBase):
                 1024,
                 256,
                 3,
+                norm_layer=None,
                 activation_layer=lambda: nn.LeakyReLU(0.1),
                 inplace=None,
             ),
@@ -127,16 +122,12 @@ class YOLOV1Modified(ModelBase):
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
-        self.foot.forward = partial(
-            self.foot.forward,
-            target_layer_names=["4_1"],
-        )
 
     def build_neck(self):
         # like paper, add 4 convs after backbone
         self.neck = nn.Sequential(
             Conv2dNormActivation(
-                512,
+                self.foot.feature_dims[-1],
                 1024,
                 3,
                 activation_layer=lambda: nn.LeakyReLU(0.1),

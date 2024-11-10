@@ -1,6 +1,7 @@
 import torch
 from torch.testing import assert_close
 from torchlake.common.models import ResNetFeatureExtractor
+from torchlake.image_classification.models.extraction import ExtractionFeatureExtractor
 
 from ..constants.schema import DetectorContext
 from ..models.yolov1.model import YOLOV1Modified, YOLOV1Original
@@ -19,7 +20,9 @@ OUTPUT_SIZE = CONTEXT.num_classes + CONTEXT.num_anchors * 5
 
 class TestYOLOV1Original:
     def test_output_shape(self):
-        backbone = ResNetFeatureExtractor("resnet18", "block", False)
+        backbone = ExtractionFeatureExtractor("block", trainable=False)
+        backbone.fix_target_layers(["2_1"])
+
         model = YOLOV1Original(backbone, CONTEXT)
         x = torch.rand(2, 3, 448, 448)
 
@@ -30,6 +33,8 @@ class TestYOLOV1Original:
 class TestYOLOV1Modified:
     def test_output_shape(self):
         backbone = ResNetFeatureExtractor("resnet18", "block", False)
+        backbone.fix_target_layers(["4_1"])
+
         model = YOLOV1Modified(backbone, CONTEXT)
         x = torch.rand(2, 3, 448, 448)
 

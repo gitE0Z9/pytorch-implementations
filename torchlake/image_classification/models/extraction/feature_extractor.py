@@ -25,6 +25,10 @@ class ExtractionFeatureExtractor(ExtractorBase):
         self.weight_path = weight_path
         super().__init__("extraction", layer_type, trainable)
 
+    @property
+    def feature_dims(self) -> list[int]:
+        return [192, 512, 1024, 1024]
+
     def get_weight(self, _: str) -> str:
         return self.weight_path
 

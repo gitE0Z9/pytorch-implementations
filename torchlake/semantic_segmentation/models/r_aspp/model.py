@@ -40,7 +40,7 @@ class MobileNetV2Seg(MobileNetBackboneMixin, nn.Module):
             self.backbone.forward,
             target_layer_names=[f"4_{len(self.backbone.get_stage()[-1])-1}"],
         )
-        self.feature_dim = self.backbone.get_feature_dim()[-1][-2]
+        self.feature_dim = self.backbone.feature_dims[-1][-2]
         self.neck = self.build_neck()
         self.head = nn.Conv2d(self.feature_dim // self.reduction_ratio, output_size, 1)
         self.upsample = nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
