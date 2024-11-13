@@ -7,7 +7,7 @@ from torchvision.ops import Conv2dNormActivation
 from ...constants.schema import DetectorContext
 
 
-class YOLOV1Original(ModelBase):
+class YOLOV1(ModelBase):
     def __init__(
         self,
         backbone: ExtractorBase,
@@ -155,11 +155,19 @@ class YOLOV1Modified(ModelBase):
                 activation_layer=lambda: nn.LeakyReLU(0.1),
                 inplace=None,
             ),
+            Conv2dNormActivation(
+                1024,
+                256,
+                3,
+                norm_layer=None,
+                activation_layer=lambda: nn.LeakyReLU(0.1),
+                inplace=None,
+            ),
             nn.Dropout(self.dropout_prob),
         )
 
     def build_head(self, _):
-        self.head = nn.Conv2d(1024, self.output_size, 3, padding=1)
+        self.head = nn.Conv2d(256, self.output_size, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x).pop()

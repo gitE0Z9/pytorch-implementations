@@ -6,11 +6,6 @@ class MediaType(Enum):
     VIDEO = "video"
 
 
-class NetworkType(Enum):
-    CLASSIFIER = "CLASSIFIER"
-    DETECTOR = "DETECTOR"
-
-
 class NetworkStage(Enum):
     INFERENCE = "inference"
     FINETUNE = "finetune"
