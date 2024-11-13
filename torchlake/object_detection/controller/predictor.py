@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import albumentations as A
 import cv2
@@ -7,93 +6,115 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
+from torch import nn
 from torchlake.common.utils.image import load_image
+from torchlake.common.utils.plot import rand_color_map
 
-from ..constants.enums import NetworkType, OperationMode
-from ..controller.controller import Controller
-from ..utils.inference import model_predict
+from ..configs.schema import InferenceCfg
+from ..constants.schema import DetectorContext
 from ..utils.plot import draw_pred
 
 
-class Predictor(Controller):
-    def set_preprocess(self, input_size: int):
+class Predictor:
+    def __init__(self, context: DetectorContext):
+        self.context = context
+
+    def set_preprocess(self, *input_size: int):
         """
         Set preprocessing pipeline.
         Be careful, some transformations might drop targets.
         """
-        preprocess = A.Compose(
+        self.preprocess = A.Compose(
             [
-                A.Resize(input_size, input_size),
+                A.Resize(*input_size),
                 A.Normalize(mean=0, std=1),
                 ToTensorV2(),
             ],
         )
 
-        self.data[OperationMode.TEST.value]["preprocess"] = preprocess
+    def set_postprocess_cfg(self, decoder, inferenceCfg: InferenceCfg = None):
+        self.decoder = decoder
+        self.inferenceCfg = inferenceCfg
 
-    def detect_single_image(self, image: np.ndarray, transform) -> list[torch.Tensor]:
-        img_h, img_w, _ = image.shape
+    def postprocess(
+        self,
+        output: torch.Tensor,
+        img_size: tuple[int, int],
+    ) -> list[torch.Tensor]:
+        return self.decoder.decode(output, img_size)
 
-        image = transform(image=image)["image"].to(self.device)
-        output = model_predict(self.model, image)
+    def detect_image(
+        self,
+        model: nn.Module,
+        img: np.ndarray,
+        transform=None,
+        is_batch: bool = False,
+    ) -> torch.Tensor | list[torch.Tensor]:
+        if transform is not None:
+            img = transform(image=img)["image"]
 
-        if self.network_type == NetworkType.DETECTOR.value:
-            return self.postprocess(output, (img_h, img_w))[0]
-        else:
-            return output
+        if not is_batch:
+            img = img.unsqueeze(0)
+
+        _, img_h, img_w, _ = img.shape
+        img = img.to(self.context.device)
+
+        model.eval()
+        with torch.no_grad():
+            y = model(img).detach().cpu()
+
+        y = self.postprocess(y, (img_h, img_w))
+
+        if not is_batch:
+            return y[0]
+
+        return y
 
     def predict_image_file(
         self,
-        weight_path: str,
-        image_paths: List[str],
+        model: nn.Module,
+        image_paths: list[str],
+        class_names: list[str],
+        transform=None,
         show: bool = False,
         save_dir: str = None,
     ):
-        transform = self.prepare_inference()
-        self.load_weight(weight_path)
-
         assert isinstance(image_paths, list), "image should be a list."
 
         for image_path in image_paths:
             original_image = load_image(image_path, is_numpy=True)
-            detections = self.detect_single_image(original_image, transform)
 
-            if self.network_type == NetworkType.DETECTOR.value:
-                copied_image = original_image.copy()
-                draw_pred(
-                    copied_image,
-                    detections,
-                    class_names=self.class_names,
-                    class_show=True,
-                    class_colors=self.palette,
-                )
+            detections = self.detect_image(model, original_image, transform)
+            copied_image = original_image.copy()
+            draw_pred(
+                copied_image,
+                detections,
+                class_names=class_names,
+                class_show=True,
+                class_colors=rand_color_map(class_names),
+            )
 
-                print(image_path, len(detections))
+            print(image_path, len(detections))
 
-                if show:
-                    plt.imshow(copied_image)
-                    plt.show()
+            if show:
+                plt.imshow(copied_image)
+                plt.show()
 
-                if save_dir:
-                    filename = Path(image_path).name
-                    dst = Path(save_dir).joinpath(filename)
-                    cv2.imwrite(dst.as_posix(), copied_image[:, :, ::-1])
-
-            elif self.network_type == NetworkType.CLASSIFIER.value:
-                cls_idx = detections.argmax(1).item()
-                print(image_path, self.class_names[cls_idx])
+            if save_dir:
+                filename = Path(image_path).name
+                dst = Path(save_dir).joinpath(filename)
+                cv2.imwrite(dst.as_posix(), copied_image[:, :, ::-1])
 
     def predict_video_file(
         self,
-        model_path: str,
+        model: nn.Module,
         video_path: str,
+        class_names: list[str],
+        transform=None,
         show: bool = False,
         save_dir: str | None = None,
     ):
         """Press Q to quit"""
-        transform = self.prepare_inference()
-        self.load_weight(model_path)
-
         vid = cv2.VideoCapture(video_path)
 
         # writing video
@@ -108,7 +129,10 @@ class Predictor(Controller):
             else:
                 raise NotImplementedError
             writer = cv2.VideoWriter(
-                dst, encoder, vid.get(5), (int(vid.get(3)), int(vid.get(4)))
+                dst,
+                encoder,
+                vid.get(5),
+                (int(vid.get(3)), int(vid.get(4))),
             )
 
         # show window
@@ -121,14 +145,14 @@ class Predictor(Controller):
                 print("Video end")
                 break
 
-            detections = self.detect_single_image(original_image, transform)
+            detections = self.detect_image(model, original_image, transform)
             copied_image = original_image.copy()
             draw_pred(
                 copied_image,
                 detections,
-                class_names=self.class_names,
+                class_names=class_names,
                 class_show=True,
-                class_colors=self.palette,
+                class_colors=rand_color_map(class_names),
             )
 
             if show:
