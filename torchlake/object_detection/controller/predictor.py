@@ -8,7 +8,6 @@ import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from torch import nn
 from torchlake.common.utils.image import load_image
-from torchlake.common.utils.plot import rand_color_map
 
 from ..configs.schema import InferenceCfg
 from ..constants.schema import DetectorContext
@@ -50,13 +49,14 @@ class Predictor:
         transform=None,
         is_batch: bool = False,
     ) -> torch.Tensor | list[torch.Tensor]:
+        img_h, img_w = img.shape[1 if is_batch else 0], img.shape[2 if is_batch else 1]
+
         if transform is not None:
             img = transform(image=img)["image"]
 
         if not is_batch:
             img = img.unsqueeze(0)
 
-        _, img_h, img_w, _ = img.shape
         img = img.to(self.context.device)
 
         model.eval()
@@ -75,6 +75,7 @@ class Predictor:
         model: nn.Module,
         image_paths: list[str],
         class_names: list[str],
+        class_colors: dict[str, list[int]] = {},
         transform=None,
         show: bool = False,
         save_dir: str = None,
@@ -91,7 +92,7 @@ class Predictor:
                 detections,
                 class_names=class_names,
                 class_show=True,
-                class_colors=rand_color_map(class_names),
+                class_colors=class_colors,
             )
 
             print(image_path, len(detections))
@@ -110,6 +111,7 @@ class Predictor:
         model: nn.Module,
         video_path: str,
         class_names: list[str],
+        class_colors: dict[str, list[int]] = {},
         transform=None,
         show: bool = False,
         save_dir: str | None = None,
@@ -129,10 +131,13 @@ class Predictor:
             else:
                 raise NotImplementedError
             writer = cv2.VideoWriter(
-                dst,
+                dst.as_posix(),
                 encoder,
-                vid.get(5),
-                (int(vid.get(3)), int(vid.get(4))),
+                vid.get(cv2.CAP_PROP_FPS),
+                (
+                    int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                    int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+                ),
             )
 
         # show window
@@ -152,7 +157,7 @@ class Predictor:
                 detections,
                 class_names=class_names,
                 class_show=True,
-                class_colors=rand_color_map(class_names),
+                class_colors=class_colors,
             )
 
             if show:
