@@ -26,6 +26,7 @@ from ..models import (
     KernelPCA,
     KMeans,
     L2Norm,
+    PositionEncoding,
 )
 
 
@@ -417,3 +418,12 @@ class TestL2Norm:
         y = model.forward(x)
 
         assert y.shape == x.shape
+
+
+class TestPositionEncoding:
+    def test_output_shape(self):
+        x = torch.rand(2, 32, 16)
+        model = PositionEncoding()
+        y = model.forward(x)
+
+        assert_close(y.shape, torch.Size((1, 32, 16)))
