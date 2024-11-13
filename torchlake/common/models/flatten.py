@@ -21,7 +21,7 @@ class FlattenFeature(nn.Module):
             start_dim: first dim to flatten. Defaults to 1.
             end_dim: first dim to flatten. Defaults to -1.
         """
-        super(FlattenFeature, self).__init__()
+        super().__init__()
         pooling_layer = (
             {
                 "mean": {
