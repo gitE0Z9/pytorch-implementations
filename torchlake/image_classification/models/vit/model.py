@@ -11,7 +11,7 @@ class ViT(ModelBase):
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        patch_size: int = 224 / 3,
+        patch_size: int = int(224 / 3),
         embed_dim: int = 128,
         hidden_dim: int = 128,
         num_head: int = 8,
