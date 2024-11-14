@@ -11,4 +11,4 @@ def test_forward_shape(y: torch.Tensor | None):
 
     y = model(x, y)
 
-    assert y.shape == torch.Size((2, 16, 10))
+    assert y.shape == torch.Size((2, 10))
