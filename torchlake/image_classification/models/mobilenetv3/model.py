@@ -12,7 +12,7 @@ class MobileNetV3(nn.Module):
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        size: Literal["small"] | Literal["large"] = "large",
+        size: Literal["small", "large"] = "large",
     ):
         """MobileNet version 3 [1905.02244]
 
