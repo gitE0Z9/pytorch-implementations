@@ -8,7 +8,7 @@ from torchlake.common.utils.numerical import causal_mask
 from .network import TransformerDecoderBlock, TransformerEncoderBlock
 
 
-class Encoder(nn.Module):
+class TransformerEncoder(nn.Module):
     def __init__(
         self,
         vocab_size: int,
@@ -20,6 +20,9 @@ class Encoder(nn.Module):
     ):
         # for mark
         self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.num_heads = num_heads
+
         super().__init__()
         self.token_embedding = nn.Embedding(
             vocab_size,
@@ -47,7 +50,7 @@ class Encoder(nn.Module):
         return y
 
 
-class Decoder(nn.Module):
+class TransformerDecoder(nn.Module):
     def __init__(
         self,
         vocab_size: int,
@@ -60,6 +63,9 @@ class Decoder(nn.Module):
     ):
         # for mark
         self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.num_heads = num_heads
+
         super().__init__()
         self.token_embedding = nn.Embedding(
             vocab_size,
