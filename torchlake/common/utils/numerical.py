@@ -71,3 +71,7 @@ def generate_grid(grid_x: int, grid_y: int) -> torch.Tensor:
 def gaussian_kernel(x: torch.Tensor, y: torch.Tensor, std: float) -> torch.Tensor:
     z = torch.cdist(x, y) / std
     return torch.exp(-(z**2) / 2)
+
+
+def causal_mask(*shape: int) -> torch.Tensor:
+    return torch.tril(torch.ones(shape)).bool()
