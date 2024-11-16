@@ -1,4 +1,4 @@
-from .model import TransformerDecoder, TransformerEncoder
+from .model import TransformerDecoder, TransformerEncoder, Transformer
 from .network import (
     MultiHeadAttention,
     ScaledDotProductAttention,
@@ -8,6 +8,7 @@ from .network import (
 )
 
 __all__ = [
+    Transformer,
     TransformerEncoder,
     TransformerDecoder,
     ScaledDotProductAttention,

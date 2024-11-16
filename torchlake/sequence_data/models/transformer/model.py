@@ -3,12 +3,13 @@ import math
 import torch
 from torch import nn
 from torchlake.common.models import PositionEncoding
+from torchlake.common.models.model_base import ModelBase
 from torchlake.common.utils.numerical import causal_mask
 
 from .network import TransformerDecoderBlock, TransformerEncoderBlock
 
 
-class TransformerEncoder(nn.Module):
+class TransformerEncoder(ModelBase):
     def __init__(
         self,
         vocab_size: int,
@@ -18,39 +19,52 @@ class TransformerEncoder(nn.Module):
         dropout_prob: float = 0.1,
         padding_idx: int | None = None,
     ):
-        # for mark
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.num_heads = num_heads
+        self.dropout_prob = dropout_prob
+        self.padding_idx = padding_idx
+        super().__init__(vocab_size, None)
 
-        super().__init__()
-        self.token_embedding = nn.Embedding(
-            vocab_size,
-            hidden_dim,
-            padding_idx=padding_idx,
+    def build_foot(self, vocab_size):
+        self.foot = nn.ModuleDict(
+            {
+                "pos_embed": PositionEncoding(trainable=False),
+                "token_embed": nn.Embedding(
+                    vocab_size,
+                    self.hidden_dim,
+                    padding_idx=self.padding_idx,
+                ),
+                "dropout": nn.Dropout(p=self.dropout_prob),
+            }
         )
-        # stated in paper p.5
-        self.token_embedding.weight.data.mul_(math.sqrt(hidden_dim))
 
-        self.position_encoding = PositionEncoding(trainable=False)
-        self.dropout = nn.Dropout(p=dropout_prob)
+        # stated in paper p.5
+        self.foot["token_embed"].weight.data.mul_(math.sqrt(self.hidden_dim))
+
+    def build_blocks(self):
         self.blocks = nn.Sequential(
             *[
-                TransformerEncoderBlock(hidden_dim, num_heads, dropout_prob)
-                for _ in range(num_layers)
+                TransformerEncoderBlock(
+                    self.hidden_dim,
+                    self.num_heads,
+                    self.dropout_prob,
+                )
+                for _ in range(self.num_layers)
             ]
         )
 
+    def build_head(self, _):
+        self.head = None
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.token_embedding(x)
-        y = y + self.position_encoding(y)
-        y = self.dropout(y)
-        y = self.blocks(y)
-
-        return y
+        y = self.foot["token_embed"](x)
+        y = y + self.foot["pos_embed"](y).to(x.device)
+        y = self.foot["dropout"](y)
+        return self.blocks(y)
 
 
-class TransformerDecoder(nn.Module):
+class TransformerDecoder(ModelBase):
     def __init__(
         self,
         vocab_size: int,
@@ -59,43 +73,91 @@ class TransformerDecoder(nn.Module):
         num_layers: int = 6,
         num_heads: int = 8,
         dropout_prob: float = 0.1,
+        causal_mask: bool = True,
         padding_idx: int | None = None,
     ):
-        # for mark
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.num_heads = num_heads
+        self.dropout_prob = dropout_prob
+        self.padding_idx = padding_idx
+        self.causal_mask = causal_mask
+        super().__init__(vocab_size, output_size)
+        # remove flatten
+        del self.head[0]
 
-        super().__init__()
-        self.token_embedding = nn.Embedding(
-            vocab_size,
-            hidden_dim,
-            padding_idx=padding_idx,
+    @property
+    def feature_dim(self) -> int:
+        return self.hidden_dim
+
+    def build_foot(self, vocab_size):
+        self.foot = nn.ModuleDict(
+            {
+                "pos_embed": PositionEncoding(trainable=False),
+                "token_embed": nn.Embedding(
+                    vocab_size,
+                    self.hidden_dim,
+                    padding_idx=self.padding_idx,
+                ),
+                "dropout": nn.Dropout(p=self.dropout_prob),
+            }
         )
-        # stated in paper p.5
-        self.token_embedding.weight.data.mul_(math.sqrt(hidden_dim))
 
-        self.position_encoding = PositionEncoding(trainable=False)
-        self.dropout = nn.Dropout(p=dropout_prob)
+        # stated in paper p.5
+        self.foot["token_embed"].weight.data.mul_(math.sqrt(self.hidden_dim))
+
+    def build_blocks(self):
         self.blocks = nn.ModuleList(
             [
-                TransformerDecoderBlock(hidden_dim, num_heads, dropout_prob)
-                for _ in range(num_layers)
+                TransformerDecoderBlock(
+                    self.hidden_dim,
+                    self.num_heads,
+                    self.dropout_prob,
+                )
+                for _ in range(self.num_layers)
             ]
         )
-        self.fc = nn.Linear(hidden_dim, output_size)
 
     def forward(self, x: torch.Tensor, encoded: torch.Tensor) -> torch.Tensor:
         _, seq_len = x.shape
 
-        y = self.token_embedding(x)
-        y = y + self.position_encoding(y)
-        y = self.dropout(y)
+        y = self.foot["token_embed"](x)
+        y = y + self.foot["pos_embed"](y).to(x.device)
+        y = self.foot["dropout"](y)
+
+        mask = None
+        if self.causal_mask:
+            mask = causal_mask(1, seq_len, seq_len)
 
         # encoder returned last layer representation
         # each layer of decoder receive same representation
-        mask = causal_mask(1, seq_len, seq_len)
         for block in self.blocks:
             y = block(y, encoded, mask)
 
-        return self.fc(y)
+        return self.head(y)
+
+
+class Transformer(ModelBase):
+
+    def __init__(
+        self,
+        encoder: TransformerEncoder,
+        decoder: TransformerDecoder,
+    ):
+        super().__init__(
+            foot_kwargs={"encoder": encoder},
+            head_kwargs={"decoder": decoder},
+        )
+
+    def build_foot(self, _, **kwargs):
+        self.foot = kwargs.pop("encoder")
+
+    def build_head(self, _, **kwargs):
+        self.head = kwargs.pop("decoder")
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        # encode
+        z = self.foot(x)
+
+        # decode
+        return self.head(y, z)

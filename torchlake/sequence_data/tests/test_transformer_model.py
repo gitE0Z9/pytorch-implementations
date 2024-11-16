@@ -1,6 +1,6 @@
 import torch
 
-from ..models.transformer.model import Decoder, Encoder
+from ..models.transformer.model import TransformerDecoder, TransformerEncoder
 
 BATCH_SIZE = 4
 SEQ_LEN = 16
@@ -12,7 +12,7 @@ HIDDEN_DIM = 16
 class TestEncoder:
     def test_forward_shape(self):
         x = torch.randint(0, INPUT_VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
-        model = Encoder(INPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
+        model = TransformerEncoder(INPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
 
         y = model(x)
 
@@ -22,8 +22,10 @@ class TestEncoder:
 class TestDecoder:
     def test_forward_shape(self):
         x = torch.randint(0, INPUT_VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
-        model = Encoder(INPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
-        model2 = Decoder(OUTPUT_VOCAB_SIZE, OUTPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
+        model = TransformerEncoder(INPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
+        model2 = TransformerDecoder(
+            OUTPUT_VOCAB_SIZE, OUTPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM
+        )
 
         encoded = model(x)
         y = model2(x, encoded)
