@@ -17,14 +17,23 @@ class Decoder:
         feature_map: torch.Tensor,
         image_size: tuple[int, int],
     ) -> torch.Tensor:
+        """decode feature map to original size
+
+        Args:
+            feature_map (torch.Tensor): shape (#batch, #anchor*(5 + #class), grid_y, grid_x)
+            image_size (tuple[int, int]): (image_y, image_x)
+
+        Returns:
+            torch.Tensor: shape (#batch, #anchor * #grid, 5 + #class), in format of (x,y,w,h)
+        """
         batch_size, channel_size, fm_h, fm_w = feature_map.shape
         input_h, input_w = image_size
         stride_x, stride_y = input_w / fm_w, input_h / fm_h
+
         num_anchors = self.anchors.size(1)
-        num_classes = (channel_size // num_anchors) - 5
-        feature_map = feature_map.reshape(
-            batch_size, num_anchors, channel_size // num_anchors, fm_h, fm_w
-        )
+        channel_size_per_anchor = channel_size // num_anchors
+        num_classes = channel_size_per_anchor - 5
+        feature_map = feature_map.unflatten(1, (num_anchors, channel_size_per_anchor))
 
         grid_x, grid_y = generate_grid(fm_w, fm_h)
 
