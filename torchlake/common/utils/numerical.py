@@ -73,5 +73,9 @@ def gaussian_kernel(x: torch.Tensor, y: torch.Tensor, std: float) -> torch.Tenso
     return torch.exp(-(z**2) / 2)
 
 
+def padded_mask(x: torch.Tensor, padding_idx: int) -> torch.Tensor:
+    return x.eq(padding_idx)
+
+
 def causal_mask(*shape: int) -> torch.Tensor:
-    return torch.tril(torch.ones(shape)).bool()
+    return torch.tril(torch.ones(shape))
