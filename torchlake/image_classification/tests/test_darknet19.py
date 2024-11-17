@@ -1,7 +1,21 @@
 import torch
 from torch.testing import assert_close
 
-from ..models.darknet19 import DarkNet19, DarkNet19FeatureExtractor
+from ..models.darknet19.feature_extractor import DarkNet19FeatureExtractor
+from ..models.darknet19.model import DarkNet19
+from ..models.darknet19.network import BottleNeck
+
+
+class TestBottleNeck:
+    def test_output_shape(self):
+        """input: 4
+        block: 8 -> 4 -> 8
+        """
+        layer = BottleNeck(8, 3)
+        test_x = torch.rand(2, 4, 16, 16)
+
+        output: torch.Tensor = layer(test_x)
+        assert_close(output.shape, torch.Size([2, 8, 16, 16]))
 
 
 class TestDarknet19:

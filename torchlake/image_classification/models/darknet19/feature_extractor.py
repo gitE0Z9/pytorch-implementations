@@ -4,6 +4,7 @@ from typing import Literal
 import torch
 from torch import nn
 from torchlake.common.models.feature_extractor_base import ExtractorBase
+from torchvision.ops import Conv2dNormActivation
 
 from .model import DarkNet19
 
@@ -11,14 +12,14 @@ from .model import DarkNet19
 class DarkNet19FeatureExtractor(ExtractorBase):
     def __init__(
         self,
-        layer_type: Literal["block"],
+        layer_type: Literal["last_conv", "block"],
         weight_path: Path | str | None = None,
         trainable: bool = True,
     ):
         """darknet19 feature extractor
 
         Args:
-            layer_type (Literal["block"]): extract which type of layer
+            layer_type (Literal["last_conv", "block"]): extract which type of layer
             weight_path (Path|str|None, optional): path to pytorch weight file. Defaults to None.
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
@@ -51,29 +52,44 @@ class DarkNet19FeatureExtractor(ExtractorBase):
         img: torch.Tensor,
         target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"],
     ) -> list[torch.Tensor]:
-        if self.layer_type != "block":
+        if self.layer_type not in ["last_conv", "block"]:
             raise NotImplementedError
 
         features = []
 
         y = img
-        y = self.feature_extractor.foot(y)
-        if "0_1" in target_layer_names:
+
+        y = self.feature_extractor.foot[:3](y)
+        if self.layer_type == "last_conv" and "0_1" in target_layer_names:
             features.append(y)
 
-        stage_count = 0
+        y = self.feature_extractor.foot[3](y)
+        if self.layer_type == "block" and "0_1" in target_layer_names:
+            features.append(y)
+
+        stage_count = 1
         for layer in self.feature_extractor.blocks:
+            extract_cond = (
+                isinstance(layer, nn.MaxPool2d)
+                and f"{stage_count}_1" in target_layer_names
+            )
+
+            if self.layer_type == "last_conv" and extract_cond:
+                features.append(y)
+
             y = layer(y)
+
+            if self.layer_type == "block" and extract_cond:
+                features.append(y)
+
             if isinstance(layer, nn.MaxPool2d):
                 stage_count += 1
-                if f"{stage_count}_1" in target_layer_names:
-                    features.append(y)
 
         # stage 4_1 has no maxpool2d
-        if "4_1" in target_layer_names:
+        if self.layer_type in ["block", "last_conv"] and "4_1" in target_layer_names:
             features.append(y)
 
-        if "output" in target_layer_names:
+        if self.layer_type == "block" and "output" in target_layer_names:
             y = self.feature_extractor.head(y)
             features.append(y)
 
