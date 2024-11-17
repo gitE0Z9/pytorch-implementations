@@ -4,7 +4,7 @@ from torchlake.common.models import ResNetFeatureExtractor
 from torchlake.image_classification.models.extraction import ExtractionFeatureExtractor
 
 from ..constants.schema import DetectorContext
-from ..models.yolov1.model import YOLOV1Modified, YOLOV1Original
+from ..models.yolov1.model import YOLOV1, YOLOV1Modified
 
 CONTEXT = DetectorContext(
     detector_name="yolov1",
@@ -23,7 +23,7 @@ class TestYOLOV1Original:
         backbone = ExtractionFeatureExtractor("block", trainable=False)
         backbone.fix_target_layers(["2_1"])
 
-        model = YOLOV1Original(backbone, CONTEXT)
+        model = YOLOV1(backbone, CONTEXT)
         x = torch.rand(2, 3, 448, 448)
 
         output: torch.Tensor = model(x)
