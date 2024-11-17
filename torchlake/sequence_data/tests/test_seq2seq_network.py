@@ -1,172 +1,208 @@
 import pytest
 import torch
-from torchlake.common.schemas.nlp import NlpContext
 
-from ..models.seq2seq.model import Seq2Seq
-from ..models.seq2seq.network import (
-    Seq2SeqDecoder,
-    Seq2SeqEncoder,
-    Seq2SeqAttentionEncoder,
-    GlobalAttention,
-    LocalAttention,
-)
+from ..models.seq2seq.network import BahdanauAttention, GlobalAttention, LocalAttention
+
+BATCH_SIZE = 2
+SEQ_LEN = 32
 
 
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_forward_shape_global_attention(name: str, bidirectional: bool, factor: int):
-    hs = torch.rand((2, 256, 16 * factor))
-    # D * num_layers, B, h
-    ht = torch.rand((factor, 2, 16))
-    model = GlobalAttention(16, bidirectional=bidirectional)
-    y, a = model(hs, ht)
+class TestBahdanauAttention:
 
-    assert y.shape == torch.Size((factor, 2, 16))
-    assert a.shape == torch.Size((factor, 2, 256))
-
-
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_prediction_position_local_attention(
-    name: str, bidirectional: bool, factor: int
-):
-    context_size = 2
-    window_size = 2 * context_size + 1
-    ht = torch.rand((factor, 2, 16))
-    model = LocalAttention(16, context_size=context_size, bidirectional=bidirectional)
-    pt, position = model.get_predicted_position(ht, 256)
-
-    assert pt.shape == torch.Size((factor, 2, 1))
-    assert position.shape == torch.Size((factor, 2, window_size))
-
-
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_kernel_local_attention(name: str, bidirectional: bool, factor: int):
-    context_size = 2
-    window_size = 2 * context_size + 1
-    pt = torch.rand((factor, 2, 1))
-    positions = torch.randint(0, 256, (factor, 2, window_size))
-    model = LocalAttention(16, context_size=context_size, bidirectional=bidirectional)
-    kernel = model.get_kernel(pt, positions, 16)
-
-    assert kernel.shape == torch.Size((factor, 2, window_size))
-
-
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_subsample_source_hidden_state_local_attention(
-    name: str, bidirectional: bool, factor: int
-):
-    context_size = 2
-    window_size = 2 * context_size + 1
-    hs = torch.rand((2, 256, factor * 16))
-    positions = torch.randint(-context_size + 1, 256, (factor, 2, window_size))
-    model = LocalAttention(16, context_size=context_size, bidirectional=bidirectional)
-    kernel = model.subsample_source_hidden_state(hs, positions)
-
-    assert kernel.shape == torch.Size((factor, 2, window_size, 16))
-
-
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_forward_shape_local_attention(name: str, bidirectional: bool, factor: int):
-    context_size = 2
-    window_size = 2 * context_size + 1
-    hs = torch.rand((2, 256, factor * 16))
-    ht = torch.rand((factor, 2, 16))
-    model = LocalAttention(16, context_size=context_size, bidirectional=bidirectional)
-    y, a = model(hs, ht)
-
-    assert y.shape == torch.Size((factor, 2, 16))
-    assert a.shape == torch.Size((factor, 2, window_size))
-
-
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_forward_shape_encoder(name: str, bidirectional: bool, factor: int):
-    x = torch.randint(0, 100, (2, 256))
-    model = Seq2SeqEncoder(100, 16, 16, bidirectional=bidirectional)
-    hs, (ht, ct) = model(x)
-
-    assert hs.shape == torch.Size((2, 256, 16 * factor))
-    assert ht.shape == torch.Size((factor, 2, 16))
-    assert ct.shape == torch.Size((factor, 2, 16))
-
-
-@pytest.mark.parametrize(
-    "name,num_layers,bidirectional,factor",
-    [
-        ["single-layer-unidirectional", 1, False, 1],
-        ["single-layer-bidirectional", 1, True, 2],
-        ["multiple-layer-unidirectional", 2, False, 1],
-        ["multiple-layer-bidirectional", 2, True, 2],
-    ],
-)
-def test_forward_shape_attention_encoder(
-    name: str,
-    num_layers: int,
-    bidirectional: bool,
-    factor: int,
-):
-    x = torch.randint(0, 100, (2, 256))
-    model = Seq2SeqAttentionEncoder(
-        100,
-        16,
-        16,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
+    @pytest.mark.parametrize("encoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("decoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,encoder_factor",
+        [(True, 2), (False, 1)],
     )
-    hs, (ht, ct) = model(x)
+    @pytest.mark.parametrize("decoder_factor", [2, 1])
+    @pytest.mark.parametrize("decoder_num_layers", [1, 2])
+    def test_forward_shape(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool,
+        encoder_factor: int,
+        decoder_factor: int,
+        decoder_num_layers: int,
+    ):
+        D = decoder_num_layers * decoder_factor
 
-    assert hs.shape == torch.Size((2, 256, 16 * factor * num_layers))
-    assert ht.shape == torch.Size((factor * num_layers, 2, 16))
-    assert ct.shape == torch.Size((factor * num_layers, 2, 16))
+        hs = torch.rand((BATCH_SIZE, SEQ_LEN, encoder_factor * encoder_hidden_dim))
+        ht = torch.rand((D, BATCH_SIZE, decoder_hidden_dim))
+        model = BahdanauAttention(
+            encoder_hidden_dim,
+            decoder_hidden_dim,
+            encoder_bidirectional,
+        )
+        c, a = model(hs, ht)
+
+        assert c.shape == torch.Size((D, BATCH_SIZE, decoder_hidden_dim))
+        assert a.shape == torch.Size((D, BATCH_SIZE, SEQ_LEN))
 
 
-@pytest.mark.parametrize(
-    "name,bidirectional,factor",
-    [
-        ["unidirectional", False, 1],
-        ["bidirectional", True, 2],
-    ],
-)
-def test_forward_shape_decoder(name: str, bidirectional: bool, factor: int):
-    x = torch.randint(0, 100, (2, 256))
-    h, c = torch.rand((factor, 2, 16)), torch.rand((factor, 2, 16))
-    model = Seq2SeqDecoder(100, 16, 16, 100, bidirectional=bidirectional)
-    y, (ht, ct) = model(x, h, c)
+class TestGlobalAttention:
 
-    assert y.shape == torch.Size((2, 100))
-    assert ht.shape == torch.Size((factor, 2, 16))
-    assert ct.shape == torch.Size((factor, 2, 16))
+    @pytest.mark.parametrize("encoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("decoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,encoder_factor",
+        [(True, 2), (False, 1)],
+    )
+    @pytest.mark.parametrize("decoder_factor", [2, 1])
+    @pytest.mark.parametrize("decoder_num_layers", [1, 2])
+    def test_forward_shape(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool,
+        encoder_factor: int,
+        decoder_factor: int,
+        decoder_num_layers: int,
+    ):
+        D = decoder_num_layers * decoder_factor
+
+        hs = torch.rand((BATCH_SIZE, SEQ_LEN, encoder_factor * encoder_hidden_dim))
+        ht = torch.rand((D, BATCH_SIZE, decoder_hidden_dim))
+        model = GlobalAttention(
+            encoder_hidden_dim,
+            decoder_hidden_dim,
+            encoder_bidirectional,
+        )
+        c, a = model(hs, ht)
+
+        assert c.shape == torch.Size((D, BATCH_SIZE, decoder_hidden_dim))
+        assert a.shape == torch.Size((D, BATCH_SIZE, SEQ_LEN))
+
+
+class TestLocalAttention:
+
+    @pytest.mark.parametrize("encoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("decoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("encoder_bidirectional", [True, False])
+    @pytest.mark.parametrize("decoder_factor", [2, 1])
+    @pytest.mark.parametrize("decoder_num_layers", [1, 2])
+    def test_prediction_position(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool,
+        decoder_factor: int,
+        decoder_num_layers: int,
+    ):
+        D = decoder_num_layers * decoder_factor
+        context_size = 2
+        window_size = 2 * context_size + 1
+        ht = torch.rand((D, BATCH_SIZE, decoder_hidden_dim))
+        model = LocalAttention(
+            encoder_hidden_dim,
+            decoder_hidden_dim,
+            encoder_bidirectional,
+            context_size=context_size,
+        )
+        pos, window = model.get_predicted_position(ht, SEQ_LEN)
+
+        assert pos.shape == torch.Size((D, BATCH_SIZE, 1))
+        assert window.shape == torch.Size((D, BATCH_SIZE, window_size))
+
+    @pytest.mark.parametrize("encoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("decoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("encoder_bidirectional", [True, False])
+    @pytest.mark.parametrize("decoder_factor", [2, 1])
+    @pytest.mark.parametrize("decoder_num_layers", [1, 2])
+    def test_kernel_shape(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool,
+        decoder_factor: int,
+        decoder_num_layers: int,
+    ):
+        D = decoder_num_layers * decoder_factor
+        context_size = 2
+        window_size = 2 * context_size + 1
+        pos = torch.rand((D, BATCH_SIZE, 1)) * SEQ_LEN
+        window = torch.randint(0, SEQ_LEN, (D, BATCH_SIZE, window_size))
+
+        model = LocalAttention(
+            encoder_hidden_dim,
+            decoder_hidden_dim,
+            encoder_bidirectional,
+            context_size=context_size,
+        )
+        kernel = model.get_kernel(pos, window)
+
+        assert kernel.shape == torch.Size((D, BATCH_SIZE, window_size))
+
+    @pytest.mark.parametrize("encoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("decoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,encoder_factor",
+        [(True, 2), (False, 1)],
+    )
+    @pytest.mark.parametrize("decoder_factor", [2, 1])
+    @pytest.mark.parametrize("decoder_num_layers", [1, 2])
+    def test_subsample_source_hidden_state(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool,
+        encoder_factor: int,
+        decoder_factor: int,
+        decoder_num_layers: int,
+    ):
+        D = decoder_num_layers * decoder_factor
+        context_size = 2
+        window_size = 2 * context_size + 1
+        hs = torch.rand((BATCH_SIZE, SEQ_LEN, encoder_factor * encoder_hidden_dim))
+        window = torch.randint(
+            -context_size,
+            SEQ_LEN + context_size,
+            (D, BATCH_SIZE, window_size),
+        )
+
+        model = LocalAttention(
+            encoder_hidden_dim,
+            decoder_hidden_dim,
+            encoder_bidirectional,
+            context_size=context_size,
+        )
+        hs = model.subsample_source_hidden_state(hs, window)
+
+        assert hs.shape == torch.Size(
+            (D, BATCH_SIZE, window_size, encoder_factor * encoder_hidden_dim)
+        )
+
+    @pytest.mark.parametrize("encoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize("decoder_hidden_dim", [16, 32])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,encoder_factor",
+        [(True, 2), (False, 1)],
+    )
+    @pytest.mark.parametrize("decoder_factor", [2, 1])
+    @pytest.mark.parametrize("decoder_num_layers", [1, 2])
+    def test_forward_shape(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool,
+        encoder_factor: int,
+        decoder_factor: int,
+        decoder_num_layers: int,
+    ):
+        D = decoder_num_layers * decoder_factor
+        context_size = 2
+        window_size = 2 * context_size + 1
+        hs = torch.rand((BATCH_SIZE, SEQ_LEN, encoder_factor * encoder_hidden_dim))
+        ht = torch.rand((D, BATCH_SIZE, decoder_hidden_dim))
+
+        model = LocalAttention(
+            encoder_hidden_dim,
+            decoder_hidden_dim,
+            encoder_bidirectional,
+            context_size=context_size,
+        )
+        y, a = model(hs, ht)
+
+        assert y.shape == torch.Size((D, BATCH_SIZE, decoder_hidden_dim))
+        assert a.shape == torch.Size((D, BATCH_SIZE, window_size))

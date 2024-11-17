@@ -3,181 +3,417 @@ import torch
 
 from torchlake.common.schemas.nlp import NlpContext
 
+from ..models.lstm.model import LSTMDiscriminator
+from ..models.base.rnn_generator import RNNGenerator
 from ..models.seq2seq.model import Seq2Seq
 from ..models.seq2seq.network import (
+    BahdanauAttention,
     GlobalAttention,
     LocalAttention,
-    Seq2SeqAttentionEncoder,
-    Seq2SeqDecoder,
-    Seq2SeqEncoder,
 )
 
+SEQ_LEN = 16
+VOCAB_SIZE = 10
+BATCH_SIZE = 4
+EMBED_DIM = 8
+HIDDEN_DIM = 16
+CONTEXT = NlpContext(max_seq_len=SEQ_LEN, device="cpu")
+CONTEXT_SIZE = 2
+WINDOW_SIZE = 5
 
-@pytest.mark.parametrize(
-    "name,num_layers,bidirectional,factor",
-    [
-        ["single-layer-unidirectional", 1, False, 1],
-        ["single-layer-bidirectional", 1, True, 2],
-        ["multiple-layer-unidirectional", 2, False, 1],
-        ["multiple-layer-bidirectional", 2, True, 2],
-    ],
-)
-def test_forward_shape_model(
-    name: str,
-    num_layers: int,
-    bidirectional: bool,
-    factor: int,
-):
-    x = torch.randint(0, 100, (2, 256))
-    y = torch.randint(0, 100, (2, 256))
-    encoder = Seq2SeqEncoder(
-        100,
-        16,
-        16,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
+
+class TestSeq2Seq:
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
     )
-    decoder = Seq2SeqDecoder(
-        100,
-        16,
-        16,
-        100,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
+    def test_loss_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+    ):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            )
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.train()
+        output = model.loss_forward(x, y)
+
+        assert output.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
     )
-    model = Seq2Seq(encoder, decoder, context=NlpContext(device="cpu"))
-    output = model.loss_forward(x, y)
+    def test_predict_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+    ):
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            )
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.eval()
+        output = model.predict(x)
 
-    assert output.shape == torch.Size((2, 256, 100))
+        assert output.size(0) == BATCH_SIZE
+        assert output.size(1) <= SEQ_LEN + 1
 
 
-@pytest.mark.parametrize(
-    "name,num_layers,bidirectional,factor",
-    [
-        ["single-layer-unidirectional", 1, False, 1],
-        ["single-layer-bidirectional", 1, True, 2],
-        ["multiple-layer-unidirectional", 2, False, 1],
-        ["multiple-layer-bidirectional", 2, True, 2],
-    ],
-)
-def test_attend_hidden_state_shape_model(
-    name: str,
-    num_layers: int,
-    bidirectional: bool,
-    factor: int,
-):
-    hs = torch.rand((2, 256, 16 * factor))
-    ht = torch.rand((factor, 2, 16))
-    ct = torch.rand((factor, 2, 16))
-    encoder = Seq2SeqAttentionEncoder(
-        100,
-        16,
-        16,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
+class TestSeq2SeqWithBahdanauAttention:
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
     )
-    decoder = Seq2SeqDecoder(
-        100,
-        16,
-        16,
-        100,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
-    )
-    model = Seq2Seq(
-        encoder,
-        decoder,
-        GlobalAttention(16, bidirectional=bidirectional),
-        context=NlpContext(device="cpu"),
-    )
+    @pytest.mark.parametrize("output_score", [True, False])
+    def test_loss_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+        output_score: bool,
+    ):
+        D = decoder_num_layers * (2 if decoder_bidirectional else 1)
 
-    ht, ct = model.attend_hidden_state(hs, (ht, ct))
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            ),
+            BahdanauAttention(HIDDEN_DIM, HIDDEN_DIM, encoder_bidirectional),
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.train()
+        output = model.loss_forward(x, y, output_score=output_score)
 
-    assert ht.shape == torch.Size((factor, 2, 16))
-    assert ct.shape == torch.Size((factor, 2, 16))
+        if not output_score:
+            assert output.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+        else:
+            o, a = output
+            assert o.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+            assert a.shape[:3] == torch.Size((D, BATCH_SIZE, SEQ_LEN))
+            assert a.shape[3] <= SEQ_LEN
 
-
-@pytest.mark.parametrize(
-    "name,num_layers,bidirectional,factor",
-    [
-        ["single-layer-unidirectional", 1, False, 1],
-        ["single-layer-bidirectional", 1, True, 2],
-        ["multiple-layer-unidirectional", 2, False, 1],
-        ["multiple-layer-bidirectional", 2, True, 2],
-    ],
-)
-def test_forward_shape_model_global_attention(
-    name: str,
-    num_layers: int,
-    bidirectional: bool,
-    factor: int,
-):
-    x = torch.randint(0, 100, (2, 256))
-    y = torch.randint(0, 100, (2, 256))
-    encoder = Seq2SeqAttentionEncoder(
-        100,
-        16,
-        16,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
     )
-    decoder = Seq2SeqDecoder(
-        100,
-        16,
-        16,
-        100,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
-    )
-    model = Seq2Seq(
-        encoder,
-        decoder,
-        GlobalAttention(16, num_layers=num_layers, bidirectional=bidirectional),
-        context=NlpContext(device="cpu"),
-    )
-    output = model.loss_forward(x, y)
+    @pytest.mark.parametrize("output_score", [True, False])
+    def test_predict_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+        output_score: bool,
+    ):
+        D = decoder_num_layers * (2 if decoder_bidirectional else 1)
 
-    assert output.shape == torch.Size((2, 256, 100))
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            ),
+            BahdanauAttention(HIDDEN_DIM, HIDDEN_DIM, encoder_bidirectional),
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.eval()
+        output = model.predict(x, output_score=output_score)
+
+        if not output_score:
+            assert output.size(0) == BATCH_SIZE
+            assert output.size(1) <= SEQ_LEN + 1
+        else:
+            o, a = output
+            assert o.size(0) == BATCH_SIZE
+            assert o.size(1) <= SEQ_LEN + 1
+            assert a.shape[:3] == torch.Size((D, BATCH_SIZE, SEQ_LEN))
+            assert a.shape[3] <= SEQ_LEN
 
 
-@pytest.mark.parametrize(
-    "name,num_layers,bidirectional,factor",
-    [
-        ["single-layer-unidirectional", 1, False, 1],
-        ["single-layer-bidirectional", 1, True, 2],
-        ["multiple-layer-unidirectional", 2, False, 1],
-        ["multiple-layer-bidirectional", 2, True, 2],
-    ],
-)
-def test_forward_shape_model_local_attention(
-    name: str,
-    num_layers: int,
-    bidirectional: bool,
-    factor: int,
-):
-    x = torch.randint(0, 100, (2, 256))
-    y = torch.randint(0, 100, (2, 256))
-    encoder = Seq2SeqAttentionEncoder(
-        100,
-        16,
-        16,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
+class TestSeq2SeqWithGlobalAttention:
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
     )
-    decoder = Seq2SeqDecoder(
-        100,
-        16,
-        16,
-        100,
-        num_layers=num_layers,
-        bidirectional=bidirectional,
-    )
-    model = Seq2Seq(
-        encoder,
-        decoder,
-        LocalAttention(16, num_layers=num_layers, bidirectional=bidirectional),
-        context=NlpContext(device="cpu"),
-    )
-    output = model.loss_forward(x, y)
+    @pytest.mark.parametrize("output_score", [True, False])
+    def test_loss_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+        output_score: bool,
+    ):
+        D = decoder_num_layers * (2 if decoder_bidirectional else 1)
 
-    assert output.shape == torch.Size((2, 256, 100))
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            ),
+            GlobalAttention(HIDDEN_DIM, HIDDEN_DIM, encoder_bidirectional),
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.train()
+        output = model.loss_forward(x, y, output_score=output_score)
+
+        if not output_score:
+            assert output.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+        else:
+            o, a = output
+            assert o.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+            assert a.shape[:3] == torch.Size((D, BATCH_SIZE, SEQ_LEN))
+            assert a.shape[3] <= SEQ_LEN
+
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
+    )
+    @pytest.mark.parametrize("output_score", [True, False])
+    def test_predict_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+        output_score: bool,
+    ):
+        D = decoder_num_layers * (2 if decoder_bidirectional else 1)
+
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            ),
+            GlobalAttention(HIDDEN_DIM, HIDDEN_DIM, encoder_bidirectional),
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.eval()
+        output = model.predict(x, output_score=output_score)
+
+        if not output_score:
+            assert output.size(0) == BATCH_SIZE
+            assert output.size(1) <= SEQ_LEN + 1
+        else:
+            o, a = output
+            assert o.size(0) == BATCH_SIZE
+            assert o.size(1) <= SEQ_LEN + 1
+            assert a.shape[:3] == torch.Size((D, BATCH_SIZE, SEQ_LEN))
+            assert a.shape[3] <= SEQ_LEN
+
+
+class TestSeq2SeqWithLocalAttention:
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
+    )
+    @pytest.mark.parametrize("output_score", [True, False])
+    def test_loss_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+        output_score: bool,
+    ):
+        D = decoder_num_layers * (2 if decoder_bidirectional else 1)
+
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            ),
+            LocalAttention(HIDDEN_DIM, HIDDEN_DIM, encoder_bidirectional, CONTEXT_SIZE),
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.train()
+        output = model.loss_forward(x, y, output_score=output_score)
+
+        if not output_score:
+            assert output.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+        else:
+            o, a = output
+            assert o.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+            assert a.shape[:3] == torch.Size((D, BATCH_SIZE, WINDOW_SIZE))
+            assert a.shape[3] <= SEQ_LEN
+
+    @pytest.mark.parametrize("encoder_num_layers,decoder_num_layers", [(1, 1), (2, 2)])
+    @pytest.mark.parametrize(
+        "encoder_bidirectional,decoder_bidirectional",
+        [(True, True), (False, False)],
+    )
+    @pytest.mark.parametrize("output_score", [True, False])
+    def test_predict_forward_shape(
+        self,
+        encoder_num_layers: int,
+        decoder_num_layers: int,
+        encoder_bidirectional: bool,
+        decoder_bidirectional: bool,
+        output_score: bool,
+    ):
+        D = decoder_num_layers * (2 if decoder_bidirectional else 1)
+
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+        encoder = LSTMDiscriminator(
+            VOCAB_SIZE,
+            EMBED_DIM,
+            HIDDEN_DIM,
+            num_layers=encoder_num_layers,
+            bidirectional=encoder_bidirectional,
+            drop_fc=True,
+            context=CONTEXT,
+        )
+        decoder = RNNGenerator(
+            LSTMDiscriminator(
+                VOCAB_SIZE,
+                EMBED_DIM,
+                HIDDEN_DIM,
+                VOCAB_SIZE,
+                num_layers=decoder_num_layers,
+                bidirectional=decoder_bidirectional,
+                context=CONTEXT,
+            ),
+            LocalAttention(HIDDEN_DIM, HIDDEN_DIM, encoder_bidirectional, CONTEXT_SIZE),
+        )
+        model = Seq2Seq(encoder, decoder, context=CONTEXT)
+        model.eval()
+        output = model.predict(x, output_score=output_score)
+
+        if not output_score:
+            assert output.size(0) == BATCH_SIZE
+            assert output.size(1) <= SEQ_LEN + 1
+        else:
+            o, a = output
+            assert o.size(0) == BATCH_SIZE
+            assert o.size(1) <= SEQ_LEN + 1
+            assert a.shape[:3] == torch.Size((D, BATCH_SIZE, WINDOW_SIZE))
+            assert a.shape[3] <= SEQ_LEN

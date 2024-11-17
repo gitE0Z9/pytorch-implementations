@@ -1,117 +1,153 @@
+from functools import partial
 import torch
-from torch import nn
-from torchlake.common.schemas.nlp import NlpContext
 import torch.nn.functional as F
-from ..lstm.model import LSTMClassifier
+from torch import nn
+
 from ..base.wrapper import SequenceModelFullFeatureExtractor
+from ..base.rnn_discriminator import RNNDiscriminator
 
 
-# https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
+# see also https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
 class BahdanauAttention(nn.Module):
-    def __init__(self, hidden_size):
-        super(BahdanauAttention, self).__init__()
-        self.Wa = nn.Linear(hidden_size, hidden_size)
-        self.Ua = nn.Linear(hidden_size, hidden_size)
-        self.Va = nn.Linear(hidden_size, 1)
+    def __init__(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool = False,
+    ):
+        """[NEURAL MACHINE TRANSLATION BY JOINTLY LEARNING TO ALIGN AND TRANSLATE](https://arxiv.org/abs/1409.0473)
+        In original design, the encoder is bidirectional and the decoder is unidirectional
+        so we extend it a bit and deal with asymmetric encoder/decoder
 
-    def forward(self, ht, hs):
-        # hs: B, S, bi * h
-        # ht: layers, B, h => B, layers, h as input
-        c = self.Va(torch.tanh(self.Wa(ht) + self.Ua(hs)))
-        c = c.squeeze(2).unsqueeze(1)
+        not exactly the same, since origianl design is tightly coupled to GRU layer
 
-        attentions = c.softmax(-1)
-        c = torch.bmm(attentions, hs)
+        Args:
+            encoder_hidden_dim (int): encoder hidden dimension
+            decoder_hidden_dim (int): decoder hidden dimension
+            encoder_bidirectional (bool, optional): is encoder bidirectional. Defaults to False.
+        """
+        super().__init__()
+        self.encoder_factor = 2 if encoder_bidirectional else 1
 
+        self.q = nn.Linear(decoder_hidden_dim, decoder_hidden_dim)
+        self.k = nn.Linear(self.encoder_factor * encoder_hidden_dim, decoder_hidden_dim)
+        self.v = nn.Linear(decoder_hidden_dim, 1)
+        self.c = nn.Linear(self.encoder_factor * encoder_hidden_dim, decoder_hidden_dim)
+
+    def get_attention_weight(self, hs: torch.Tensor, ht: torch.Tensor) -> torch.Tensor:
+        """get attention weights by current hidden state and source hidden state
+
+        Args:
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
+
+        Returns:
+            torch.Tensor: attention weights, shape is (D, B, S)
+        """
+        # D, B, 1, dh + B, S, dh => D, B, S
+        e: torch.Tensor = self.v(
+            torch.tanh(self.q(ht.unsqueeze(-2)) + self.k(hs))
+        ).squeeze(-1)
+
+        # D, B, S
+        return e.softmax(-1)
+
+    def output_hidden_state(self, at: torch.Tensor, hs: torch.Tensor) -> torch.Tensor:
+        # D, B, S x B, S, ebi*eh => D, B, ebi*eh
+        c = torch.einsum("dbs,bsg->dbg", at, hs)
+
+        # D, B, dh
+        return self.c(c)
+
+    def forward(
+        self,
+        hs: torch.Tensor,
+        ht: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """forward
+
+        Args:
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: context vector, shape is (D, B, dh). attention, shape is (layers, dbi, B, S)
+        """
+        # D, B, S
+        attentions = self.get_attention_weight(hs, ht)
+
+        # D, B, dh
+        c = self.output_hidden_state(attentions, hs)
+
+        # D, B, dh / D, B, S
         return c, attentions
-
-    def forward_step(self, input, hidden, encoder_outputs):
-        embedded = self.dropout(self.embedding(input))
-
-        query = hidden.permute(1, 0, 2)
-        context, attn_weights = self.attention(query, encoder_outputs)
-        input_gru = torch.cat((embedded, context), dim=2)
-
-        output, hidden = self.gru(input_gru, hidden)
-        output = self.out(output)
-
-        return output, hidden, attn_weights
 
 
 class LuongAttention(nn.Module):
 
     def __init__(
         self,
-        latent_dim: int,
-        num_layers: int = 1,
-        bidirectional: bool = False,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool = False,
     ):
         """[Effective Approaches to Attention-based Neural Machine Translation](https://arxiv.org/abs/1508.04025)
 
         Args:
-            latent_dim (int): dimension of latent representation
-            num_layers (int, optional): number of LSTM layers. Defaults to 1.
-            bidirectional (bool, optional): is bidirectional LSTM. Defaults to False.
+            encoder_hidden_dim (int): encoder hidden dimension
+            decoder_hidden_dim (int): decoder hidden dimension
+            encoder_bidirectional (bool, optional): is encoder bidirectional. Defaults to False.
         """
-        super(LuongAttention, self).__init__()
-        self.factor = 2 if bidirectional else 1
-        self.layers = self.factor * num_layers
+        super().__init__()
+        self.encoder_factor = 2 if encoder_bidirectional else 1
 
-        self.attention_weight = nn.Linear(latent_dim, latent_dim)
-        self.context_weight = nn.Linear(2 * latent_dim, latent_dim)
-
-    def split_source_hidden_state(self, hs: torch.Tensor) -> torch.Tensor:
-        """_summary_
-
-        Args:
-            hs (torch.Tensor): batch_size, seq_len, hidden_dim
-
-        Returns:
-            torch.Tensor: layers, B, S, h
-        """
-        batch_size, seq_len, hidden_dim = hs.shape
-        # layers, B, S, h
-        return hs.reshape(
-            batch_size, seq_len, self.layers, hidden_dim // self.layers
-        ).permute(2, 0, 1, 3)
+        self.k = nn.Linear(
+            self.encoder_factor * encoder_hidden_dim,
+            decoder_hidden_dim,
+        )
+        self.c = nn.Linear(
+            self.encoder_factor * encoder_hidden_dim + decoder_hidden_dim,
+            decoder_hidden_dim,
+        )
 
     def get_attention_weight(self, hs: torch.Tensor, ht: torch.Tensor) -> torch.Tensor:
-        """_summary_
+        """get attention weights by current hidden state and source hidden state
 
         Args:
-            hs (torch.Tensor): _description_
-            ht (torch.Tensor): _description_
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: attention weights, shape is (D, B, S)
         """
-        # layers, B, S, h
-        c = self.attention_weight(hs)
+        # this is general form, I left dot, concat, location form for you
+        # D, B, dh x B, S, dh => D, B, S
+        a = torch.einsum("dbh,bsh->dbs", ht, self.k(hs))
 
-        # layers, B, 1, h x layers, B, h, s => layers, B, 1, S
-        c = torch.matmul(ht.unsqueeze(2), c.transpose(-1, -2))
-        return c.softmax(-1)
+        # D, B, S
+        return a.softmax(-1)
 
     def output_hidden_state(
         self,
         at: torch.Tensor,
-        ht: torch.Tensor,
         hs: torch.Tensor,
+        ht: torch.Tensor,
     ) -> torch.Tensor:
-        """ct = at @ hs, tanh(Wc[ct, ht])
+        """ct = at @ hs, tanh(Wc[ct || ht])
 
         Args:
-            at (torch.Tensor): attention weights,
-            ht (torch.Tensor): target hidden state
-            hs (torch.Tensor): source hidden state
+            at (torch.Tensor): attention weights, shape is (D, B, S)
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
 
         Returns:
-            torch.Tensor: context vector
+            torch.Tensor: context vector, shape is (D, B, dh)
         """
-        # layers, B, 1, S x layers, B, S, h => layers, B, 1, h
-        ct = torch.matmul(at, hs)
-        # layers, B, h
-        return self.context_weight(torch.cat([ct.squeeze(2), ht], -1)).tanh()
+        # D, B, S x B, S, ebi*eh => D, B, ebi*eh
+        ct = torch.einsum("dbs,bsh->dbh", at, hs)
+
+        # D, B, (ebi*eh + dh) => D, B, dh
+        return self.c(torch.cat([ct, ht], -1)).tanh()
 
 
 class GlobalAttention(LuongAttention):
@@ -121,241 +157,181 @@ class GlobalAttention(LuongAttention):
         """global attention forward
 
         Args:
-            hs (torch.Tensor): B, S, bi * h
-            ht (torch.Tensor): layers, B, h
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
 
         Returns:
-            tuple[torch.Tensor]: attended context vector(layers, B, h), attention weight(layers, B, S)
+            tuple[torch.Tensor]: context vector(D, B, dh), attention weight(D, B, S)
         """
-        # layers, B, S, h
-        hs = self.split_source_hidden_state(hs)
-
-        # layers, B, 1, S
+        # D, B, S
         attentions = self.get_attention_weight(hs, ht)
 
-        # layers, B, 1, S x layers, B, S, h => layers, B, 1, h
-        c = self.output_hidden_state(attentions, ht, hs)
+        # D, B, dh
+        c = self.output_hidden_state(attentions, hs, ht)
 
-        # layers, B, h / layers, B, S
-        return c, attentions.squeeze(2)
+        # D, B, dh / D, B, S
+        return c, attentions
 
 
 class LocalAttention(LuongAttention):
-    """Luong local attention(local-p)"""
-
-    def __init__(self, latent_dim: int, context_size: int = 1, *args, **kwargs):
-        """one more argument context_size, other args are the same to global attention
+    def __init__(
+        self,
+        encoder_hidden_dim: int,
+        decoder_hidden_dim: int,
+        encoder_bidirectional: bool = False,
+        context_size: int = 1,
+    ):
+        """Luong local attention(local-p)
 
         Args:
+            encoder_hidden_dim (int): encoder hidden dimension
+            decoder_hidden_dim (int): decoder hidden dimension
+            encoder_bidirectional (bool, optional): is encoder bidirectional. Defaults to False.
             context_size (int, optional): subsampling window size. Defaults to 1.
         """
-        super(LocalAttention, self).__init__(latent_dim=latent_dim, *args, **kwargs)
         self.context_size = context_size
         self.window_size = context_size * 2 + 1
+        super().__init__(encoder_hidden_dim, decoder_hidden_dim, encoder_bidirectional)
 
-        self.v_p = nn.Linear(latent_dim, 1)
-        self.position_weight = nn.Linear(latent_dim, latent_dim)
+        self.vp = nn.Linear(decoder_hidden_dim, 1)
+        self.position_weight = nn.Linear(decoder_hidden_dim, decoder_hidden_dim)
 
     def get_predicted_position(
         self,
         ht: torch.Tensor,
         seq_len: int,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """_summary_
+        """get predicted position of source hidden state
 
         Args:
-            ht (torch.Tensor): _description_
-            seq_len (int): _description_
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
+            seq_len (int): sequence length of source hidden state
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: _description_
+            tuple[torch.Tensor, torch.Tensor]: selected position of source, shape is (D, B, 1), selected windows, shape is (D, B, window_size)
         """
-        # layers, B, h
-        pt = self.position_weight(ht).tanh()
-        # layers, B, 1
-        pt = self.v_p(pt).sigmoid() * seq_len
+        # D, B, h
+        positions: torch.Tensor = self.position_weight(ht).tanh()
+        # D, B, 1
+        positions = self.vp(positions).sigmoid() * seq_len
 
         # window_size(2D+1)
         window_index = torch.linspace(
             -self.context_size, self.context_size, self.window_size
-        ).to(pt.device)
+        ).to(positions.device)
 
-        # layers, B, window_size
-        positions = window_index + pt.int()
+        # D, B, window_size
+        windows = window_index + positions
 
-        return pt, positions
+        # D, B, 1 # D, B, window size
+        return positions, windows.int()
 
     def get_kernel(
         self,
-        pt: torch.Tensor,
         positions: torch.Tensor,
-        hidden_dim: int,
+        windows: torch.Tensor,
     ) -> torch.Tensor:
         """kernel function to weight source hidden state around predicted position
 
         Args:
-            pt (torch.Tensor): _description_
-            positions (torch.Tensor): _description_
-            hidden_dim (int): _description_
+            positions (torch.Tensor): predicted positions, shape is (D, B, 1)
+            windows (torch.Tensor): windows indices, shape is (D, B, window size)
 
         Returns:
-            torch.Tensor: layers, B, 1, window_size
+            torch.Tensor: D, B, window_size
         """
 
-        # layers, B, 1, window_size
-        return (-2 * ((positions - pt) / hidden_dim) ** 2).exp()
+        # D, B, window_size
+        return (-2 * ((windows - positions) / self.context_size) ** 2).exp()
 
     def subsample_source_hidden_state(
         self,
         hs: torch.Tensor,
-        positions: torch.Tensor,
+        windows: torch.Tensor,
     ) -> torch.Tensor:
-        """_summary_
+        """subsampling source hidden states
 
         Args:
-            hs (torch.Tensor): _description_
-            positions (torch.Tensor): _description_
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            windows (torch.Tensor): windows indices, shape is (D, B, window size)
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: windowed source hidden state, shape is (D, B, W, ebi*eh)
         """
-        batch_size, seq_len, hidden_dim = hs.shape
-        dimension_per_layer = hidden_dim // self.layers
+        batch_indices = torch.arange(hs.size(0), device=hs.device).view(1, -1, 1)
+        return F.pad(hs, (0, 0, self.context_size, self.context_size))[
+            batch_indices, windows, :
+        ]
 
-        # layers, B, S, h
-        hs = hs.reshape(batch_size, seq_len, self.layers, dimension_per_layer).permute(
-            2, 0, 1, 3
-        )
-        # layers, B, window_size, h
-        hs = F.pad(hs, (0, 0, self.context_size, self.context_size)).gather(
-            2,
-            (positions + self.context_size)
-            .unsqueeze(-1)
-            .repeat(1, 1, 1, dimension_per_layer),
-        )
-
-        return hs
-
-    def forward(self, hs: torch.Tensor, ht: torch.Tensor) -> tuple[torch.Tensor]:
-        """local attention forward
+    def get_attention_weight(self, hs: torch.Tensor, ht: torch.Tensor) -> torch.Tensor:
+        """get attention weights by current hidden state and source hidden state
 
         Args:
-            hs (torch.Tensor): B, S, bi * h
-            ht (torch.Tensor): layers, B, h
+            hs (torch.Tensor): source hidden state, shape is (D, B, window size, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
 
         Returns:
-            tuple[torch.Tensor]: attended context vector
+            torch.Tensor: attention weights, shape is (D, B, window size)
         """
-        _, seq_len, hidden_dim = hs.shape
+        # D, B, dh x D, B, window size, dh => D, B, window size
+        a = torch.einsum("dbh,dbwh->dbw", ht, self.k(hs))
 
-        # layers, B, 1 # layers, B, window_size
-        pt, positions = self.get_predicted_position(ht, seq_len)
+        # D, B, window size
+        return a.softmax(-1)
 
-        # layers, B, 1, window_size
-        kernel = self.get_kernel(pt, positions, hidden_dim).unsqueeze(2)
-
-        # layers, B, window_size, h
-        hs = self.subsample_source_hidden_state(hs, positions.type(torch.int64))
-
-        # layers, B, 1, window_size
-        # sigmoid x normal
-        attentions = self.get_attention_weight(hs, ht) * kernel
-
-        # layers, B, 1, window_size x layers, B, window_size, h => layers, B, 1, h
-        c = self.output_hidden_state(attentions, ht, hs)
-
-        # layers, B, h / layers, B, window_size
-        return c, attentions.squeeze(2)
-
-
-class Seq2SeqEncoder(nn.Module):
-    def __init__(
+    def output_hidden_state(
         self,
-        vocab_size: int,
-        embed_dim: int,
-        hidden_dim: int,
-        output_size: int = 1,
-        num_layers: int = 1,
-        bidirectional: bool = False,
-        context: NlpContext = NlpContext(),
-    ):
-        """
-        將欲翻譯句子轉為隱向量
-        """
-        super(Seq2SeqEncoder, self).__init__()
-        self.rnn = LSTMClassifier(
-            vocab_size,
-            embed_dim,
-            hidden_dim,
-            output_size,
-            num_layers=num_layers,
-            bidirectional=bidirectional,
-            context=context,
-        )
-        self.rnn.fc = None
+        at: torch.Tensor,
+        hs: torch.Tensor,
+        ht: torch.Tensor,
+    ) -> torch.Tensor:
+        """ct = at @ hs, tanh(Wc[ct || ht])
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor]:
-        return self.rnn.feature_extract(x)
+        Args:
+            at (torch.Tensor): attention weights, shape is (D, B, window_size)
+            hs (torch.Tensor): source hidden state, shape is (D, B, window_size, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
 
-
-class Seq2SeqAttentionEncoder(nn.Module):
-    def __init__(
-        self,
-        vocab_size: int,
-        embed_dim: int,
-        hidden_dim: int,
-        num_layers: int = 1,
-        bidirectional: bool = False,
-        context: NlpContext = NlpContext(),
-    ):
+        Returns:
+            torch.Tensor: context vector, shape is (D, B, dh)
         """
-        將欲翻譯句子轉為隱向量
-        """
-        super(Seq2SeqAttentionEncoder, self).__init__()
-        # separate each single layer of lstm to get all t and all layer hidden state
-        self.rnns = SequenceModelFullFeatureExtractor(
-            vocab_size,
-            embed_dim,
-            hidden_dim,
-            num_layers=num_layers,
-            bidirectional=bidirectional,
-            context=context,
-            model_class=nn.LSTM,
-        )
+        # D, B, W x D, B, W, ebi*eh => D, B, ebi*eh
+        ct = torch.einsum("dbw,dbwh->dbh", at, hs)
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor]:
-        return self.rnns(x)
-
-
-class Seq2SeqDecoder(nn.Module):
-    def __init__(
-        self,
-        vocab_size: int,
-        embed_dim: int,
-        hidden_dim: int,
-        output_size: int = 1,
-        num_layers: int = 1,
-        bidirectional: bool = False,
-        context: NlpContext = NlpContext(),
-    ):
-        """
-        將隱向量與目標句子轉為欲翻譯句子
-        """
-        super(Seq2SeqDecoder, self).__init__()
-        self.rnn = LSTMClassifier(
-            vocab_size,
-            embed_dim,
-            hidden_dim,
-            output_size,
-            num_layers,
-            bidirectional,
-            context,
-        )
+        # D, B, (ebi*eh + dh) => D, B, dh
+        return self.c(torch.cat([ct, ht], -1)).tanh()
 
     def forward(
         self,
-        x: torch.Tensor,
-        h: torch.Tensor,
-        c: torch.Tensor,
-    ) -> tuple[torch.Tensor]:
-        return self.rnn(x, h, c, output_state=True)
+        hs: torch.Tensor,
+        ht: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """local attention forward
+
+        Args:
+            hs (torch.Tensor): source hidden state, shape is (B, S, ebi*eh)
+            ht (torch.Tensor): current hidden state, shape is (D, B, dh)
+
+        Returns:
+            tuple[torch.Tensor]: context vector, shape is (D, B, dh), attention weights, shape is (D, B, window_size)
+        """
+        _, seq_len, _ = hs.shape
+
+        # D, B, 1 # D, B, window size
+        positions, windows = self.get_predicted_position(ht, seq_len)
+
+        # D, B, window_size, ebi*eh
+        hs = self.subsample_source_hidden_state(hs, windows)
+
+        # D, B, window_size
+        kernel = self.get_kernel(positions, windows)
+
+        # D, B, window_size
+        # sigmoid x normal
+        attentions = self.get_attention_weight(hs, ht) * kernel
+
+        # D, B, window_size x D, B, window_size, ebi*eh => D, B, dh
+        c = self.output_hidden_state(attentions, hs, ht)
+
+        # D, B, dh / D, B, window_size
+        return c, attentions
