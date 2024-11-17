@@ -10,9 +10,11 @@ setup(
             "object_detection/configs/**/*.yml",
             "object_detection/datasets/**/*.yml",
             "object_detection/configs/**/*.txt",
-            "object_detection/datasets/**/*.txt",
-            "object_detection/datasets/**/*.csv",
+            "common/datasets/**/*.txt",
         ]
     },
     install_requires=Path("requirements.txt").read_text().splitlines(),
+    extra_requires={
+        "text": [],
+    },
 )
