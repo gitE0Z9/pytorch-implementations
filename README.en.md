@@ -117,13 +117,14 @@ package name: `style_transfer`
 
 package name: `sequence_data`
 
-| Model                              | Article Link                                                                                                                                           | Package     |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| Long and short term memory (LSTM)  | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641)  | ``lstm``    |
-| Bidirectional LSTM (BiLSTM)        | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)                                      | ``lstm``    |
-| Gated recurrent unit (GRU)         | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gru-8510d5bf3261)                                          | ``gru``     |
-| Temporal convolution network (TCN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d) | ``tcn``     |
-| Seq2Seq                            | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)     | ``seq2seq`` |
+| Model                              | Article Link                                                                                                                                           | Package         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| Long and short term memory (LSTM)  | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%9B%9B-long-short-term-memory-21c097616641)  | ``lstm``        |
+| Bidirectional LSTM (BiLSTM)        | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)                                      | ``lstm``        |
+| Gated recurrent unit (GRU)         | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gru-8510d5bf3261)                                          | ``gru``         |
+| Temporal convolution network (TCN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d) | ``tcn``         |
+| Seq2Seq                            | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)     | ``seq2seq``     |
+| Transformer                        | -                                                                                                                                                      | ``transformer`` |
 
 
 ### Language model
