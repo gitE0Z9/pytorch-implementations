@@ -421,9 +421,10 @@ class TestL2Norm:
 
 
 class TestPositionEncoding:
-    def test_output_shape(self):
+    @pytest.mark.parametrize("trainable", [True, False])
+    def test_output_shape(self, trainable: bool):
         x = torch.rand(2, 32, 16)
-        model = PositionEncoding()
+        model = PositionEncoding(32, 16, trainable)
         y = model.forward(x)
 
         assert_close(y.shape, torch.Size((1, 32, 16)))
