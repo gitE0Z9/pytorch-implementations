@@ -30,7 +30,7 @@ class BottleNeck(nn.Module):
                 )
             )
 
-        self.blocks = nn.Sequential(*self.blocks)
+        self.blocks = nn.Sequential(*blocks)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.blocks(x)
