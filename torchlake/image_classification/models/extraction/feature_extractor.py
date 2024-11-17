@@ -15,11 +15,11 @@ class ExtractionFeatureExtractor(ExtractorBase):
         weight_path: Path | str | None = None,
         trainable: bool = True,
     ):
-        """mobilenet feature extractor
+        """extraction feature extractor
 
         Args:
-            network_name (Literal[ "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"]): torchvision mobilenet model
             layer_type (Literal["block"]): extract which type of layer
+            weight_path (Path|str|None, optional): path to pytorch weight file. Defaults to None.
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
         self.weight_path = weight_path
