@@ -45,19 +45,31 @@ class Predictor:
     def detect_image(
         self,
         model: nn.Module,
-        img: np.ndarray,
+        img: np.ndarray | torch.Tensor,
         transform=None,
         is_batch: bool = False,
     ) -> torch.Tensor | list[torch.Tensor]:
-        img_h, img_w = img.shape[1 if is_batch else 0], img.shape[2 if is_batch else 1]
+        """detect an image
 
+        Args:
+            model (nn.Module): detector
+            img (np.ndarray|torch.Tensor): image array or torch tensor
+            transform (_type_, optional): albumentations transform. Defaults to None.
+            is_batch (bool, optional): does img have batch dimension. Defaults to False.
+
+        Returns:
+            torch.Tensor | list[torch.Tensor]: detections
+        """
         if transform is not None:
             img = transform(image=img)["image"]
 
         if not is_batch:
-            img = img.unsqueeze(0)
+            img = img[None, :, :, :]
 
+        # img must be tensor here
         img = img.to(self.context.device)
+
+        _, _, img_h, img_w = img.shape
 
         model.eval()
         with torch.no_grad():

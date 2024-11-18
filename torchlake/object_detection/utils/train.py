@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 
 
@@ -79,20 +77,80 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
     return intersection
 
 
-def build_targets(groundtruth_batch: list, target_shape: Tuple[int]) -> torch.Tensor:
+def build_grid_targets(
+    gt_batch: list[list[list[int]]],
+    target_shape: tuple[int],
+) -> torch.Tensor:
+    """build grid targets
+
+    Args:
+        gt_batch (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, p)
+        target_shape (tuple[int]): output shape, e.g. (batch, #num anchor, #num class + 5, #grid, #grid)
+
+    Returns:
+        torch.Tensor: targets, in format of (dx, dy, w, h, c, p)
+    """
     grid_y, grid_x = target_shape[-2], target_shape[-1]
     targets = torch.zeros(target_shape)
 
-    for batch_idx, boxes in enumerate(groundtruth_batch):
+    for batch_idx, boxes in enumerate(gt_batch):
         for box in boxes:
+            # cx, cy here is absolute coord
             cx, cy, w, h, c = box[:5]
-            x, y = cx % (1 / grid_x), cy % (1 / grid_y)
-            x_ind, y_ind = int(cx * grid_x), int(cy * grid_y)  # cell position
-            targets[batch_idx, :, 0, y_ind, x_ind] = x
-            targets[batch_idx, :, 1, y_ind, x_ind] = y
+            # center position translation
+            dx, dy = cx % (1 / grid_x), cy % (1 / grid_y)
+            # cell position
+            x_ind, y_ind = int(cx * grid_x), int(cy * grid_y)
+            targets[batch_idx, :, 0, y_ind, x_ind] = dx
+            targets[batch_idx, :, 1, y_ind, x_ind] = dy
             targets[batch_idx, :, 2, y_ind, x_ind] = w
             targets[batch_idx, :, 3, y_ind, x_ind] = h
             targets[batch_idx, :, 4, y_ind, x_ind] = 1
             targets[batch_idx, :, 5 + int(c), y_ind, x_ind] = 1
 
     return targets.float()
+
+
+def build_flatten_targets(
+    gt_batch: list[list[list[int]]],
+    grid_shape: tuple[int] = None,
+    delta_coord: bool = True,
+) -> tuple[torch.Tensor, list[int]]:
+    """build flatten targets
+
+    Args:
+        gt_batch (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, p)
+        grid_shape (tuple[int], optional): grid shape. Defaults to None.
+        delta_coord (bool, optional): represent center coord in translation delta and grid index. Defaults to True.
+
+    Returns:
+        tuple[torch.Tensor, list[int]]:
+        element1: batched bboxes, in format(dx, dy, grid_x, grid_y, w, h, p) if delta coord is true
+        or in format of (cx, cy, w, h, p).
+        element2: number of detections of each image
+    """
+    if delta_coord:
+        grid_y, grid_x = grid_shape
+
+    batch, spans = [], []
+    for boxes in gt_batch:
+        box_count = len(boxes)
+
+        # ?, 5
+        boxes = torch.Tensor(boxes)
+
+        cx, cy = boxes[:, 0:1], boxes[:, 1:2]
+
+        if delta_coord:
+            dx, dy = cx % (1 / grid_x), cy % (1 / grid_y)
+
+            # cell position
+            x_ind, y_ind = (cx * grid_x).int(), (cy * grid_y).int()
+
+            boxes = torch.cat([dx, dy, x_ind, y_ind, boxes[:, 2:5]], 1)
+
+        batch.append(boxes)
+        spans.append(box_count)
+
+    # ?, 7 || batch size
+    return torch.concat(batch), spans

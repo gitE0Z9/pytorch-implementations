@@ -1,13 +1,21 @@
+import random
+import pytest
 import torch
 from torch.testing import assert_close
 
 from ..utils.train import (
     IOU,
-    build_targets,
     collate_fn,
     generate_grid_train,
     xywh_to_xyxy,
+    build_flatten_targets,
+    build_grid_targets,
 )
+
+BATCH_SIZE = 2
+GRID_SIZE = 7
+MAX_OBJECT_SIZE = 10
+NUM_CLASS = 20
 
 
 class TestUtilsTrain:
@@ -65,22 +73,40 @@ class TestUtilsTrain:
         ious = IOU(x, y)
         assert_close(ious, torch.zeros(1, 1, 1, 1, 1))
 
-    def test_build_targets_shape(self):
-        grid = build_targets(
-            [[[0.25, 0.25, 0.5, 0.5, 0], [0.75, 0.75, 0.5, 0.5, 1]]],
-            (2, 1, 5 + 2, 2, 2),
-        )
 
-        assert_close(grid.shape, torch.Size([2, 1, 5 + 2, 2, 2]))
+class TestBuildTargets:
+    def setUp(self):
+        self.y = [
+            [
+                [
+                    random.random(),
+                    random.random(),
+                    random.random(),
+                    random.random(),
+                    random.randrange(0, NUM_CLASS),
+                ]
+                for _ in range(random.randint(1, MAX_OBJECT_SIZE))
+            ]
+            for _ in range(BATCH_SIZE)
+        ]
 
-    # def test_build_targets_value(self):
-    #     grid = build_targets([[[.25, .25, .5, .5, 0], [.75, .75, .5, .5, 1]]], (2, 1, 5+2, 2, 2))
+    @pytest.mark.parametrize(
+        "grid_shape,delta_coord,expected_dim",
+        [[(GRID_SIZE, GRID_SIZE), True, 7], [None, False, 5]],
+    )
+    def test_build_flatten_targets(self, grid_shape, delta_coord, expected_dim):
+        self.setUp()
 
-    #     for i in range(2):
-    #         assert_close(grid[i, 0, 0], torch.Tensor([[.25, .25], [.5, .5]]))
-    #         assert_close(grid[i, 0, 1], torch.Tensor([[0, 0], [.5, .5]]))
-    #         assert_close(grid[i, 0, 2], torch.Tensor([[0, 0], [.5, .5]]))
-    #         assert_close(grid[i, 0, 3], torch.Tensor([[0, 0], [.5, .5]]))
-    #         assert_close(grid[i, 0, 4], torch.Tensor([[0, 0], [.5, .5]]))
-    #         assert_close(grid[i, 0, 5], torch.Tensor([[0, 0], [.5, .5]]))
-    #         assert_close(grid[i, 0, 6], torch.Tensor([[0, 0], [.5, .5]]))
+        y, span = build_flatten_targets(self.y, grid_shape, delta_coord)
+
+        N = sum(len(items) for items in self.y)
+        assert_close(y.shape, torch.Size((N, expected_dim)))
+        assert len(span) == BATCH_SIZE
+
+    def test_build_grid_targets(self):
+        self.setUp()
+
+        expected_shape = (BATCH_SIZE, 1, NUM_CLASS + 5, GRID_SIZE, GRID_SIZE)
+        y = build_grid_targets(self.y, expected_shape)
+
+        assert_close(y.shape, torch.Size(expected_shape))
