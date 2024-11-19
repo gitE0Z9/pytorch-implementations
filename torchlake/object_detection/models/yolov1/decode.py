@@ -1,7 +1,7 @@
 import torch
+from torchlake.common.utils.numerical import generate_grid
 from torchlake.object_detection.configs.schema import InferenceCfg
 from torchlake.object_detection.constants.schema import DetectorContext
-from torchlake.object_detection.utils.inference import generate_grid
 from torchlake.object_detection.utils.nms import select_best_index
 
 
