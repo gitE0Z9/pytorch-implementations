@@ -10,7 +10,15 @@ class RegHead(nn.Module):
         num_priors: int,
         coord_dims: int = 4,
     ):
-        super(RegHead, self).__init__()
+        """_summary_
+
+        Args:
+            input_channel (int): input channel
+            num_classes (int): number of classes
+            num_priors (int): number of prior boxes
+            coord_dims (int, optional): coordinate dimensions. Defaults to 4.
+        """
+        super().__init__()
         self.loc = nn.Conv2d(
             input_channel,
             num_priors * coord_dims,
