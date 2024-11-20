@@ -1,4 +1,5 @@
 from typing import Literal
+from torchvision.ops import Conv2dNormActivation
 
 import torch
 import torchvision
@@ -60,11 +61,15 @@ class VGGFeatureExtractor(ExtractorBase):
         target_layer_names: list[str],
     ) -> list[torch.Tensor]:
         if self.layer_type == "conv":
-            layer_class = nn.Conv2d
+            check_function = lambda layer: isinstance(layer, nn.Conv2d) or isinstance(
+                layer, Conv2dNormActivation
+            )
         elif self.layer_type == "relu":
-            layer_class = nn.ReLU
+            check_function = lambda layer: isinstance(layer, nn.ReLU) or isinstance(
+                layer, Conv2dNormActivation
+            )
         elif self.layer_type == "maxpool":
-            layer_class = nn.MaxPool2d
+            check_function = lambda layer: isinstance(layer, nn.MaxPool2d)
         else:
             raise NotImplementedError
 
@@ -79,7 +84,7 @@ class VGGFeatureExtractor(ExtractorBase):
             y = layer(y)
 
             layer_name = f"{stage_count}_{layer_count}"
-            if isinstance(layer, layer_class):
+            if check_function(layer):
                 if layer_name in target_layer_names:
                     features.append(y)
                 layer_count += 1
