@@ -73,18 +73,18 @@ class VGGFeatureExtractor(ExtractorBase):
         img = self.normalization(img)
 
         y = img
-        block_count = 1
+        stage_count = 1
         layer_count = 1
         for layer in self.feature_extractor:
             y = layer(y)
 
-            layer_name = f"{block_count}_{layer_count}"
+            layer_name = f"{stage_count}_{layer_count}"
             if isinstance(layer, layer_class):
                 if layer_name in target_layer_names:
                     features.append(y)
                 layer_count += 1
             if isinstance(layer, nn.MaxPool2d):
-                block_count += 1
+                stage_count += 1
                 layer_count = 1
 
         return features
