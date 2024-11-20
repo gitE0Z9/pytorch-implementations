@@ -18,6 +18,11 @@ class RegHead(nn.Module):
             num_priors (int): number of prior boxes
             coord_dims (int, optional): coordinate dimensions. Defaults to 4.
         """
+        # mark
+        self.num_priors = num_priors
+        self.coord_dims = coord_dims
+        self.num_classes = num_classes
+
         super().__init__()
         self.loc = nn.Conv2d(
             input_channel,

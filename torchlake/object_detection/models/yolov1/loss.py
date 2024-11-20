@@ -121,6 +121,7 @@ class YOLOLoss(nn.Module):
             reduction="mean",
         )
 
+        # https://github.com/pjreddie/darknet/blob/f6afaabcdf85f77e7aff2ec55c020c0e297c77f9/src/detection_layer.c#L179
         # iou_loss = F.mse_loss(
         #     positives * ious,
         #     positives,

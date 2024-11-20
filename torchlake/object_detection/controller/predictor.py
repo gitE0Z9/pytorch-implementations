@@ -40,7 +40,8 @@ class Predictor:
         output: torch.Tensor,
         img_size: tuple[int, int],
     ) -> list[torch.Tensor]:
-        return self.decoder.decode(output, img_size)
+        decoded = self.decoder.decode(output, img_size)
+        return self.decoder.post_process(decoded, self.inferenceCfg)
 
     def detect_image(
         self,

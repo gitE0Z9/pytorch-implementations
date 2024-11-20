@@ -1,61 +1,23 @@
 import torch
 from torchlake.common.utils.numerical import generate_grid
-from torchlake.object_detection.configs.schema import InferenceCfg
 from torchlake.object_detection.constants.schema import DetectorContext
-from torchlake.object_detection.utils.nms import select_best_index
+
+from ...mixins.decode_yolo import YOLODecodeMixin
 
 
-def yolo_postprocess(
-    decoded_output: torch.Tensor,
-    number_class: int,
-    postprocess_config: InferenceCfg,
-) -> list[torch.Tensor]:
-    """post process yolo decoded output
-
-    Args:
-        decoded_output (torch.Tensor): shape (#batch, #anchor * #grid, 5 + #class)
-        number_class (int): num class
-        postprocess_config (InferenceCfg): post process config for nms
-
-    Returns:
-        list[torch.Tensor]: #batch * (#selected, 5 + #class)
-    """
-    decoded_output[:, :, 5:] *= decoded_output[:, :, 4:5]
-    cls_indices = decoded_output[:, :, 5:].argmax(-1)
-
-    processed_result = []
-    for decoded, cls_idx in zip(decoded_output, cls_indices):
-        detection_result = []
-        for class_index in range(number_class):
-            is_this_class = cls_idx.eq(class_index)
-            if not is_this_class.any():
-                continue
-
-            this_class_detection = decoded[is_this_class]
-            best_index = select_best_index(
-                this_class_detection[:, :4],
-                this_class_detection[:, 5 + class_index],
-                postprocess_config,
-            )
-            detection_result.append(this_class_detection[best_index])
-        processed_result.append(torch.cat(detection_result, 0))
-
-    return processed_result
-
-
-class Decoder:
+class Decoder(YOLODecodeMixin):
     def __init__(self, context: DetectorContext):
         self.context = context
 
     def decode(
         self,
-        feature_map: torch.Tensor,
+        pred: torch.Tensor,
         image_size: tuple[int, int],
     ) -> torch.Tensor:
         """decode feature map to original size
 
         Args:
-            feature_map (torch.Tensor): shape (#batch, 5 + #class, grid_y, grid_x)
+            pred (torch.Tensor): shape (#batch, 5 + #class, grid_y, grid_x)
             image_size (tuple[int, int]): (image_y, image_x)
 
         Returns:
@@ -63,10 +25,10 @@ class Decoder:
         """
         num_anchors = self.context.num_anchors
         num_classes = self.context.num_classes
-        batch_size, _, fm_h, fm_w = feature_map.shape
+        batch_size, _, fm_h, fm_w = pred.shape
 
         # batch_size, boxes, 5, grid_y, grid_x
-        feature_map_coord = feature_map[:, : 5 * num_anchors, :, :].unflatten(
+        feature_map_coord = pred[:, : 5 * num_anchors, :, :].unflatten(
             1, (num_anchors, 5)
         )
 
@@ -103,7 +65,7 @@ class Decoder:
 
         conf = feature_map_coord[:, :, 4, :, :].reshape(batch_size, 1, -1)
         prob = (
-            feature_map[:, 5 * num_anchors :, :, :]
+            pred[:, 5 * num_anchors :, :, :]
             .unsqueeze(2)
             .repeat(1, 1, num_anchors, 1, 1)
             .reshape(batch_size, num_classes, -1)
