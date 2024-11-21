@@ -61,6 +61,11 @@ class Predictor:
         Returns:
             torch.Tensor | list[torch.Tensor]: detections
         """
+        if isinstance(img, torch.Tensor):
+            img_h, img_w = img.shape[-2:]
+        elif isinstance(img, np.ndarray):
+            img_h, img_w = img.shape[-3:-1]
+
         if transform is not None:
             img = transform(image=img)["image"]
 
@@ -69,8 +74,6 @@ class Predictor:
 
         # img must be tensor here
         img = img.to(self.context.device)
-
-        _, _, img_h, img_w = img.shape
 
         model.eval()
         with torch.no_grad():

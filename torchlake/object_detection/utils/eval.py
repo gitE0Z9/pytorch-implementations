@@ -1,37 +1,38 @@
-import time
+# import time
 from typing import List, Tuple
 
 import torch
 import torchvision
-from torchlake.common.utils.image import load_image
+
+# from torchlake.common.utils.image import load_image
 
 from ..constants.enums import PRCurveInterpolation
-from ..utils.inference import model_predict
-from ..utils.nms import greedy_nms
+
+# from ..utils.nms import greedy_nms
 
 
-def speed_evaluate(img_path: str, model_path: str):  # TODO: refactor
-    """evaluate inference, decode, nms time"""
+# def speed_evaluate(img_path: str, model_path: str):  # TODO: refactor
+#     """evaluate inference, decode, nms time"""
 
-    testimg = load_image(img_path)
+#     testimg = load_image(img_path)
 
-    a = time.time()
-    testimgpred = model_predict(testimg)
-    b = time.time()
-    bbox_result = yolov2_decode(testimgpred, (IMAGE_SIZE, IMAGE_SIZE), NUM_CLASSES, 1)
-    c = time.time()
-    for class_idx in range(NUM_CLASSES):
-        best_index = greedy_nms(
-            bbox_result[0, :, :4],
-            bbox_result[0, :, 4] * bbox_result[0, :, 5 + class_idx],
-            NMS_THRESH,
-            CONF_THRESH,
-        )
-    d = time.time()
+#     a = time.time()
+#     testimgpred = model_predict(testimg)
+#     b = time.time()
+#     bbox_result = yolov2_decode(testimgpred, (IMAGE_SIZE, IMAGE_SIZE), NUM_CLASSES, 1)
+#     c = time.time()
+#     for class_idx in range(NUM_CLASSES):
+#         best_index = greedy_nms(
+#             bbox_result[0, :, :4],
+#             bbox_result[0, :, 4] * bbox_result[0, :, 5 + class_idx],
+#             NMS_THRESH,
+#             CONF_THRESH,
+#         )
+#     d = time.time()
 
-    print("inference time: ", b - a)
-    print("decode time: ", c - b)
-    print("nms time: ", d - c)
+#     print("inference time: ", b - a)
+#     print("decode time: ", c - b)
+#     print("nms time: ", d - c)
 
 
 def matched_gt_and_det(
