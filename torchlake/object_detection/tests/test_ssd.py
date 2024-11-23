@@ -7,7 +7,7 @@ from ..models.ssd.anchor import PriorBox
 from ..models.ssd.decode import Decoder
 from ..models.ssd.loss import MultiBoxLoss
 from ..models.ssd.model import SSD
-from ..models.ssd.network import Backbone
+from ..models.ssd.network import Backbone, RegHead
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 300  # 512
@@ -19,7 +19,7 @@ CONTEXT = DetectorContext(
     device="cpu",
     num_classes=20,
     num_anchors=[4, 6, 6, 6, 4, 4],
-    anchors_path="../artifacts/ssd/anchors.txt",
+    anchors_path="",
 )
 
 TOTAL_ANCHORS = 8732
@@ -44,18 +44,30 @@ class TestBackbone:
             assert_close(feature.shape, expected_shape)
 
 
+class TestRegHead:
+    def test_output_shape(self):
+        x = torch.rand(BATCH_SIZE, 16, 7, 7)
+
+        model = RegHead(16, CONTEXT.num_classes + 1, 5, 4)
+
+        y = model(x)
+        assert_close(
+            y.shape,
+            torch.Size((BATCH_SIZE, 5 * (4 + 1 + CONTEXT.num_classes), 7, 7)),
+        )
+
+
 class TestSSD:
     def test_forward_shape(self):
         x = torch.rand((BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE))
 
         model = SSD(CONTEXT)
 
-        loc, conf = model(x)
+        y = model(x)
 
-        assert_close(loc.shape, torch.Size((BATCH_SIZE, 8732, 4)))
         assert_close(
-            conf.shape,
-            torch.Size((BATCH_SIZE, 8732, 1 + CONTEXT.num_classes)),
+            y.shape,
+            torch.Size((BATCH_SIZE, 8732, 4 + 1 + CONTEXT.num_classes)),
         )
 
 
@@ -83,9 +95,8 @@ class TestMultiBoxLoss:
             ]
             for _ in range(BATCH_SIZE)
         ]
-        self.loc_pred = torch.rand((BATCH_SIZE, TOTAL_ANCHORS, 4)).requires_grad_()
-        self.conf_pred = torch.rand(
-            (BATCH_SIZE, TOTAL_ANCHORS, 1 + CONTEXT.num_classes)
+        self.pred = torch.rand(
+            (BATCH_SIZE, TOTAL_ANCHORS, 4 + 1 + CONTEXT.num_classes)
         ).requires_grad_()
 
     def test_forward(self):
@@ -93,7 +104,7 @@ class TestMultiBoxLoss:
 
         anchors = PriorBox().build_anchors()
         criterion = MultiBoxLoss(CONTEXT, anchors)
-        loss = criterion((self.loc_pred, self.conf_pred), self.y)
+        loss = criterion(self.pred, self.y)
 
         assert not torch.isnan(loss)
 
@@ -102,6 +113,6 @@ class TestMultiBoxLoss:
 
         anchors = PriorBox().build_anchors()
         criterion = MultiBoxLoss(CONTEXT, anchors)
-        loss = criterion((self.loc_pred, self.conf_pred), self.y)
+        loss = criterion(self.pred, self.y)
 
         loss.backward()

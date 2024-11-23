@@ -93,6 +93,42 @@ class Backbone(nn.Module):
 
     def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
         # 4: 38, 5: 19, 6: 19, 19, 10, 5, 3, 1
-        features = self.backbone(x, ["4_3", "6_2", "6_4", "6_6", "6_8", "6_10"])
+        features: list[torch.Tensor] = self.backbone(
+            x,
+            ["4_3", "6_2", "6_4", "6_6", "6_8", "6_10"],
+        )
         features[0] = self.norm(features[0].relu_())
         return features
+
+
+class RegHead(nn.Module):
+    def __init__(
+        self,
+        input_channel: int,
+        num_classes: int,
+        num_priors: int,
+        coord_dims: int = 4,
+    ):
+        """_summary_
+
+        Args:
+            input_channel (int): input channel
+            num_classes (int): number of classes
+            num_priors (int): number of prior boxes
+            coord_dims (int, optional): coordinate dimensions. Defaults to 4.
+        """
+        # mark
+        self.num_priors = num_priors
+        self.coord_dims = coord_dims
+        self.num_classes = num_classes
+
+        super().__init__()
+        self.block = nn.Conv2d(
+            input_channel,
+            num_priors * (coord_dims + num_classes),
+            kernel_size=3,
+            padding=1,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.block(x)

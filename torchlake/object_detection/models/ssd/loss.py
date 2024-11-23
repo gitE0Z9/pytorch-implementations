@@ -10,64 +10,68 @@ from .anchor import load_anchors
 
 def hard_negative_mining(
     conf_pred: torch.Tensor,
-    matched_gt: torch.Tensor,
+    matched_gt_class: torch.Tensor,
     positive_mask: torch.Tensor,
-    num_negative: int,
-):
+    negative_ratio: float,
+) -> torch.Tensor:
     """learn from top classification loss negative sample
 
     Args:
         conf_pred (torch.Tensor): confidence predictions, shape is (batch size, 8732, 1+c)
-        matched_gt (torch.Tensor): groundtruth after matched and encoded, shape is (batch size, 8732, 5)
+        matched_gt_class (torch.Tensor): class of groundtruth after matched and encoded, shape is (batch size, 8732)
         positive_mask (torch.Tensor): matched mask, shape is (batch size, 8732, 1)
-        num_negative (int): number of negative samples, shape is (batch size, 1, 1)
+        negative_ratio (float, optional): ratio of negative sample to positive sample. Defaults to 3.
 
     Returns:
-        _type_: _description_
+        torch.Tensor: softmax loss
     """
+    _, num_boxes, num_classes = conf_pred.shape
+    # batch size, 1, 1
+    num_positive = positive_mask.sum(dim=1, keepdim=True)
 
-    batch_size, num_boxes, num_classes = conf_pred.shape
-
-    # negative_mask = 1 - positive_mask
-    # cls_loss = -(
-    #     conf_pred[:, :, 1:].softmax(2).log().sum(2, keepdim=True) * positive_mask
-    #     + conf_pred[:, :, 0:1].log() * negative_mask
-    # )
-
-    # Compute logsoftmax loss, shape is (B*A, C+1)
-    batch_conf = conf_pred.view(-1, num_classes)
-
-    # negative log likelihood
-    # shape is (B*A, 1)
-    cls_loss = torch.logsumexp(batch_conf, -1, keepdim=True) - batch_conf.gather(
-        1, matched_gt[:, :, 4].view(-1, 1).ne(0).long()
+    # batch size, 1, 1
+    num_negative = torch.clamp(
+        negative_ratio * num_positive,
+        # still left one positive sample
+        max=num_boxes - 1,
     )
+
+    # B, A, 1
+    cls_loss = F.cross_entropy(
+        conf_pred.permute(0, 2, 1),
+        matched_gt_class.long(),
+        reduction="none",
+    ).unsqueeze(-1)
+
+    # B*A [B*A] => 1
+    positive_loss = cls_loss.view(-1)[
+        positive_mask.view(-1).nonzero().squeeze_(-1)
+    ].sum()
 
     # Hard Negative Mining
 
-    # positive box has highest log likelihood, least loss
-    cls_loss = cls_loss.view(batch_size, num_boxes, 1)  # B, A, 1
-    cls_loss = cls_loss * (1 - positive_mask)
+    with torch.no_grad():
+        # negative box with topk confidence loss
+        # B, A, 1
+        all_negative_loss = cls_loss * (1 - positive_mask)
 
-    # B, A, 1
-    _, loss_idx = cls_loss.sort(1, descending=True)
-    # B, A, 1
-    _, idx_rank = loss_idx.sort(1)
-    # looking for higher quantile , shape is (B, A, 1)
-    negative_mask = idx_rank < num_negative
+        # B, A, 1
+        _, loss_idx = all_negative_loss.sort(1, descending=True)
+        # B, A, 1
+        _, loss_rank = loss_idx.sort()
+        # B*A => ?
+        negative_indices = (loss_rank < num_negative).view(-1).nonzero().squeeze_(-1)
 
-    # Confidence Loss Including Positive and Negative Examples
-    sampled_indices = positive_mask.logical_or(negative_mask)  # B, A, 1
-
-    cls_loss = F.cross_entropy(
-        # B*A, 1+c
-        (sampled_indices * conf_pred).view(-1, num_classes),
-        # B*A
-        (sampled_indices * matched_gt[:, :, 4:5]).view(-1).long(),
+    negative_loss = F.cross_entropy(
+        # B, A, 1+c => B*A, 1+c => ?, 1+c
+        conf_pred.view(-1, num_classes)[negative_indices],
+        # ?
+        # 0 is background class
+        torch.zeros_like(negative_indices),
         reduction="sum",
     )
 
-    return cls_loss
+    return positive_loss + negative_loss
 
 
 class MultiBoxLoss(nn.Module):
@@ -134,11 +138,7 @@ class MultiBoxLoss(nn.Module):
         Returns:
             torch.Tensor: matched targets, shape is (batch size, 8732, 5)
         """
-        # batch_size = len(gt)
         num_boxes = anchors.size(0)
-
-        # 8732, 4
-        anchors = box_convert(anchors, "cxcywh", "xyxy")
 
         target = []
         for y in gt:
@@ -146,26 +146,39 @@ class MultiBoxLoss(nn.Module):
             placeholder = torch.zeros(num_boxes, 5).to(self.device)
 
             # ?, 8732
-            ious = box_iou(box_convert(y[:, :4], "cxcywh", "xyxy"), anchors)
+            ious = box_iou(
+                box_convert(y[:, :4], "cxcywh", "xyxy"),
+                box_convert(anchors, "cxcywh", "xyxy"),
+            )
 
             # shape is (8732,), assign gt to acceptable anchor
             best_gt_overlap, best_gt_idx = ious.max(0)
             over_threshold = best_gt_overlap > self.iou_threshold
             # shape is (??,)
             gt_idx_of_acceptable_prior = best_gt_idx[over_threshold]
-            # ??,4
-            y[gt_idx_of_acceptable_prior, :4] = self.encode(
-                y[gt_idx_of_acceptable_prior, :4],
-                anchors[over_threshold],
+            # ??,5
+            placeholder[over_threshold] = torch.cat(
+                [
+                    self.encode(
+                        y[gt_idx_of_acceptable_prior, :4],
+                        anchors[over_threshold],
+                    ),
+                    y[gt_idx_of_acceptable_prior, 4:5],
+                ],
+                1,
             )
-            placeholder[over_threshold] = y[gt_idx_of_acceptable_prior]
 
             # shape is (?,), assign best anchor
             best_prior_idx = ious.argmax(1)
 
-            # ?,4
-            y[:, :4] = self.encode(y[:, :4], anchors[best_prior_idx])
-            placeholder[best_prior_idx] = y
+            # ?,5
+            placeholder[best_prior_idx] = torch.cat(
+                [
+                    self.encode(y[:, :4], anchors[best_prior_idx]),
+                    y[:, 4:5],
+                ],
+                1,
+            )
 
             target.append(placeholder)
 
@@ -186,50 +199,37 @@ class MultiBoxLoss(nn.Module):
             torch.Tensor: loss
         """
         # batch size, num boxes, 4 # batch size, num boxes, 1+class
-        loc_pred, conf_pred = pred
-
-        _, num_boxes, _ = loc_pred.shape
+        loc_pred, conf_pred = pred[:, :, :4], pred[:, :, 4:]
 
         # shape is (B, 5), format is (cx, cy, w, h, p)
         gt, spans = build_flatten_targets(gt, delta_coord=False)
+        # 0 is background, so move class forward
+        gt[:, -1] += 1
         gt = gt.to(self.device).split(spans, 0)
         # shape is (batch size, 8732, 5)
+        # unmatched will gain 0 as background
         target = self.match(gt, self.anchors)
 
         # batch size, 8732, 1
         positive_mask = target[:, :, 4:5].gt(0).long()
-        # batch size, 1, 1
-        num_positive = positive_mask.sum(dim=1, keepdim=True)
 
         N = positive_mask.sum()
         if N <= 0:
             return 0
 
+        positive_indices = positive_mask.view(-1).nonzero().squeeze_(-1)
         loc_loss = F.smooth_l1_loss(
-            positive_mask * loc_pred,
-            positive_mask * target[:, :, :4],
+            loc_pred.view(-1, 4)[positive_indices],
+            target[:, :, :4].view(-1, 4)[positive_indices],
             reduction="sum",
-        )
-
-        # batch size, 1, 1
-        num_negative = torch.clamp(
-            self.negative_ratio * num_positive,
-            # still left one positive sample
-            max=num_boxes - 1,
         )
 
         cls_loss = hard_negative_mining(
             conf_pred,
-            target,
+            target[:, :, 4],
             positive_mask,
-            num_negative,
+            self.negative_ratio,
         )
-
-        # cls_loss = F.cross_entropy(
-        #     conf_pred.view(-1, conf_pred.size(2)),
-        #     target[:, :, 4].view(-1).long(),
-        #     reduction="sum",
-        # )
 
         # Sum of losses: L = (L_conf + α L_loc) / N
         return (loc_loss + self.alpha * cls_loss) / N

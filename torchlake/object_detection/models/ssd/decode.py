@@ -30,14 +30,17 @@ class Decoder:
 
         # cxcy: yhat * anchors + anchors
         # wh: yhat.exp() * anchors
+        loc_pred[:, :, 2:] = loc_pred[:, :, 2:].exp() * self.anchors[:, 2:4]
         loc_pred[:, :, :2] = (
             loc_pred[:, :, :2] * self.anchors[:, 2:4] + self.anchors[:, :2]
         )
-        loc_pred[:, :, 2:] = loc_pred[:, :, 2:].exp() * self.anchors[:, 2:4]
         loc_pred[:, :, 0] *= input_w
         loc_pred[:, :, 1] *= input_h
         loc_pred[:, :, 2] *= input_w
         loc_pred[:, :, 3] *= input_h
+
+        # cx, cy -> x, y
+        loc_pred[:, :, :2] -= loc_pred[:, :, 2:] / 2
 
         conf_pred = conf_pred.softmax(dim=-1)
 
@@ -49,8 +52,17 @@ class Decoder:
         decoded: torch.Tensor,
         postprocess_config: InferenceCfg,
     ) -> list[torch.Tensor]:
+        """post process yolo decoded output
+
+        Args:
+            decoded (torch.Tensor): shape (#batch, #anchor * #grid, 5 + #class)
+            postprocess_config (InferenceCfg): post process config for nms
+
+        Returns:
+            list[torch.Tensor]: #batch * (#selected, 5 + #class)
+        """
         batch_size, _, _ = decoded.shape
-        cls_index = decoded[:, :, 4:].argmax(-1)
+        cls_index = decoded[:, :, 5:].argmax(-1)
 
         processed_result = []
         for i in range(batch_size):
