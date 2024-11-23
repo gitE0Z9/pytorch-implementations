@@ -91,6 +91,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 loss: torch.Tensor = self._calc_loss(output, row, criterion)
 
                 loss /= self.acc_iters
+                assert not torch.isnan(loss)
                 loss.backward()
                 running_loss += loss.item()
 
