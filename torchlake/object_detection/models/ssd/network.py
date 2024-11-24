@@ -11,7 +11,7 @@ class Backbone(nn.Module):
         self.norm = L2Norm(512, scale=20.0)
 
     def build_backbone(self, trainable: bool = True):
-        backbone = VGGFeatureExtractor("vgg16", "conv", trainable=trainable)  # [:30]
+        backbone = VGGFeatureExtractor("vgg16", "relu", trainable=trainable)  # [:30]
         feature_extractor: nn.Sequential = backbone.feature_extractor
 
         for module in [
@@ -97,7 +97,8 @@ class Backbone(nn.Module):
             x,
             ["4_3", "6_2", "6_4", "6_6", "6_8", "6_10"],
         )
-        features[0] = self.norm(features[0].relu_())
+        # features[0].relu_()
+        features[0] = self.norm(features[0])
         return features
 
 

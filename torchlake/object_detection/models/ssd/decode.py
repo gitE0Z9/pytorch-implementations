@@ -13,19 +13,19 @@ class Decoder:
 
     def decode(
         self,
-        pred: tuple[torch.Tensor, torch.Tensor],
+        pred: torch.Tensor,
         image_size: tuple[int, int],
     ) -> torch.Tensor:
         """decode output to detections
 
         Args:
-            pred (tuple[torch.Tensor, torch.Tensor]): loc pred, in shape of (batch size, #num_anchor * #num_grid_y * #num_grid_x, 4), conf pred  in shape of (batch size, #num_anchor * #num_grid_y * #num_grid_x, num_class+1)
+            pred (torch.Tensor): pred, in shape of (batch size, #num_anchor * #num_grid_y * #num_grid_x, 4 + 1 + num_class)
             image_size (tuple[int, int]): image height, image width
 
         Returns:
             torch.Tensor: decoded output, in shape of (batch size, #num_anchor * #num_grid_y * #num_grid_x, 4+num_class+1)
         """
-        loc_pred, conf_pred = pred
+        loc_pred, conf_pred = pred[:, :, :4], pred[:, :, 4:]
         input_h, input_w = image_size
 
         # cxcy: yhat * anchors + anchors
