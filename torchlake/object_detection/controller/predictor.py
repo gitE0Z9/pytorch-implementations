@@ -37,7 +37,7 @@ class Predictor:
 
     def postprocess(
         self,
-        output: torch.Tensor,
+        output: torch.Tensor | tuple[torch.Tensor],
         img_size: tuple[int, int],
     ) -> list[torch.Tensor]:
         decoded = self.decoder.decode(output, img_size)
@@ -77,7 +77,11 @@ class Predictor:
 
         model.eval()
         with torch.no_grad():
-            y = model(img).detach().cpu()
+            y = model(img)
+            if isinstance(y, tuple):
+                y = (ele.detach().cpu() for ele in y)
+            else:
+                y = y.detach().cpu()
 
         y = self.postprocess(y, (img_h, img_w))
 
