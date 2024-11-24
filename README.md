@@ -55,11 +55,12 @@
 
 套件名: `object_detection`
 
-| Model                     | Article Link                                                                                                    | Package    |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------- |
-| You only look once (YOLO) | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22) | ``yolov1`` |
-| YOLOv2                    | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43) | ``yolov2`` |
-
+| Model                               | Article Link                                                                                                    | Package         |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------- |
+| You only look once (YOLO)           | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22) | ``yolov1``      |
+| Tiny YOLOv1                         | -                                                                                                               | ``yolov1_tiny`` |
+| YOLOv2                              | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43) | ``yolov2``      |
+| Single shot multibox detector (SSD) | -                                                                                                               | ``ssd``         |
 
 
 ### 語義分割
