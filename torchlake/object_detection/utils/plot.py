@@ -110,22 +110,14 @@ def draw_pred(
             )
 
 
-def show_anchors(anchor_path: str):
-    with open(anchor_path, "r") as f:
-        wh = [l.strip().split(",") for l in f.readlines()]
+def draw_anchors(anchors: torch.Tensor):
+    scale = 100
+    canvas = np.zeros((scale, scale))
 
-    canvas = np.zeros((100, 100))
+    wh = anchors[:, -2:].float()
+    xyxy = (scale * torch.cat([0.5 - wh / 2, 0.5 + wh / 2], 1)).int()
 
-    for w, h in wh:
-        w, h = float(w), float(h)
-        x1, y1, x2, y2 = (
-            100 * (0.5 - w / 2),
-            100 * (0.5 - h / 2),
-            100 * (0.5 + w / 2),
-            100 * (0.5 + h / 2),
-        )
-        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    for x1, y1, x2, y2 in xyxy.tolist():
         cv2.rectangle(canvas, (x1, y1), (x2, y2), (255, 255, 255), 1)
 
-    plt.imshow(canvas)
-    plt.show()
+    return canvas
