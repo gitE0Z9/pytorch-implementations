@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from xml.etree import cElementTree as etree
 
@@ -8,6 +9,8 @@ from torchlake.common.constants import VOC_CLASS_NAMES
 from torchlake.object_detection.constants.enums import OperationMode
 from torchlake.object_detection.datasets.schema import DatasetCfg
 from torch.utils.data import Dataset
+import lmdb
+import pickle
 
 from tqdm import tqdm
 
@@ -90,9 +93,6 @@ class VOCDetectionRaw(Dataset):
             self.labels[idx].replace("Annotations", "JPEGImages").replace("xml", "jpg")
         )
 
-    def get_csv_path(self):
-        return Path(__file__).parent.joinpath(f"voc_{self.get_mode_filename()}.csv")
-
     def get_img(self, idx: int):
         img: np.ndarray = load_image(self.get_img_filename(idx), is_numpy=True)
         h, w, _ = img.shape
@@ -148,6 +148,15 @@ class VOCDetectionRaw(Dataset):
         )
         df.to_csv(csv_path, index=False)
 
+    def to_lmdb(self, env: lmdb.Environment):
+        with env.begin(write=True) as tx:
+            for i, (img, labels) in enumerate(tqdm(self)):
+                tx.put(f"{i}".encode("utf-8"), img.tobytes())
+                tx.put(f"{i}_shape".encode("utf-8"), pickle.dumps(img.shape))
+                tx.put(f"{i}_label".encode("utf-8"), pickle.dumps(labels))
+
+            tx.put(b"count", str(len(self)).encode("utf-8"))
+
 
 class VOCDetectionFromCSV(Dataset):
     def __init__(
@@ -166,10 +175,15 @@ class VOCDetectionFromCSV(Dataset):
             dtype={"class_id": pd.Int8Dtype()},
         )
 
+        self.data_size = self.table.index.nunique()
+
     def __len__(self):
-        return self.table.index.nunique()
+        return self.data_size
 
     def __getitem__(self, idx):
+        if idx >= self.data_size:
+            raise IndexError
+
         label, path = self._get_label(idx)
         img = self._get_img(path)
 
@@ -208,3 +222,62 @@ class VOCDetectionFromCSV(Dataset):
         path = self.root.joinpath(path).as_posix()
 
         return label, path
+
+
+class VOCDetectionFromLMDB(Dataset):
+    def __init__(
+        self,
+        lmdb_path: str,
+        transform=None,
+    ):
+        self.lmdb_path = Path(lmdb_path)
+        self.transform = transform
+
+        self.env = lmdb.open(lmdb_path)
+
+        self.data_size = self.get_data_size()
+
+    def get_data_size(self) -> int:
+        with self.env.begin() as tx:
+            return int(tx.get(b"count"))
+
+    def __len__(self):
+        return self.data_size
+
+    def __getitem__(self, idx):
+        if idx >= self.data_size:
+            raise IndexError(f"invalid index {idx}")
+
+        img = self._get_img(idx)
+        label = self._get_label(idx)
+
+        if self.transform:
+            is_bbox = self.transform.to_dict()["transform"]["bbox_params"]
+
+            kwargs = dict(image=img)
+
+            if is_bbox:
+                kwargs["bboxes"] = label
+
+            transformed = self.transform(**kwargs)
+            img = transformed["image"]
+
+            if is_bbox:
+                label = transformed["bboxes"]
+
+        return img, label
+
+    def _get_img(self, idx: int) -> np.ndarray:
+        with self.env.begin() as tx:
+            shape = pickle.loads(tx.get(f"{idx}_shape".encode("utf-8")))
+            img: np.ndarray = np.frombuffer(
+                tx.get(f"{idx}".encode("utf-8")), np.uint8
+            ).reshape(shape)
+
+        return img
+
+    def _get_label(self, idx: int) -> tuple[list, str]:
+        with self.env.begin() as tx:
+            label = json.loads(tx.get(f"{idx}_label".encode("utf-8")))
+
+        return label
