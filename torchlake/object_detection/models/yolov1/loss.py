@@ -91,26 +91,26 @@ class YOLOLoss(nn.Module):
         cls_loss = F.mse_loss(
             obj_here * pred[:, :, self.num_bboxes * 5 :, :, :],
             obj_here * gt[:, :, 5:, :, :],
-            reduction="mean",
+            reduction="sum",
         )
 
         obj_loss = F.mse_loss(
             positives * coord_pred[:, :, 4:5, :, :],
             positives * ious,
-            reduction="mean",
+            reduction="sum",
         )
 
         # clean the other bbox block with wrong confidence
         noobj_loss = F.mse_loss(
             (1 - positives) * coord_pred[:, :, 4:5, :, :],
             torch.zeros_like(positives),  # all zeros
-            reduction="mean",
+            reduction="sum",
         )
 
         xy_loss = F.mse_loss(
             positives * coord_pred[:, :, 0:2, :, :],
             positives * gt[:, :, 0:2, :, :],
-            reduction="mean",
+            reduction="sum",
         )
 
         # sqrt numerical issue
@@ -118,7 +118,7 @@ class YOLOLoss(nn.Module):
         wh_loss = F.mse_loss(
             positives * wh.sign() * safe_sqrt(wh),
             positives * safe_sqrt(gt[:, :, 2:4, :, :]),
-            reduction="mean",
+            reduction="sum",
         )
 
         # https://github.com/pjreddie/darknet/blob/f6afaabcdf85f77e7aff2ec55c020c0e297c77f9/src/detection_layer.c#L179
