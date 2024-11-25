@@ -2,16 +2,14 @@ import json
 from pathlib import Path
 from xml.etree import cElementTree as etree
 
+import lmdb
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import Dataset
 from torchlake.common.constants import VOC_CLASS_NAMES
 from torchlake.object_detection.constants.enums import OperationMode
 from torchlake.object_detection.datasets.schema import DatasetCfg
-from torch.utils.data import Dataset
-import lmdb
-import pickle
-
 from tqdm import tqdm
 
 from ...utils.image import load_image
@@ -152,8 +150,10 @@ class VOCDetectionRaw(Dataset):
         with env.begin(write=True) as tx:
             for i, (img, labels) in enumerate(tqdm(self)):
                 tx.put(f"{i}".encode("utf-8"), img.tobytes())
-                tx.put(f"{i}_shape".encode("utf-8"), pickle.dumps(img.shape))
-                tx.put(f"{i}_label".encode("utf-8"), pickle.dumps(labels))
+                tx.put(
+                    f"{i}_shape".encode("utf-8"), str(list(img.shape)).encode("utf-8")
+                )
+                tx.put(f"{i}_label".encode("utf-8"), str(labels).encode("utf-8"))
 
             tx.put(b"count", str(len(self)).encode("utf-8"))
 
@@ -269,7 +269,7 @@ class VOCDetectionFromLMDB(Dataset):
 
     def _get_img(self, idx: int) -> np.ndarray:
         with self.env.begin() as tx:
-            shape = pickle.loads(tx.get(f"{idx}_shape".encode("utf-8")))
+            shape = json.loads(tx.get(f"{idx}_shape".encode("utf-8")))
             img: np.ndarray = np.frombuffer(
                 tx.get(f"{idx}".encode("utf-8")), np.uint8
             ).reshape(shape)
