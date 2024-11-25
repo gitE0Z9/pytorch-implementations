@@ -1,64 +1,54 @@
 import json
 from pathlib import Path
+from typing import Literal
 from xml.etree import cElementTree as etree
 
 import lmdb
 import numpy as np
 import pandas as pd
-import torch
 from torch.utils.data import Dataset
 from torchlake.common.constants import VOC_CLASS_NAMES
-from torchlake.object_detection.constants.enums import OperationMode
-from torchlake.object_detection.datasets.schema import DatasetCfg
 from tqdm import tqdm
 
 from ...utils.image import load_image
+from .types import YEARS
 
 
 class VOCDetectionRaw(Dataset):
     def __init__(
         self,
-        root: str | None = None,
-        year: str = "2012+2007",
-        mode: str = OperationMode.TEST.value,
-        class_names: list[str] = [],
+        root: str,
+        mode: Literal["trainval", "test"],
+        years: list[YEARS] = ["2007", "2012"],
+        class_names: list[str] = VOC_CLASS_NAMES,
         transform=None,
     ):
-        # self.config = DatasetCfg(
-        #     **load_config(Path(__file__).parent.joinpath("config.yml"))
-        # )
-        # self.root = Path(root or self.config.ROOT)
         self.root = Path(root)
-        self.year = year
-        # self.mode = mode
-        # self.class_names = class_names or load_classes(
-        #     Path(__file__).parent.parent.parent.joinpath(self.config.CLASSES_PATH)
-        # )
+        self.years = years
+        self.mode = mode
+        self.class_names = class_names
         self.transform = transform
 
-        self.labels = []
-        for y in year.split("+"):
-            year_directory = self.root.joinpath(f"VOC{y}")
+        # each xml file
+        self.labels: list[Path] = []
+        for year in self.years:
+            dir = self.root.joinpath(f"VOC{year}")
             list_path = (
-                year_directory.joinpath("ImageSets")
-                .joinpath("Main")
-                .joinpath(f"{self.get_mode_filename()}.txt")
-                .as_posix()
+                dir.joinpath("ImageSets").joinpath("Main").joinpath(f"{self.mode}.txt")
             )
-            with open(list_path, "r") as f:
-                for line in f.readlines():
-                    self.labels.append(
-                        (
-                            year_directory.joinpath("Annotations")
-                            .joinpath(f"{line.strip()}.xml")
-                            .as_posix()
-                        )
-                    )
+
+            for img_id in list_path.read_text().splitlines():
+                self.labels.append(
+                    dir.joinpath("Annotations").joinpath(f"{img_id.strip()}.xml")
+                )
 
     def __len__(self) -> int:
         return len(self.labels)
 
     def __getitem__(self, idx: int):
+        if idx >= len(self):
+            raise IndexError(f"invalid index {idx}")
+
         img, h, w = self.get_img(idx)
         label = self.get_label(idx, h, w)
 
@@ -78,37 +68,33 @@ class VOCDetectionRaw(Dataset):
 
         return img, label
 
-    def get_mode_filename(self) -> str:
-        mapping = {
-            OperationMode.TRAIN.value: "trainval",
-            OperationMode.TEST.value: "test",
-        }
-
-        return mapping.get(self.mode, "test")
-
     def get_img_filename(self, idx: int) -> str:
         return (
             self.labels[idx].replace("Annotations", "JPEGImages").replace("xml", "jpg")
         )
 
-    def get_img(self, idx: int):
+    def get_img(self, idx: int) -> tuple[np.ndarray, int, int]:
         img: np.ndarray = load_image(self.get_img_filename(idx), is_numpy=True)
         h, w, _ = img.shape
 
         return img, h, w
 
-    def get_label(self, idx: int, h: int, w: int):
+    def get_label(self, idx: int, h: int, w: int) -> list[list[float]]:
         xml = self.labels[idx]
         tree = etree.parse(xml)
-        label = self.process_label(tree, h, w)
 
-        return label
+        return self.process_label(tree, h, w)
 
-    def process_label(self, tree, img_h: int, img_w: int) -> list:
-        tree = tree.findall("object")
+    def process_label(
+        self,
+        tree: etree.ElementTree,
+        img_h: int,
+        img_w: int,
+    ) -> list[list[float]]:
+        objs = tree.findall("object")
 
         label = []
-        for obj in tree:
+        for obj in objs:
             if obj.find("difficult").text == "1":
                 continue
             bbox = obj.find("bndbox")
@@ -130,8 +116,7 @@ class VOCDetectionRaw(Dataset):
 
         return label
 
-    def to_csv(self, csv_path: str = ""):
-        csv_path = csv_path or self.get_csv_path()
+    def to_pandas(self) -> pd.DataFrame:
         data = []
         for idx, (_, labels) in enumerate(tqdm(self)):
             img_filename = self.get_img_filename(idx)
@@ -140,10 +125,13 @@ class VOCDetectionRaw(Dataset):
                 placeholder.extend(label)
                 data.append(placeholder)
 
-        df = pd.DataFrame(
+        return pd.DataFrame(
             data,
             columns=["id", "name", "cx", "cy", "w", "h", "class_id"],
         )
+
+    def to_csv(self, csv_path: str = ""):
+        df = self.to_pandas()
         df.to_csv(csv_path, index=False)
 
     def to_lmdb(self, env: lmdb.Environment):
