@@ -22,10 +22,10 @@ class TestExtractionFeatureExtractor:
 
         model = ExtractionFeatureExtractor("block")
 
-        y: torch.Tensor = model.forward(self.x, ["0_1", "1_1", "2_1", "output"])
+        y: torch.Tensor = model.forward(self.x, ["0_1", "1_1", "2_1", "3_1", "output"])
         for dim, scale in zip(
-            [192, 512, 1024],
-            [28, 14, 7],
+            [192, 512, 1024, 1024],
+            [28, 14, 7, 7],
         ):
             assert y.pop(0).shape == torch.Size((1, dim, scale, scale))
 

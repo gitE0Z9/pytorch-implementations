@@ -21,7 +21,7 @@ OUTPUT_SIZE = CONTEXT.num_classes + CONTEXT.num_anchors * 5
 class TestYOLOV1Original:
     def test_output_shape(self):
         backbone = ExtractionFeatureExtractor("block", trainable=False)
-        backbone.fix_target_layers(["2_1"])
+        backbone.fix_target_layers(["3_1"])
 
         model = YOLOV1(backbone, CONTEXT)
         x = torch.rand(2, 3, 448, 448)

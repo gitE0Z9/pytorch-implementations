@@ -49,7 +49,7 @@ class ExtractionFeatureExtractor(ExtractorBase):
     def forward(
         self,
         img: torch.Tensor,
-        target_layer_names: Literal["0_1", "1_1", "2_1", "output"],
+        target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "output"],
     ) -> list[torch.Tensor]:
         if self.layer_type != "block":
             raise NotImplementedError
@@ -68,6 +68,9 @@ class ExtractionFeatureExtractor(ExtractorBase):
                 stage_count += 1
                 if f"{stage_count}_1" in target_layer_names:
                     features.append(y)
+
+        if "3_1" in target_layer_names:
+            features.append(y)
 
         if "output" in target_layer_names:
             y = self.feature_extractor.head(y)

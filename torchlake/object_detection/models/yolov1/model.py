@@ -4,6 +4,8 @@ from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
+from torchlake.common.models.flatten import FlattenFeature
+
 from ...constants.schema import DetectorContext
 
 
@@ -26,7 +28,7 @@ class YOLOV1(ModelBase):
         self.output_size = context.num_anchors * 5 + context.num_classes
         super().__init__(
             3,
-            7 * 7 * self.output_size,
+            self.output_size * 7 * 7,
             foot_kwargs={
                 "backbone": backbone,
             },
@@ -35,7 +37,7 @@ class YOLOV1(ModelBase):
 
     @property
     def feature_dim(self) -> int:
-        return 256
+        return 256 * 7 * 7
 
     # def init_weight(self):
     #     for layer in self.neck.children():
@@ -86,6 +88,12 @@ class YOLOV1(ModelBase):
                 inplace=None,
             ),
             nn.Dropout(self.dropout_prob),
+        )
+
+    def build_head(self, output_size: int):
+        self.head = nn.Sequential(
+            FlattenFeature(reduction=None),
+            nn.Linear(self.feature_dim, output_size),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
