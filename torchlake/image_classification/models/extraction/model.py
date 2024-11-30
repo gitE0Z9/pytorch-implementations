@@ -50,7 +50,6 @@ class Extraction(ModelBase):
                 64,
                 7,
                 stride=2,
-                # padding=1,
                 activation_layer=lambda: nn.LeakyReLU(0.1),
                 inplace=None,
             ),
@@ -75,7 +74,6 @@ class Extraction(ModelBase):
                         in_c,
                         out_c,
                         kernel,
-                        # padding=1,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
                     )
