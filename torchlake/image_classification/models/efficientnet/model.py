@@ -123,20 +123,26 @@ class EfficientNet(ModelBase):
         self.neck = nn.Dropout(self.dropout_prob)
 
 
-# image size: 224, gamma: 1
-def efficient_b0(
+def efficientnet_b0(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b0
+
+    image size: 224, gamma: 1
+    """
 
     return EfficientNet(input_channel, output_size)
 
 
-# image size: 240, gamma: 1.07
-def efficient_b1(
+def efficientnet_b1(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b1
+
+    image size: 240, gamma: 1.07
+    """
 
     return EfficientNet(
         input_channel,
@@ -145,11 +151,14 @@ def efficient_b1(
     )
 
 
-# image size: 260, gamma: 1.16
-def efficient_b2(
+def efficientnet_b2(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b2
+
+    image size: 260, gamma: 1.16
+    """
 
     return EfficientNet(
         input_channel,
@@ -160,11 +169,14 @@ def efficient_b2(
     )
 
 
-# image size: 300, gamma: 1.34
-def efficient_b3(
+def efficientnet_b3(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b3
+
+    image size: 300, gamma: 1.34
+    """
 
     return EfficientNet(
         input_channel,
@@ -175,11 +187,14 @@ def efficient_b3(
     )
 
 
-# image size: 380, gamma: 1.696
-def efficient_b4(
+def efficientnet_b4(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b4
+
+    image size: 380, gamma: 1.696
+    """
 
     return EfficientNet(
         input_channel,
@@ -190,11 +205,14 @@ def efficient_b4(
     )
 
 
-# image size: 456, gamma: 2.036
-def efficient_b5(
+def efficientnet_b5(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b5
+
+    image size: 456, gamma: 2.036
+    """
 
     return EfficientNet(
         input_channel,
@@ -205,11 +223,14 @@ def efficient_b5(
     )
 
 
-# image size: 528, gamma: 2.357
-def efficient_b6(
+def efficientnet_b6(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b6
+
+    image size: 528, gamma: 2.357
+    """
 
     return EfficientNet(
         input_channel,
@@ -220,11 +241,14 @@ def efficient_b6(
     )
 
 
-# image size: 600, gamma: 2.68
-def efficient_b7(
+def efficientnet_b7(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b7
+
+    image size: 600, gamma: 2.68
+    """
 
     return EfficientNet(
         input_channel,
@@ -235,11 +259,14 @@ def efficient_b7(
     )
 
 
-# image size: 672, gamma: 3
-def efficient_b8(
+def efficientnet_b8(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """b8
+
+    image size: 672, gamma: 3
+    """
 
     return EfficientNet(
         input_channel,
@@ -250,11 +277,14 @@ def efficient_b8(
     )
 
 
-# image size: 800, gamma: 3.57
-def efficient_l2(
+def efficientnet_l2(
     input_channel: int = 3,
     output_size: int = 1,
-):
+) -> EfficientNet:
+    """l2
+
+    image size: 800, gamma: 3.57
+    """
 
     return EfficientNet(
         input_channel,

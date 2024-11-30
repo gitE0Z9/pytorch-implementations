@@ -4,16 +4,16 @@ import torch
 
 from ..models.efficientnet.model import (
     EfficientNet,
-    efficient_b0,
-    efficient_b1,
-    efficient_b2,
-    efficient_b3,
-    efficient_b4,
-    efficient_b5,
-    efficient_b6,
-    efficient_b7,
-    efficient_b8,
-    efficient_l2,
+    efficientnet_b0,
+    efficientnet_b1,
+    efficientnet_b2,
+    efficientnet_b3,
+    efficientnet_b4,
+    efficientnet_b5,
+    efficientnet_b6,
+    efficientnet_b7,
+    efficientnet_b8,
+    efficientnet_l2,
 )
 
 
@@ -38,16 +38,16 @@ class TestEfficientNet:
     @pytest.mark.parametrize(
         "resolution,model_func",
         [
-            (224, efficient_b0),
-            (240, efficient_b1),
-            (260, efficient_b2),
-            (300, efficient_b3),
-            (380, efficient_b4),
-            (456, efficient_b5),
-            (528, efficient_b6),
-            (600, efficient_b7),
-            (672, efficient_b8),
-            (800, efficient_l2),
+            (224, efficientnet_b0),
+            (240, efficientnet_b1),
+            (260, efficientnet_b2),
+            (300, efficientnet_b3),
+            (380, efficientnet_b4),
+            (456, efficientnet_b5),
+            (528, efficientnet_b6),
+            (600, efficientnet_b7),
+            (672, efficientnet_b8),
+            (800, efficientnet_l2),
         ],
     )
     def test_variants_shape(self, resolution: int, model_func: Callable):
