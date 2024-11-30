@@ -19,7 +19,7 @@ class MobileNetV1(nn.Module):
             output_size (int, optional): output size. Defaults to 1.
             width_multiplier (float, optional): width multiplier alpha. Defaults to 1.
         """
-        super(MobileNetV1, self).__init__()
+        super().__init__()
 
         self.layers = nn.Sequential(
             # head layer

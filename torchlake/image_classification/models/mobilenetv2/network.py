@@ -13,6 +13,7 @@ class LinearBottleneck(nn.Module):
         self,
         input_channel: int,
         output_channel: int,
+        kernel: int = 3,
         stride: int = 1,
         expansion_ratio: int = 1,
     ):
@@ -21,10 +22,11 @@ class LinearBottleneck(nn.Module):
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_channel (int, optional): output channel size. Defaults to 1.
+            kernel (int, optional): kernel size of depthwise separable convolution layer. Defaults to 3.
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
             expansion_ratio (int, optional): expansion ratio. Defaults to 1.
         """
-        super(LinearBottleneck, self).__init__()
+        super().__init__()
         self.layers = nn.Sequential(
             Conv2dNormActivation(
                 input_channel,
@@ -36,7 +38,9 @@ class LinearBottleneck(nn.Module):
             DepthwiseSeparableConv2d(
                 expansion_ratio * input_channel,
                 output_channel,
+                kernel=kernel,
                 stride=stride,
+                padding=kernel // 2,
                 activations=(nn.ReLU6(), nn.Identity()),
             ),
         )
@@ -51,6 +55,7 @@ class InvertedResidualBlock(nn.Module):
         self,
         input_channel: int,
         output_channel: int,
+        kernel: int = 3,
         stride: int = 1,
         expansion_ratio: int = 1,
     ):
@@ -59,15 +64,17 @@ class InvertedResidualBlock(nn.Module):
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_channel (int, optional): output channel size. Defaults to 1.
+            kernel (int, optional): kernel size of depthwise separable convolution layer. Defaults to 3.
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
             expansion_ratio (int, optional): expansion ratio. Defaults to 1.
         """
-        super(InvertedResidualBlock, self).__init__()
+        super().__init__()
         layer = LinearBottleneck(
             input_channel,
             output_channel,
-            stride,
-            expansion_ratio,
+            kernel=kernel,
+            stride=stride,
+            expansion_ratio=expansion_ratio,
         )
         self.layer = (
             ResBlock(

@@ -21,7 +21,7 @@ class MobileNetV3(nn.Module):
             output_size (int, optional): output size. Defaults to 1.
             size ("small|large", optional): small or large. Defaults to "large".
         """
-        super(MobileNetV3, self).__init__()
+        super().__init__()
 
         self.layers = nn.Sequential(
             # head layer

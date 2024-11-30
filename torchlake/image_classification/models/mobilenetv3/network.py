@@ -43,7 +43,7 @@ class DepthwiseSeparableConv2dV3(DepthwiseSeparableConv2d):
             else (nn.Hardswish(), nn.Identity())
         )
 
-        super(DepthwiseSeparableConv2dV3, self).__init__(
+        super().__init__(
             input_channel,
             output_channel,
             kernel,
@@ -56,7 +56,7 @@ class DepthwiseSeparableConv2dV3(DepthwiseSeparableConv2d):
 
         self.se = (
             SqueezeExcitation2d(
-                self.get_latent_dim(input_channel, output_channel),
+                input_channel,
                 reduction_ratio=reduction_ratio,
                 activations=(nn.ReLU(True), nn.Hardsigmoid()),
             )
@@ -97,7 +97,7 @@ class LinearBottleneckV3(nn.Module):
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
         """
-        super(LinearBottleneckV3, self).__init__()
+        super().__init__()
         self.layers = nn.Sequential(
             Conv2dNormActivation(
                 input_channel,
@@ -147,7 +147,7 @@ class InvertedResidualBlockV3(nn.Module):
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
         """
-        super(InvertedResidualBlockV3, self).__init__()
+        super().__init__()
         layer = LinearBottleneckV3(
             input_channel,
             output_channel,
