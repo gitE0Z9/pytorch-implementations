@@ -29,6 +29,7 @@ class EfficientNet(ModelBase):
         output_size: int = 1,
         depth_multiplier: float = 1.0,
         width_multiplier: float = 1.0,
+        enable_se: bool = True,
         dropout_prob: float = 0.2,
     ):
         """EfficientNet B0 in paper [1905.11946v5]
@@ -38,10 +39,12 @@ class EfficientNet(ModelBase):
             output_size (int, optional): output size. Defaults to 1.
             depth_multiplier (float, optional): alpha. Defaults to 1.2.
             width_multiplier (float, optional): beta. Defaults to 1.1.
+            enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             dropout_prob (float, optional): dropout prob, from 0.2 for B0 up to 0.5 for B7. Defaults to 0.2.
         """
         self.width_multiplier = width_multiplier
         self.depth_multiplier = depth_multiplier
+        self.enable_se = enable_se
         self.dropout_prob = dropout_prob
         super().__init__(input_channel, output_size)
 
@@ -106,6 +109,7 @@ class EfficientNet(ModelBase):
                         kernel=k,
                         stride=s if i == 0 else 1,
                         expansion_size=int((in_c if i == 0 else out_c) * er),
+                        enable_se=self.enable_se,
                     )
                     for i in range(n)
                 ]
