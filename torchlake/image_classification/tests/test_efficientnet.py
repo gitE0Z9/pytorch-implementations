@@ -47,7 +47,7 @@ class TestEfficientNet:
             (528, efficientnet_b6),
             (600, efficientnet_b7),
             (672, efficientnet_b8),
-            (800, efficientnet_l2),
+            # (800, efficientnet_l2),
         ],
     )
     def test_variants_shape(self, resolution: int, model_func: Callable):

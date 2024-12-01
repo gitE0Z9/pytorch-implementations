@@ -52,14 +52,14 @@ class EfficientNet(ModelBase):
     @property
     def config(self) -> list[list[int]]:
         return [
-            # channel, kernel, stride, block number
-            [16, 3, 1, 1],
-            [24, 3, 1, 2],
-            [40, 5, 2, 2],
-            [80, 3, 2, 3],
-            [112, 5, 2, 3],
-            [192, 5, 1, 4],
-            [320, 3, 2, 1],
+            # channel, kernel, stride, expansion_ratio, block number
+            [16, 3, 1, 1, 1],
+            [24, 3, 1, 6, 2],
+            [40, 5, 2, 6, 2],
+            [80, 3, 2, 6, 3],
+            [112, 5, 2, 6, 3],
+            [192, 5, 1, 6, 4],
+            [320, 3, 2, 6, 1],
         ]
 
     def build_foot(self, input_channel):
@@ -76,13 +76,14 @@ class EfficientNet(ModelBase):
                 int(c * self.width_multiplier),
                 k,
                 s,
+                er,
                 int(n * self.depth_multiplier),
             ]
-            for c, k, s, n in self.config
+            for c, k, s, er, n in self.config
         ]
 
         blocks = []
-        out_c, k, s, n = cfg[0]
+        out_c, k, s, er, n = cfg[0]
         blocks.extend(
             [
                 InvertedResidualBlock(
@@ -90,13 +91,14 @@ class EfficientNet(ModelBase):
                     out_c,
                     kernel=k,
                     stride=s if i == 0 else 1,
+                    expansion_ratio=er,
                 )
                 for i in range(n)
             ]
         )
         for prev_layer, cur_layer in pairwise(cfg):
             in_c = prev_layer[0]
-            out_c, k, s, n = cur_layer
+            out_c, k, s, er, n = cur_layer
 
             blocks.extend(
                 [
@@ -105,6 +107,7 @@ class EfficientNet(ModelBase):
                         out_c,
                         kernel=k,
                         stride=s if i == 0 else 1,
+                        expansion_ratio=er,
                     )
                     for i in range(n)
                 ]
