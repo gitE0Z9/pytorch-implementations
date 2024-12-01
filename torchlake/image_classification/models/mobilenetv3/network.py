@@ -88,8 +88,8 @@ class LinearBottleneckV3(nn.Module):
         """Linear bottleneck for mobilenet v3 [1905.02244]
 
         Args:
-            input_channel (int): input channel size. Defaults to 3.
-            output_channel (int, optional): output channel size. Defaults to 1.
+            input_channel (int): input channel size.
+            output_channel (int): output channel size.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.

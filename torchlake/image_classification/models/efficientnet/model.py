@@ -74,6 +74,8 @@ class EfficientNet(ModelBase):
             int(c * self.width_multiplier),
             k,
             stride=s,
+            activation_layer=nn.SiLU,
+            inplace=False,
         )
 
     def build_blocks(self):
@@ -121,6 +123,8 @@ class EfficientNet(ModelBase):
                 out_c,
                 int(1280 * self.width_multiplier),
                 1,
+                activation_layer=nn.SiLU,
+                inplace=False,
             ),
         )
 
