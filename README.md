@@ -41,6 +41,8 @@
 | MobileNet v1                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenet``          |
 | MobileNet v2                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenetv2``        |
 | MobileNet v3                               | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc)               | ``mobilenetv3``        |
+| EfficientNet v1                            | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-efficientnet-v1-v2-bdd18eb59b3a)          | ``efficientnet``       |
+| EfficientNet v2                            | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-efficientnet-v1-v2-bdd18eb59b3a)          | ``efficientnetv2``     |
 | GhostNet                                   | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnet-10b0bab4110e)                   | ``ghostnet``           |
 | GhostNet v2                                | -                                                                                                                                     | ``ghostnetv2``         |
 | ShuffleNet                                 | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)            | ``shufflenet``         |
