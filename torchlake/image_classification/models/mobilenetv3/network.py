@@ -65,7 +65,7 @@ class DepthwiseSeparableConv2dV3(DepthwiseSeparableConv2d):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.depthwise_separable_layer(x)
+        y = self.depthwise_layer(x)
         y = self.se(y)
         y = self.pointwise_layer(y)
 

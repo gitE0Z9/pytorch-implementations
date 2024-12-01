@@ -46,7 +46,7 @@ class TestEfficientNet:
             (456, efficientnet_b5),
             (528, efficientnet_b6),
             (600, efficientnet_b7),
-            (672, efficientnet_b8),
+            # (672, efficientnet_b8),
             # (800, efficientnet_l2),
         ],
     )

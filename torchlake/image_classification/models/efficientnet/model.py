@@ -4,7 +4,7 @@ from torch import nn
 from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
-from ..mobilenetv2.network import InvertedResidualBlock
+from ..mobilenetv3.network import InvertedResidualBlockV3
 
 # params_dict = {
 #       # (width_coefficient, depth_coefficient, resolution, dropout_rate)
@@ -53,6 +53,7 @@ class EfficientNet(ModelBase):
     def config(self) -> list[list[int]]:
         return [
             # channel, kernel, stride, expansion_ratio, block number
+            [32, 3, 2],
             [16, 3, 1, 1, 1],
             [24, 3, 1, 6, 2],
             [40, 5, 2, 6, 2],
@@ -63,11 +64,13 @@ class EfficientNet(ModelBase):
         ]
 
     def build_foot(self, input_channel):
+        c, k, s = self.config[0]
+
         self.foot = Conv2dNormActivation(
             input_channel,
-            int(32 * self.width_multiplier),
-            3,
-            stride=2,
+            int(c * self.width_multiplier),
+            k,
+            stride=s,
         )
 
     def build_blocks(self):
@@ -79,35 +82,30 @@ class EfficientNet(ModelBase):
                 er,
                 int(n * self.depth_multiplier),
             ]
-            for c, k, s, er, n in self.config
+            for c, k, s, er, n in self.config[1:]
         ]
+        cfg.insert(
+            0,
+            [
+                int(self.config[0][0] * self.width_multiplier),
+                self.config[0][1],
+                self.config[0][2],
+            ],
+        )
 
         blocks = []
-        out_c, k, s, er, n = cfg[0]
-        blocks.extend(
-            [
-                InvertedResidualBlock(
-                    int(32 * self.width_multiplier) if i == 0 else out_c,
-                    out_c,
-                    kernel=k,
-                    stride=s if i == 0 else 1,
-                    expansion_ratio=er,
-                )
-                for i in range(n)
-            ]
-        )
         for prev_layer, cur_layer in pairwise(cfg):
             in_c = prev_layer[0]
             out_c, k, s, er, n = cur_layer
 
             blocks.extend(
                 [
-                    InvertedResidualBlock(
+                    InvertedResidualBlockV3(
                         in_c if i == 0 else out_c,
                         out_c,
                         kernel=k,
                         stride=s if i == 0 else 1,
-                        expansion_ratio=er,
+                        expansion_size=int((in_c if i == 0 else out_c) * er),
                     )
                     for i in range(n)
                 ]
@@ -116,7 +114,7 @@ class EfficientNet(ModelBase):
         self.blocks = nn.Sequential(
             *blocks,
             Conv2dNormActivation(
-                int(320 * self.width_multiplier),
+                out_c,
                 int(1280 * self.width_multiplier),
                 1,
             ),
