@@ -106,16 +106,16 @@ class RegHead(nn.Module):
     def __init__(
         self,
         input_channel: int,
-        num_classes: int,
         num_priors: int,
+        num_classes: int,
         coord_dims: int = 4,
     ):
         """_summary_
 
         Args:
             input_channel (int): input channel
-            num_classes (int): number of classes
             num_priors (int): number of prior boxes
+            num_classes (int): number of classes
             coord_dims (int, optional): coordinate dimensions. Defaults to 4.
         """
         # mark

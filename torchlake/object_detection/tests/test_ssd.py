@@ -11,7 +11,6 @@ from ..models.ssd.network import Backbone, RegHead
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 300  # 512
-GRID_SIZE = 7  # XXX
 MAX_OBJECT_SIZE = 100
 CONTEXT = DetectorContext(
     detector_name="ssd",
@@ -48,7 +47,7 @@ class TestRegHead:
     def test_output_shape(self):
         x = torch.rand(BATCH_SIZE, 16, 7, 7)
 
-        model = RegHead(16, CONTEXT.num_classes + 1, 5, 4)
+        model = RegHead(16, 5, CONTEXT.num_classes + 1, 4)
 
         y = model(x)
         assert_close(

@@ -19,12 +19,12 @@ class SSD(ModelBase):
     def build_head(self, output_size):
         self.head = nn.ModuleList(
             [
-                RegHead(512, output_size, 4),
-                RegHead(1024, output_size, 6),
-                RegHead(512, output_size, 6),
-                RegHead(256, output_size, 6),
-                RegHead(256, output_size, 4),
-                RegHead(256, output_size, 4),
+                RegHead(512, 4, output_size),
+                RegHead(1024, 6, output_size),
+                RegHead(512, 6, output_size),
+                RegHead(256, 6, output_size),
+                RegHead(256, 4, output_size),
+                RegHead(256, 4, output_size),
             ]
         )
 

@@ -7,8 +7,15 @@ from .anchor import load_anchors
 
 
 class Decoder:
-    def __init__(self, context: DetectorContext):
-        self.anchors = load_anchors(context.anchors_path)
+    def __init__(
+        self,
+        context: DetectorContext,
+        anchors: torch.Tensor = None,
+    ):
+        self.anchors = anchors
+        if anchors is None:
+            self.anchors = load_anchors(context.anchors_path)
+
         self.context = context
 
     def decode(

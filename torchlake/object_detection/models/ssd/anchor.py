@@ -7,13 +7,20 @@ import torch
 
 
 class PriorBox:
-    def __init__(self):
+    def __init__(
+        self,
+        feature_sizes=[38, 19, 10, 5, 3, 1],
+        min_scale=0.2,
+        max_scale=0.9,
+        num_anchors=[4, 6, 6, 6, 4, 4],
+        aspect_ratios=[1, 2, 1 / 2, 3, 1 / 3],
+    ):
         """prior box of SSD"""
-        self.feature_sizes = [38, 19, 10, 5, 3, 1]
-        self.min_scale = 0.2
-        self.max_scale = 0.9
-        self.num_anchors = [4, 6, 6, 6, 4, 4]
-        self.aspect_ratios = [1, 2, 1 / 2, 3, 1 / 3]
+        self.feature_sizes = feature_sizes
+        self.min_scale = min_scale
+        self.max_scale = max_scale
+        self.num_anchors = num_anchors
+        self.aspect_ratios = aspect_ratios
 
     def build_anchors(self) -> torch.Tensor:
         """build anchors
