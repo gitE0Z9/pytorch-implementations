@@ -15,7 +15,6 @@ class EfficientNetV2(EfficientNet):
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        enable_se: bool = True,
         dropout_prob: float = 0.2,
         key: Literal["s", "m", "l"] = "s",  # TODO: find xl
     ):
@@ -24,11 +23,9 @@ class EfficientNetV2(EfficientNet):
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_size (int, optional): output size. Defaults to 1.
-            enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             dropout_prob (float, optional): dropout prob, from 0.2 for S up to 0.5 for XL. Defaults to 0.2.
             key (Literal["s", "m", "l"], optional): key of configs. Defaults to "s".
         """
-        self.enable_se = enable_se
         self.dropout_prob = dropout_prob
         self.key = key
         super().__init__(input_channel, output_size)
@@ -86,7 +83,8 @@ class EfficientNetV2(EfficientNet):
                         kernel=k,
                         stride=s if i == 0 else 1,
                         expansion_size=int((in_c if i == 0 else out_c) * er),
-                        enable_se=self.enable_se,
+                        enable_se=stage_idx >= 3,
+                        reduction_ratio=24,
                     )
                     for i in range(n)
                 ]
