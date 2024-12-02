@@ -4,8 +4,8 @@ from torch import nn
 from torchvision.ops import box_convert, box_iou
 
 from ...constants.schema import DetectorContext
+from ...utils.config import load_anchors
 from ...utils.train import build_flatten_targets
-from .anchor import load_anchors
 
 
 def hard_negative_mining(
@@ -119,9 +119,9 @@ class MultiBoxLoss(nn.Module):
         # assert not torch.isnan(g_cxcy).any()
         # assert not torch.isnan(g_wh).any()
 
-        # encode variance, not in paper
-        # g_cxcy /= self.variances[0] * anchors[:, 2:]
-        # g_wh = torch.log(g_wh) / self.variances[1]
+        # normalize by variance, not in paper
+        # g_cxcy /= self.variances[0]
+        # g_wh /= self.variances[1]
 
         return torch.cat([g_cxcy, g_wh], -1)
 
@@ -193,6 +193,8 @@ class MultiBoxLoss(nn.Module):
             )
 
             target.append(placeholder)
+
+            offset += span
 
         return torch.stack(target, 0)
 

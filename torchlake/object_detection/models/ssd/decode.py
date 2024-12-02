@@ -2,8 +2,8 @@ import torch
 
 from ...configs.schema import InferenceCfg
 from ...constants.schema import DetectorContext
+from ...utils.config import load_anchors
 from ...utils.nms import select_best_index
-from .anchor import load_anchors
 
 
 class Decoder:

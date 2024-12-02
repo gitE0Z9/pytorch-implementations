@@ -124,12 +124,19 @@ class RegHead(nn.Module):
         self.num_classes = num_classes
 
         super().__init__()
-        self.block = nn.Conv2d(
+        self.loc = nn.Conv2d(
             input_channel,
-            num_priors * (coord_dims + num_classes),
+            num_priors * coord_dims,
+            kernel_size=3,
+            padding=1,
+        )
+
+        self.conf = nn.Conv2d(
+            input_channel,
+            num_priors * num_classes,
             kernel_size=3,
             padding=1,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
+        return torch.cat([self.loc(x), self.conf(x)], 1)
