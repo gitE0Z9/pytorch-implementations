@@ -15,7 +15,7 @@ def draw_label(
 
     Args:
         img (np.ndarray): image
-        label (torch.Tensor): scaled x,y,w,h coordinates and class index
+        label (torch.Tensor): normalized x,y,w,h coordinates and class index
         class_name (List[str]): class names
         class_show (bool, optional): show class and score. Defaults to True.
         verbose (bool, optional): print out class and score. Defaults to True.
@@ -26,10 +26,10 @@ def draw_label(
     for x, y, w, h, c in label:
         x, y, w, h = x * width, y * height, w * width, h * height
         x1, y1, x2, y2 = (
-            int(x - w / 2),
-            int(y - h / 2),
-            int(x + w / 2),
-            int(y + h / 2),
+            int(x),
+            int(y),
+            int(x + w),
+            int(y + h),
         )
         class_name = class_names[c]
         class_info = f"{class_name}"
