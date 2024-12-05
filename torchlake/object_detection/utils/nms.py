@@ -3,7 +3,7 @@ from typing import List
 import torch
 import torchvision
 from numpy import intersect1d
-from torchvision.ops.boxes import box_convert
+from torchvision.ops.boxes import box_convert, box_iou, nms
 
 from ..configs.schema import InferenceCfg
 
@@ -16,7 +16,7 @@ def greedy_nms(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox = torchvision.ops.box_convert(tmp_bbox, "xywh", "xyxy")
+    tmp_bbox = box_convert(tmp_bbox, "xywh", "xyxy")
 
     best_index = []
     remove_index = []
@@ -46,7 +46,7 @@ def soft_nms(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox = torchvision.ops.box_convert(bbox, "xywh", "xyxy")
+    tmp_bbox = box_convert(bbox, "xywh", "xyxy")
     N = tmp_bbox.size(0)
     tmp_score = score.clone()
 
@@ -66,7 +66,7 @@ def soft_nms(
         remove_index.append(i)
         mask = torch.Tensor([n not in remove_index for n in range(i + 1, N)]).int()
         other_b = tmp_bbox[(i + 1) :]
-        iou = torchvision.ops.box_iou(b, other_b)[0]
+        iou = box_iou(b, other_b)[0]
         iou *= mask  # mask
 
         # gaussian kernel
@@ -89,7 +89,7 @@ def diou_nms(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox_xyxy = torchvision.ops.box_convert(tmp_bbox, "xywh", "xyxy")
+    tmp_bbox_xyxy = box_convert(tmp_bbox, "xywh", "xyxy")
 
     best_index = []
     remove_index = []
@@ -113,7 +113,7 @@ def diou_nms(
             ],
             1,
         )
-        iou = torchvision.ops.box_iou(b.unsqueeze(0), other_b)[0]
+        iou = box_iou(b.unsqueeze(0), other_b)[0]
         d = (tmp_bbox[i, :2].unsqueeze(0) - tmp_bbox[(i + 1) :, :2]).pow(2).sum(1)
         c = (box_c[:, 0] - box_c[:, 2]).pow(2) + (box_c[:, 1] - box_c[:, 3]).pow(2)
         diou = iou - (d / c).pow(beta)
@@ -133,7 +133,7 @@ def confluence(
 ) -> List[int]:
     c_sort, sort_index = score.sort(descending=True)
     tmp_bbox = bbox[sort_index]
-    tmp_bbox = torchvision.ops.box_convert(tmp_bbox, "xywh", "xyxy")
+    tmp_bbox = box_convert(tmp_bbox, "xywh", "xyxy")
 
     best_index = []
     remove_index = []
@@ -193,9 +193,9 @@ def fast_nms(
     conf_thres: float,
 ) -> torch.Tensor:
     c_sort, sort_index = score.sort(descending=True)
-    tmp_bbox = torchvision.ops.box_convert(bbox, "xywh", "xyxy")[sort_index]
+    tmp_bbox = box_convert(bbox, "xywh", "xyxy")[sort_index]
 
-    iou = torchvision.ops.box_iou(tmp_bbox, tmp_bbox).triu_(diagonal=1)
+    iou = box_iou(tmp_bbox, tmp_bbox).triu_(diagonal=1)
     max_iou, max_iou_index = iou.max(dim=0)
     best_index = torch.logical_and(max_iou < nms_thres, c_sort >= conf_thres)
     best_index = sort_index[best_index]
@@ -255,7 +255,7 @@ def select_best_index(
         pass
     elif postprocess_method == "torchvision":
         converted_boxes = box_convert(loc_detections, "xywh", "xyxy")
-        best_index = torchvision.ops.nms(converted_boxes, cls_detections, nms_thresh)
+        best_index = nms(converted_boxes, cls_detections, nms_thresh)
         cls_index = cls_detections.ge(conf_thresh).nonzero().view(-1).tolist()
         best_index = intersect1d(best_index, cls_index)
     # only confidence threshold
