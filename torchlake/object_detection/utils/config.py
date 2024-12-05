@@ -38,6 +38,6 @@ def save_anchors(anchors_path: str | Path, anchors: np.ndarray):
         anchors_path (str | Path): path to anchors file
         anchors (np.ndarray): anchors, in format of (cx, cy, w, h), in shape of (#num_anchor * #num_grid_y * #num_grid_x, 4)
     """
-    with anchors_path.open("w") as f:
+    with Path(anchors_path).open("w") as f:
         for cx, cy, w, h in anchors.tolist():
             print(f"{cx},{cy},{w},{h}", file=f)
