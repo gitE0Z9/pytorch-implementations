@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import torch
+from tqdm import tqdm
 
 
 class TrainRecorder:
@@ -68,7 +69,7 @@ class TrainRecorder:
     def calc_dataset_size(self, dataset: Iterable) -> int:
         self.reset_data_size()
 
-        for row in dataset:
+        for row in tqdm(dataset):
             count = self.calc_row_size(row)
             self.increment_data_size(count)
 
@@ -102,82 +103,3 @@ class TrainRecorder:
 
 
 class EvalRecorder: ...
-
-
-# class Trainer:
-#     def run(
-#         self,
-#         data: Iterator,
-#         model: nn.Module,
-#         optimizer: Optimizer,
-#         criterion: nn.Module,
-#         scheduler: LRScheduler | None = None,
-#         recorder: TrainRecorder | None = None,
-#         *args,
-#         **kwargs,
-#     ) -> list[float]:
-#         if not hasattr(self, "_predict"):
-#             self.build_predict_function_by_data_type(iter(data))
-
-#         model.train()
-#         model = model.to(self.device)  # some model extended layer when train
-#         for e in range(self.epoches):
-#             recorder.reset_running_loss()
-#             recorder.reset_data_size()
-#             optimizer.zero_grad()
-
-#             for i, row in enumerate(tqdm(data)):
-#                 # get x
-#                 # case 1: row is a list, e.g. features and labels
-#                 # case 2: row is not a list, e.g. features only or features also serve as labels
-#                 if isinstance(row, list):
-#                     x = row[0]
-#                 else:
-#                     x = row
-
-#                 # get batch size to calculate dataset size
-#                 # hard to choose if running once before or dynamically like this
-#                 # since the former will run an empty cycle
-#                 # the latter will waste resource when dataset size is fixed
-#                 if isinstance(x, torch.Tensor):
-#                     recorder.increment_data_size(x.size(0))
-#                 elif isinstance(x, list | tuple | set):
-#                     recorder.increment_data_size(len(x))
-
-#                 output = self._predict(row, model, *args, **kwargs)
-#                 loss = self._calc_loss(output, row, criterion)
-
-#                 if isinstance(loss, tuple):
-#                     recorder.increment_running_loss(*loss)
-#                 else:
-#                     recorder.increment_running_loss(loss)
-#                 # first loss must be main loss
-#                 # if there are other loss, they will be recorded
-#                 # if recorder.num_loss > 1:
-#                 #     recorder.
-#                 #     other_loss = loss[1:]
-#                 #     for loss_i in range(1, self.num_loss):
-#                 #         running_loss[loss_i] += other_loss[loss_i].item()
-#                 #     loss = loss[0]
-
-#                 loss /= self.acc_iters
-#                 assert not torch.isnan(loss)
-#                 loss.backward()
-#                 running_loss[0] += loss.item()
-
-#                 if (i + 1) % self.acc_iters == 0:
-#                     optimizer.step()
-#                     optimizer.zero_grad()
-
-#             for loss_i in range(self.num_loss):
-#                 mean_loss = running_loss[loss_i] / data_size
-#                 training_loss[loss_i].append(mean_loss)
-
-#             main_mean_loss = training_loss[0][-1]
-
-#             if scheduler:
-#                 scheduler.step(main_mean_loss)
-
-#             print(f"epoch {e+1} : {main_mean_loss}")
-
-#         return training_loss

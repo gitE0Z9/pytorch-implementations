@@ -1,43 +1,52 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Iterator
+from typing import Callable, Iterable, Iterator, Literal
 
 import torch
 from torch import nn
+from torch.cuda.amp import GradScaler
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from tqdm import tqdm
 
+
 from ..mixins.controller import PredictFunctionMixin
+from .recorder import TrainRecorder
 
 
 class TrainerBase(PredictFunctionMixin, ABC):
     def __init__(
         self,
-        epoches: int,
-        device: torch.device,
+        epoches: int = 10,
+        device: torch.device = torch.device("cuda:0"),
         acc_iters: int = 1,
         feature_last: bool = False,
+        validate_interval: int = 10,
+        checkpoint_interval: int = 10,
     ):
         """Base class of trainer
 
         Args:
-            epoches (int): how many epoch to run
-            device (torch.device): which device to use
+            epoches (int, optional): how many epoch to run, if no recorder then use this number as total epoch of this run. Defaults to 10.
+            device (torch.device, optional): which device to use. Defaults to torch.device("cuda:0").
             acc_iters (int, optional): how many epoch to finish gradient accumulation. Defaults to 1.
             feature_last (bool, optional): do we need to move index -1 of output to index 1, default value intends to work with image and entropy loss. Defaults to False.
+            validate_interval (int, optional): after how many epoch to run validate function. Defaults to 10.
+            checkpoint_interval (int, optional): after how many epoch to save checkpint. Defaults to 10.
         """
         self.epoches = epoches
-        self.device = device
+        self.device = torch.device(device)
         self.acc_iters = acc_iters
         self.feature_last = feature_last
+        self.validate_interval = validate_interval
+        self.checkpoint_interval = checkpoint_interval
 
     def get_criterion(self):
         raise NotImplementedError
 
-    @staticmethod
-    def get_optimizer(name: str, *args, **kwargs) -> Optimizer:
-        optim_class = getattr(torch.optim, name)
-        return optim_class(*args, **kwargs)
+    # @staticmethod
+    # def get_optimizer(name: str, *args, **kwargs) -> Optimizer:
+    #     optim_class = getattr(torch.optim, name)
+    #     return optim_class(*args, **kwargs)
 
     @abstractmethod
     def _calc_loss(
@@ -55,59 +64,94 @@ class TrainerBase(PredictFunctionMixin, ABC):
         optimizer: Optimizer,
         criterion: nn.Module,
         scheduler: LRScheduler | None = None,
+        scaler: GradScaler | None = None,
+        recorder: TrainRecorder | None = None,
+        validate_func: Callable | None = None,
+        checkpoint_func: Callable | None = None,
         *args,
         **kwargs,
     ) -> list[float]:
+        # predict strategy
         if not hasattr(self, "_predict"):
             self.build_predict_function_by_data_type(iter(data))
 
-        training_loss = []
+        # amp
+        torch.set_autocast_enabled(scaler is not None)
+        print(f"Enable AMP: {torch.is_autocast_enabled()}")
+
+        # recorder
+        if recorder is None:
+            recorder = TrainRecorder(total_epoch=self.epoches)
+            # TODO: overhead
+            print("Calculating dataset size...")
+            recorder.calc_dataset_size(data)
+
         model.train()
-        model = model.to(self.device)  # some model extended layer when train
-        for e in range(self.epoches):
-            running_loss = 0.0
-            data_size = 0
+        # some models have extra layers during training
+        # so move again for sure
+        model = model.to(self.device)
+
+        print("Training...")
+        for e in range(recorder.current_epoch, recorder.total_epoch):
             optimizer.zero_grad()
+            recorder.reset_running_loss()
 
-            for i, row in enumerate(tqdm(data)):
-                # get x
-                # case 1: row is a list, e.g. features and labels
-                # case 2: row is not a list, e.g. features only or features also serve as labels
-                if isinstance(row, list):
-                    x = row[0]
+            for batch_idx, row in enumerate(tqdm(data)):
+                with torch.autocast(
+                    device_type=self.device.type,
+                    enabled=torch.is_autocast_enabled(),
+                ):
+                    # predict and loss calculation
+                    output = self._predict(row, model, *args, **kwargs)
+                    loss = self._calc_loss(output, row, criterion)
+                if not isinstance(loss, tuple):
+                    losses: list[torch.Tensor] = [loss]
+
+                losses = [loss / self.acc_iters for loss in losses]
+                for loss in losses:
+                    assert not torch.isnan(loss), "Loss is singular"
+
+                # gradient backward
+                main_loss = losses[0]
+                # mixed precision
+                if scaler is None:
+                    main_loss.backward()
                 else:
-                    x = row
+                    scaler.scale(main_loss).backward()
 
-                # get batch size to calculate dataset size
-                # hard to choose if running once before or dynamically like this
-                # since the former will run an empty cycle
-                # the latter will waste resource when dataset size is fixed
-                if isinstance(x, torch.Tensor):
-                    data_size += x.size(0)
-                elif isinstance(x, list | tuple | set):
-                    data_size += len(x)
+                # weight update
+                if (batch_idx + 1) % self.acc_iters == 0:
+                    # mixed precision
+                    if scaler is None:
+                        optimizer.step()
+                    else:
+                        scaler.step(optimizer)
+                        scaler.update()
 
-                output = self._predict(row, model, *args, **kwargs)
-                loss: torch.Tensor = self._calc_loss(output, row, criterion)
-
-                loss /= self.acc_iters
-                assert not torch.isnan(loss)
-                loss.backward()
-                running_loss += loss.item()
-
-                if (i + 1) % self.acc_iters == 0:
-                    optimizer.step()
                     optimizer.zero_grad()
 
-            mean_loss = running_loss / data_size
-            training_loss.append(mean_loss)
+                recorder.increment_running_loss(
+                    *(loss.item() / recorder.data_size for loss in losses)
+                )
 
+            recorder.enqueue_training_loss()
+
+            last_loss = recorder.training_losses[0][-1]
             if scheduler:
-                scheduler.step(mean_loss)
+                scheduler.step(last_loss)
 
-            print(f"epoch {e+1} : {mean_loss}")
+            print(f"Epoch {e+1} : {last_loss} ({recorder.get_last_improvement()[0]}%)")
+            recorder.increment_epoch()
 
-        return training_loss
+            if validate_func is not None and (e + 1) % self.validate_interval == 0:
+                print("Validating...")
+                validate_func(model)
+
+            if checkpoint_func is not None and (e + 1) % self.checkpoint_interval == 0:
+                print("Checkpoint...")
+                checkpoint_func(model, optimizer)
+
+        return recorder.training_losses[0]
 
 
 class DoNothingTrainer(TrainerBase):
@@ -148,8 +192,15 @@ class ClassificationTrainer(TrainerBase):
 
 class RegressionTrainer(TrainerBase):
     @staticmethod
-    def get_criterion() -> nn.MSELoss | nn.SmoothL1Loss:
-        return nn.MSELoss()
+    def get_criterion(
+        type: Literal["l1", "l2", "smoothl1", "huber"]
+    ) -> nn.MSELoss | nn.SmoothL1Loss | nn.HuberLoss | nn.L1Loss:
+        return {
+            "l1": nn.L1Loss(),
+            "l2": nn.MSELoss(),
+            "smoothl1": nn.SmoothL1Loss(),
+            "huber": nn.HuberLoss(),
+        }[type]
 
     def _calc_loss(
         self,
