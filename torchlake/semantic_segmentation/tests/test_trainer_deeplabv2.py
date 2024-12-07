@@ -29,7 +29,7 @@ def test_calc_loss_output_shape():
 
     trainer = DeepLabV2Trainer(1, "cpu")
     trainer.set_multiscales()
-    criterion = trainer.get_criterion(20)
+    criterion = torch.nn.CrossEntropyLoss()
 
     output = trainer._predict((x, y), model)
     loss = trainer._calc_loss(output, (x, y), criterion)
