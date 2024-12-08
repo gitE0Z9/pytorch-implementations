@@ -26,7 +26,7 @@ class PositionEncoding1d(nn.Module):
         if trainable:
             # 1, h, s
             self.encoding = nn.Parameter(
-                self.init_fourier_grid(seq_len, hidden_dim).transpose(-1, -2)
+                self.init_fourier_grid(seq_len, hidden_dim).transpose_(-1, -2)
             )
 
     def init_fourier_grid(

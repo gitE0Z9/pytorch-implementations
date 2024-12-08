@@ -1,8 +1,10 @@
 from typing import Literal
+
 import torch
 from torch import nn
-from torchlake.common.models import PositionEncoding
+from torchlake.common.models import PositionEncoding1d
 from torchlake.common.models.model_base import ModelBase
+from .network import ClassEmbedding
 
 
 class ViT(ModelBase):
@@ -11,7 +13,8 @@ class ViT(ModelBase):
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        patch_size: int = int(224 / 3),
+        image_size: int = 224,
+        patch_size: int = 16,
         embed_dim: int = 128,
         hidden_dim: int = 128,
         num_head: int = 8,
@@ -22,12 +25,12 @@ class ViT(ModelBase):
             self.size = size
             num_head, num_encoder_layers, embed_dim, hidden_dim = self.config
 
+        self.image_size = image_size
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.num_head = num_head
         self.num_encoder_layers = num_encoder_layers
-        self.output_size = output_size
         super().__init__(input_channel, output_size)
 
         # remove flatten
@@ -47,10 +50,16 @@ class ViT(ModelBase):
         }[self.size]
 
     def build_foot(self, input_channel: int):
+        n = self.image_size // self.patch_size
+
         self.foot = nn.ModuleDict(
             {
-                "pos_embed": PositionEncoding(),
-                "cls_embed": nn.Embedding(self.output_size, self.embed_dim),
+                "pos_embed": PositionEncoding1d(
+                    n * n + 1,
+                    self.embed_dim,
+                    trainable=True,
+                ),
+                "cls_embed": ClassEmbedding(self.embed_dim),
                 "projection": nn.Sequential(
                     nn.Conv2d(
                         input_channel,
@@ -75,19 +84,20 @@ class ViT(ModelBase):
             self.num_encoder_layers,
         )
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # patch embedding
         # b, s, h
-        z = self.foot["projection"](x).transpose(-1, -2)
+        y = self.foot["projection"](x).transpose(-1, -2)
 
         # cls embedding
         # b, 1+s, h
-        if y is not None:
-            z = torch.cat([self.foot["cls_embed"](y).unsqueeze(1), z], 1)
+        cls_embed: torch.Tensor = self.foot["cls_embed"].embedding
+        cls_embed = cls_embed.expand(x.size(0), *cls_embed.shape[1:])
+        y = torch.cat([cls_embed, y], 1)
 
         # position embedding
         # b, 1+s, h
-        y = z + self.foot["pos_embed"](z)
+        y = y + self.foot["pos_embed"](y)
 
         y = self.neck(y)[:, 0, :]
 
