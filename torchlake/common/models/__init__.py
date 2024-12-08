@@ -9,7 +9,7 @@ from .kmeans import KMeans
 from .l2_norm import L2Norm
 from .mobilenet_feature_extractor import MobileNetFeatureExtractor
 from .multikernel_conv import MultiKernelConvModule
-from .position_encoding import PositionEncoding
+from .position_encoding import PositionEncoding1d
 from .residual import ResBlock
 from .resnet_feature_extractor import ResNetFeatureExtractor
 from .se import SqueezeExcitation2d
@@ -37,5 +37,5 @@ __all__ = [
     "KMeans",
     "MultiKernelConvModule",
     "L2Norm",
-    "PositionEncoding",
+    "PositionEncoding1d",
 ]

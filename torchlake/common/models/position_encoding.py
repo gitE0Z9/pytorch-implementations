@@ -24,7 +24,10 @@ class PositionEncoding1d(nn.Module):
         self.trainable = trainable
 
         if trainable:
-            self.encoding = nn.Parameter(self.init_fourier_grid(seq_len, hidden_dim))
+            # 1, h, s
+            self.encoding = nn.Parameter(
+                self.init_fourier_grid(seq_len, hidden_dim).transpose(-1, -2)
+            )
 
     def init_fourier_grid(
         self,
@@ -45,17 +48,17 @@ class PositionEncoding1d(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """generate position encoding
-        if trainable: x should be channel first, return interpolated channel first fourier grid
-        if not trainable: x should have shape (b, s, h). return fourier grid in same shape
 
         Args:
-            x (torch.Tensor): input tensor
+            x (torch.Tensor): input tensor, shape is (b, s, h)
 
         Returns:
-            torch.Tensor: fourier grid
+            torch.Tensor: if trainable interpolated fourier grid, else fourier grid in same shape
         """
         if self.trainable:
-            return F.interpolate(self.encoding.permute(0, 2, 1), size=x.shape[2:])
+            # 1, ?, h
+            return F.interpolate(self.encoding, size=x.size(1)).transpose(-1, -2)
         else:
             _, seq_len, hidden_dim = x.shape
+            # 1, s, h
             return self.init_fourier_grid(seq_len, hidden_dim)

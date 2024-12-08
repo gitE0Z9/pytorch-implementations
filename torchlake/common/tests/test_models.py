@@ -493,17 +493,11 @@ class TestL2Norm:
 
 class TestPositionEncoding:
     @pytest.mark.parametrize("trainable", [True, False])
-    def test_output_shape(self, trainable: bool):
+    def test_1d_output_shape(self, trainable: bool):
         s, h = 32, 16
         x = torch.rand(2, s, h)
 
-        if trainable:
-            x.transpose_(-1, -2)
-
         model = PositionEncoding1d(s, h, trainable)
         y = model.forward(x)
-
-        if trainable:
-            y.transpose_(-1, -2)
 
         assert_close(y.shape, torch.Size((1, s, h)))
