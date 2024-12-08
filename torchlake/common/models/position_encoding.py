@@ -24,10 +24,8 @@ class PositionEncoding1d(nn.Module):
         self.trainable = trainable
 
         if trainable:
-            # 1, h, s
-            self.encoding = nn.Parameter(
-                self.init_fourier_grid(seq_len, hidden_dim).transpose_(-1, -2)
-            )
+            # 1, s, h
+            self.encoding = nn.Parameter(self.init_fourier_grid(seq_len, hidden_dim))
 
     def init_fourier_grid(
         self,
@@ -55,10 +53,18 @@ class PositionEncoding1d(nn.Module):
         Returns:
             torch.Tensor: if trainable interpolated fourier grid, else fourier grid in same shape
         """
-        if self.trainable:
-            # 1, ?, h
-            return F.interpolate(self.encoding, size=x.size(1)).transpose(-1, -2)
-        else:
-            _, seq_len, hidden_dim = x.shape
+        _, seq_len, hidden_dim = x.shape
+
+        if not self.trainable:
             # 1, s, h
             return self.init_fourier_grid(seq_len, hidden_dim)
+
+        if self.encoding.size(-1) == seq_len:
+            # 1, s, h
+            return self.encoding
+        else:
+            # 1, ?, h
+            return F.interpolate(
+                self.encoding.transpose(-1, -2),
+                size=seq_len,
+            ).transpose(-1, -2)
