@@ -28,7 +28,7 @@ from ..models import (
     KernelPCA,
     KMeans,
     L2Norm,
-    PositionEncoding,
+    PositionEncoding1d,
 )
 
 
@@ -494,8 +494,16 @@ class TestL2Norm:
 class TestPositionEncoding:
     @pytest.mark.parametrize("trainable", [True, False])
     def test_output_shape(self, trainable: bool):
-        x = torch.rand(2, 32, 16)
-        model = PositionEncoding(32, 16, trainable)
+        s, h = 32, 16
+        x = torch.rand(2, s, h)
+
+        if trainable:
+            x.transpose_(-1, -2)
+
+        model = PositionEncoding1d(s, h, trainable)
         y = model.forward(x)
 
-        assert_close(y.shape, torch.Size((1, 32, 16)))
+        if trainable:
+            y.transpose_(-1, -2)
+
+        assert_close(y.shape, torch.Size((1, s, h)))

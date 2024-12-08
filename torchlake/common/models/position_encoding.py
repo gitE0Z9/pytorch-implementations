@@ -1,10 +1,11 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from ..utils.numerical import generate_grid
 
 
-class PositionEncoding(nn.Module):
+class PositionEncoding1d(nn.Module):
 
     def __init__(
         self,
@@ -12,11 +13,18 @@ class PositionEncoding(nn.Module):
         hidden_dim: int | None = None,
         trainable: bool = False,
     ):
+        """Position encoding for 1d sequence
+
+        Args:
+            seq_len (int | None, optional): sequence length for fixed size. Defaults to None.
+            hidden_dim (int | None, optional): hidden dimension for fixed size. Defaults to None.
+            trainable (bool, optional): is encoding parameters fixed size and trainable parameters. Defaults to False.
+        """
         super().__init__()
         self.trainable = trainable
 
         if trainable:
-            self.embedding = nn.Parameter(self.init_fourier_grid(seq_len, hidden_dim))
+            self.encoding = nn.Parameter(self.init_fourier_grid(seq_len, hidden_dim))
 
     def init_fourier_grid(
         self,
@@ -36,10 +44,18 @@ class PositionEncoding(nn.Module):
         return y.unsqueeze(0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if not self.trainable:
+        """generate position encoding
+        if trainable: x should be channel first, return interpolated channel first fourier grid
+        if not trainable: x should have shape (b, s, h). return fourier grid in same shape
+
+        Args:
+            x (torch.Tensor): input tensor
+
+        Returns:
+            torch.Tensor: fourier grid
+        """
+        if self.trainable:
+            return F.interpolate(self.encoding.permute(0, 2, 1), size=x.shape[2:])
+        else:
             _, seq_len, hidden_dim = x.shape
             return self.init_fourier_grid(seq_len, hidden_dim)
-
-        if self.trainable:
-            # TODO: interpolation
-            return self.embedding
