@@ -4,8 +4,6 @@
 
 [中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
 
-The articles are simultaneously published on my personal blog (https://gite0z9.github.io).
-
 The original intention of this project is to implement deep learning models I have learned over the years, providing notebooks and Medium articles for learning. This project is not a production-ready library for a specific domain but serves as a resource for learning.
 
 The development direction will extend towards a monorepo.
@@ -20,7 +18,6 @@ package name: `common`
 | ---------- | ------------------------------------------------------------------------------------------------------------- | -------------- |
 | K-Means    | -                                                                                                             | ``kmeans``     |
 | Kernel PCA | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``kernel_pca`` |
-
 
 ### Image classification
 
@@ -50,7 +47,7 @@ package name: `image_classification`
 | SqueezeNeXt                                | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)      | ``squeezenext``        |
 | Extraction                                 | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)                       | ``extraction``         |
 | DarkNet19                                  | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)                       | ``darknet19``          |
-
+| Vision transformer (ViT)                   | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vit-11ecba1796a3)                         | ``vit``                |
 
 ### Object detection
 
@@ -62,8 +59,6 @@ package name: `object_detection`
 | Tiny YOLOv1                         | -                                                                                                               | ``yolov1_tiny`` |
 | YOLOv2                              | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43) | ``yolov2``      |
 | Single shot multibox detector (SSD) | -                                                                                                               | ``ssd``         |
-
-
 
 ### Semantic Segmentation
 
@@ -83,7 +78,6 @@ package name: `semantic_segmentation`
 | Multi-scale context aggregation by dilation | -                                                                                                                                   | ``mscad``          |
 | ParseNet                                    | -                                                                                                                                   | ``parsenet``       |
 
-
 ### Optical character recognition (OCR)
 
 package name: `ocr`
@@ -91,7 +85,6 @@ package name: `ocr`
 | Model                                       | Article Link                                                                                                    | Package  |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
 | Convolution recurrent neural network (CRNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698) | ``crnn`` |
-
 
 ### Image generation
 
@@ -102,7 +95,6 @@ package name: `image_generation`
 | Variational autoencoder (VAE)        | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539)        | ``vae``   |
 | Generative adversarial network (GAN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd) | ``gan``   |
 | Deep convolution GAN (DCGAN)         | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)                                 | ``dcgan`` |
-
 
 ### Style transfer
 
@@ -115,7 +107,6 @@ package name: `style_transfer`
 | Fast style transfer                     | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)                      | ``fast_style_transfer``   |
 | Adaptive instance normalization (AdaIN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b)                                    | ``adain``                 |
 | Pix2Pix                                 | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39)                     | ``pix2pix``               |
-
 
 ### Sequence data
 
@@ -130,7 +121,6 @@ package name: `sequence_data`
 | Seq2Seq                            | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)     | ``seq2seq``     |
 | Transformer                        | -                                                                                                                                                      | ``transformer`` |
 
-
 ### Language model
 
 package name: `language_model`
@@ -140,7 +130,6 @@ package name: `language_model`
 | Word2vec                                        | [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57) | ``word2vec`` |
 | GloVe                                           | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``glove``    |
 | Vector log-bilinear language model (vLBL/ivLBL) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``vlbl``     |
-
 
 ### Text classification
 
@@ -165,22 +154,20 @@ package name: `tag_prediction`
 
 ### Text generation
 
-
 package name: `text_generation`
 
 | Model         | Article Link | Package           |
 | ------------- | ------------ | ----------------- |
 | Show and tell | -            | ``show_and_tell`` |
 
-
 ### Few-shot learning
 
  package name: `few_shot`
+
 | Model                 | Article Link                                                                                                                                   | Package          |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | Siamese network:      | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed) | ``siamese``      |
 | Prototypical network: | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)   | ``prototypical`` |
-
 
 ### Representation learning
 
@@ -191,7 +178,6 @@ package name: `representation`
 | Positive pairwise mutual information (PPMI) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``ppmi``      |
 | Hellinger PCA                               | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``hellinger`` |
 
-            
 ### Graph neural network (GNN)
 
 package name: `graph`
@@ -209,7 +195,6 @@ package name: `reinforcement_learning`
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | Deep Q Network | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337) | ``dqn`` |
 
-
 ## Installation
 
 ```pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake```
@@ -222,7 +207,7 @@ package name: `reinforcement_learning`
 
 In general, each domain will have a structure similar to the following:
 
-```
+``` lang=sh
 ├───adapter
 ├───artifacts
 │   └───model_name

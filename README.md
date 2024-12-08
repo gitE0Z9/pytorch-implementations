@@ -4,14 +4,11 @@
 
 [中文版本](https://github.com/gitE0Z9/pytorch-implementations/blob/main/README.md)
 
-文章同步發布在個人部落格(https://gite0z9.github.io)
-
 此專案初衷是實作多年來學習的深度學習模型，並提供 notebook 跟 medium 文章學習，而非一個專注於特定領域的 production-ready 庫
 
 接下來的開發方向會往 monorepo 延伸
 
 ## 套件
-
 
 ### 一般
 
@@ -21,7 +18,6 @@
 | ---------- | ------------------------------------------------------------------------------------------------------------- | -------------- |
 | K-Means    | -                                                                                                             | ``kmeans``     |
 | Kernel PCA | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``kernel_pca`` |
-
 
 ### 圖像分類
 
@@ -51,7 +47,7 @@
 | SqueezeNeXt                                | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)      | ``squeezenext``        |
 | Extraction                                 | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)                       | ``extraction``         |
 | DarkNet19                                  | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)                       | ``darknet19``          |
-
+| Vision transformer (ViT)                   | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vit-11ecba1796a3)                         | ``vit``                |
 
 ### 物件偵測
 
@@ -63,7 +59,6 @@
 | Tiny YOLOv1                         | -                                                                                                               | ``yolov1_tiny`` |
 | YOLOv2                              | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43) | ``yolov2``      |
 | Single shot multibox detector (SSD) | -                                                                                                               | ``ssd``         |
-
 
 ### 語義分割
 
@@ -83,8 +78,6 @@
 | Multi-scale context aggregation by dilation | -                                                                                                                                   | ``mscad``          |
 | ParseNet                                    | -                                                                                                                                   | ``parsenet``       |
 
-
-
 ### 光學文字辨識
 
 套件名: `ocr`
@@ -92,7 +85,6 @@
 | Model                                       | Article Link                                                                                                    | Package  |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
 | Convolution recurrent neural network (CRNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698) | ``crnn`` |
-
 
 ### 圖像生成
 
@@ -103,7 +95,6 @@
 | Variational autoencoder (VAE)        | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539)        | ``vae``   |
 | Generative adversarial network (GAN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd) | ``gan``   |
 | Deep convolution GAN (DCGAN)         | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)                                 | ``dcgan`` |
-
 
 ### 風格遷移
 
@@ -116,7 +107,6 @@
 | Fast style transfer                     | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fast-style-transfer-6630af677395)                      | ``fast_style_transfer``   |
 | Adaptive instance normalization (AdaIN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-adain-f18fd4bca76b)                                    | ``adain``                 |
 | Pix2Pix                                 | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-14-pix2pix-5b550c1fbb39)                     | ``pix2pix``               |
-
 
 ### 序列資料
 
@@ -131,7 +121,6 @@
 | Seq2Seq                            | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)     | ``seq2seq``     |
 | Transformer                        | -                                                                                                                                                      | ``transformer`` |
 
-
 ### 語言模型
 
 套件名: `language_model`
@@ -141,7 +130,6 @@
 | Word2vec                                        | [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57) | ``word2vec`` |
 | GloVe                                           | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``glove``    |
 | Vector log-bilinear language model (vLBL/ivLBL) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``vlbl``     |
-
 
 ### 文本分類
 
@@ -166,22 +154,20 @@
 
 ### 文本生成
 
-
 套件名: `text_generation`
 
 | Model         | Article Link | Package           |
 | ------------- | ------------ | ----------------- |
 | Show and tell | -            | ``show_and_tell`` |
 
-
 ### 少樣本學習
 
  套件名: `few_shot`
+
 | Model                 | Article Link                                                                                                                                   | Package          |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | Siamese network:      | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed) | ``siamese``      |
 | Prototypical network: | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)   | ``prototypical`` |
-
 
 ### 表示學習
 
@@ -192,7 +178,6 @@
 | Positive pairwise mutual information (PPMI) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``ppmi``      |
 | Hellinger PCA                               | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``hellinger`` |
 
-            
 ### 圖神經網路
 
 套件名: `graph`
@@ -210,7 +195,6 @@
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | Deep Q Network | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337) | ``dqn`` |
 
-
 ## 開發環境
 
 `python`: `3.11`
@@ -227,7 +211,7 @@
 
 每個領域大致上會有如下結構
 
-```
+``` lang=sh
 ├───adapter
 ├───artifacts
 │   └───model_name
@@ -276,7 +260,6 @@
 
 model 和 dataset 的 config 會用 `pydantic` 控制格式
 
-## 模組依賴關係 
+## 模組依賴關係
 
 ![modules drawio](https://github.com/user-attachments/assets/610e83f6-7dc0-4437-a663-29f1ad93bfda)
-
