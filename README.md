@@ -164,10 +164,10 @@
 
  套件名: `few_shot`
 
-| Model                 | Article Link                                                                                                                                   | Package          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Siamese network:      | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed) | ``siamese``      |
-| Prototypical network: | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)   | ``prototypical`` |
+| Model                | Article Link                                                                                                                                   | Package          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Siamese network      | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed) | ``siamese``      |
+| Prototypical network | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)   | ``prototypical`` |
 
 ### 表示學習
 
@@ -182,10 +182,11 @@
 
 套件名: `graph`
 
-| Model                           | Article Link                                                                                                   | Package       |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------- |
-| Graph Convolution Network (GCN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf) | ``gcn``       |
-| Graph Attention Network (GAT)   | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``attention`` |
+| Model                               | Article Link                                                                                                   | Package       |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------- |
+| Graph Convolution Network (GCN)     | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf) | ``gcn``       |
+| Graph Attention Network (GAT)       | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``attention`` |
+| Graph Attention Network v2 (GAT v2) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``attention`` |
 
 ### 增強學習
 
