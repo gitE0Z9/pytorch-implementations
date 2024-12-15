@@ -44,10 +44,10 @@ class MLADecoder(nn.Module):
         super().__init__()
         self.blocks = nn.ModuleList(
             [
-                nn.Conv2d(input_channel, 256, 3, padding=1),
-                nn.Conv2d(input_channel, 256, 3, padding=1),
-                nn.Conv2d(input_channel, 256, 3, padding=1),
-                nn.Conv2d(input_channel, 256, 3, padding=1),
+                nn.Conv2d(input_channel, 256, 1),
+                nn.Conv2d(input_channel, 256, 1),
+                nn.Conv2d(input_channel, 256, 1),
+                nn.Conv2d(input_channel, 256, 1),
             ]
         )
 
