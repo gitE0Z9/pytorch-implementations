@@ -8,7 +8,7 @@ from ..models.setr.network import MLADecoder, PUPDecoder
 
 class TestPUP:
     def test_forward_shape(self):
-        x = torch.rand((1, 196, 8))
+        x = [torch.rand((1, 196, 8))]
 
         model = PUPDecoder(8, 21)
 
@@ -29,15 +29,11 @@ class TestMLA:
 
 
 class TestModel:
-    @pytest.mark.parametrize(
-        "decoder,target_layer_names",
-        [("PUP", (11,)), ("MLA", (2, 5, 8, 11))],
-    )
-    def test_forward_shape(self, decoder: str, target_layer_names: tuple[int]):
+    @pytest.mark.parametrize("decoder", ["PUP", "MLA"])
+    def test_forward_shape(self, decoder: str):
         x = torch.rand((1, 3, 224, 224))
 
         backbone = ViTFeatureExtractor("b16", trainable=False)
-        backbone.fix_target_layers(target_layer_names)
         model = SETR(backbone, 21, decoder)
 
         y = model(x)

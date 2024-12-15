@@ -26,6 +26,16 @@ class SETR(ModelBase):
             },
         )
 
+        num_layers = len(self.foot.feature_dims)
+        if isinstance(self.head, PUPDecoder):
+            self.foot.fix_target_layers((num_layers - 1,))
+        elif isinstance(self.head, MLADecoder):
+            self.foot.fix_target_layers(
+                tuple(range(num_layers // 4 - 1, num_layers, num_layers // 4))
+            )
+        else:
+            raise NotImplementedError("The decoder is not supported.")
+
     def build_foot(self, _, **kwargs):
         self.foot = kwargs.pop("backbone")
 
@@ -37,3 +47,5 @@ class SETR(ModelBase):
             self.head = PUPDecoder(input_channel, output_size)
         elif decoder == "MLA":
             self.head = MLADecoder(input_channel, output_size)
+        else:
+            raise NotImplementedError("The decoder is not supported.")
