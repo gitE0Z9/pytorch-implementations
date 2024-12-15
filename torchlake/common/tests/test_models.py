@@ -511,10 +511,10 @@ class TestViTFeatureExtractor:
     @pytest.mark.parametrize(
         "network_name,target_layer_names,seq_len",
         [
-            ("b16", range(12), 196),
-            ("b32", range(12), 49),
-            ("l16", range(24), 196),
-            ("l32", range(24), 49),
+            ("b16", list(range(12)) + ["output"], 196),
+            ("b32", list(range(12)) + ["output"], 49),
+            ("l16", list(range(24)) + ["output"], 196),
+            ("l32", list(range(24)) + ["output"], 49),
         ],
     )
     def test_output_shape(
@@ -529,3 +529,5 @@ class TestViTFeatureExtractor:
 
         for dim in model.feature_dims:
             assert y.pop(0).shape == torch.Size((1, seq_len, dim))
+
+        assert y.pop(0).shape == torch.Size((1, seq_len, dim))

@@ -1,3 +1,4 @@
+from typing import Literal
 import torch
 import torchvision
 from torch import nn
@@ -64,7 +65,7 @@ class ViTFeatureExtractor(ExtractorBase):
     def forward(
         self,
         img: torch.Tensor,
-        target_layer_names: set[int],
+        target_layer_names: set[int | Literal["output"]],
     ) -> list[torch.Tensor]:
         features = []
 
@@ -91,5 +92,8 @@ class ViTFeatureExtractor(ExtractorBase):
             if i in target_layer_names:
                 # only patch tokens
                 features.append(y[:, 1:, :])
+
+        if "output" in target_layer_names:
+            features.append(self.feature_extractor.encoder.ln(y)[:, 1:, :])
 
         return features
