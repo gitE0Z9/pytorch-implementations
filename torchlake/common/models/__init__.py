@@ -17,6 +17,7 @@ from .topk_pool import KmaxPool1d
 from .vgg_feature_extractor import VGGFeatureExtractor
 from .efficientnet_feature_extractor import EfficientNetFeatureExtractor
 from .efficientnetv2_feature_extractor import EfficientNetV2FeatureExtractor
+from .vit_feature_extractor import ViTFeatureExtractor
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -32,6 +33,7 @@ __all__ = [
     "MobileNetFeatureExtractor",
     "EfficientNetFeatureExtractor",
     "EfficientNetV2FeatureExtractor",
+    "ViTFeatureExtractor",
     "ConvBnRelu",
     "KernelPCA",
     "KMeans",

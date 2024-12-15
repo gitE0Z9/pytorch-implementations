@@ -3,33 +3,34 @@ from unittest import TestCase
 
 import pytest
 import torch
+from parameterized import parameterized
 from torch import nn
 from torch.testing import assert_close
 from torchvision.ops import Conv2dNormActivation
-from parameterized import parameterized
-from ..models.kernel_pca import KernelEnum
 
 from ..models import (
     ChannelShuffle,
+    ConvBnRelu,
     DepthwiseSeparableConv2d,
-    FlattenFeature,
-    HighwayBlock,
-    KmaxPool1d,
-    ResBlock,
-    SqueezeExcitation2d,
-    ImageNetNormalization,
-    VGGFeatureExtractor,
-    ResNetFeatureExtractor,
-    MobileNetFeatureExtractor,
     EfficientNetFeatureExtractor,
     EfficientNetV2FeatureExtractor,
-    ConvBnRelu,
-    MultiKernelConvModule,
+    FlattenFeature,
+    HighwayBlock,
+    ImageNetNormalization,
     KernelPCA,
+    KmaxPool1d,
     KMeans,
     L2Norm,
+    MobileNetFeatureExtractor,
+    MultiKernelConvModule,
     PositionEncoding1d,
+    ResBlock,
+    ResNetFeatureExtractor,
+    SqueezeExcitation2d,
+    VGGFeatureExtractor,
 )
+from ..models.kernel_pca import KernelEnum
+from ..models.vit_feature_extractor import ViTFeatureExtractor
 
 
 class TestSqueezeExcitation2d:
@@ -501,3 +502,30 @@ class TestPositionEncoding:
         y = model.forward(x)
 
         assert_close(y.shape, torch.Size((1, s, h)))
+
+
+class TestViTFeatureExtractor:
+    def setUp(self):
+        self.x = torch.rand(1, 3, 224, 224)
+
+    @pytest.mark.parametrize(
+        "network_name,target_layer_names,seq_len",
+        [
+            ("b16", range(12), 196),
+            ("b32", range(12), 49),
+            ("l16", range(24), 196),
+            ("l32", range(24), 49),
+        ],
+    )
+    def test_output_shape(
+        self,
+        network_name: str,
+        target_layer_names: list[int],
+        seq_len: int,
+    ):
+        self.setUp()
+        model = ViTFeatureExtractor(network_name)
+        y = model.forward(self.x, target_layer_names)
+
+        for dim in model.feature_dims:
+            assert y.pop(0).shape == torch.Size((1, seq_len, dim))

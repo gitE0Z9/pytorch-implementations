@@ -29,3 +29,10 @@ EFFICIENTNET_V2_NAMES = Literal[
     "m",
     "l",
 ]
+
+VIT_NAMES = Literal[
+    "b16",
+    "b32",
+    "l16",
+    "l32",
+]
