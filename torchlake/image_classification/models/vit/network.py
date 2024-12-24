@@ -3,16 +3,6 @@ import torch.nn.functional as F
 from torch import nn
 
 
-class ClassEmbedding(nn.Module):
-
-    def __init__(self, embed_dim: int):
-        super().__init__()
-        self.embedding = nn.Parameter(torch.rand(1, 1, embed_dim))
-
-    def forward(self, _: torch.Tensor) -> torch.Tensor:
-        return self.embedding
-
-
 class ViT22BLayer(nn.Module):
 
     def __init__(self):

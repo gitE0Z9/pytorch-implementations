@@ -18,6 +18,7 @@ from .vgg_feature_extractor import VGGFeatureExtractor
 from .efficientnet_feature_extractor import EfficientNetFeatureExtractor
 from .efficientnetv2_feature_extractor import EfficientNetV2FeatureExtractor
 from .vit_feature_extractor import ViTFeatureExtractor
+from .channel_vector import ChannelVector
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -40,4 +41,5 @@ __all__ = [
     "MultiKernelConvModule",
     "L2Norm",
     "PositionEncoding1d",
+    "ChannelVector",
 ]

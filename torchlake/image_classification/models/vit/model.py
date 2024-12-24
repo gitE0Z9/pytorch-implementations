@@ -2,9 +2,8 @@ from typing import Literal
 
 import torch
 from torch import nn
-from torchlake.common.models import PositionEncoding1d
+from torchlake.common.models import ChannelVector, PositionEncoding1d
 from torchlake.common.models.model_base import ModelBase
-from .network import ClassEmbedding
 
 
 class ViT(ModelBase):
@@ -59,7 +58,7 @@ class ViT(ModelBase):
                     self.embed_dim,
                     trainable=True,
                 ),
-                "cls_embed": ClassEmbedding(self.embed_dim),
+                "cls_embed": ChannelVector(self.embed_dim),
                 "projection": nn.Sequential(
                     nn.Conv2d(
                         input_channel,
@@ -91,7 +90,7 @@ class ViT(ModelBase):
 
         # cls embedding
         # b, 1+s, h
-        cls_embed: torch.Tensor = self.foot["cls_embed"].embedding
+        cls_embed: torch.Tensor = self.foot["cls_embed"]()
         cls_embed = cls_embed.expand(x.size(0), *cls_embed.shape[1:])
         y = torch.cat([cls_embed, y], 1)
 
