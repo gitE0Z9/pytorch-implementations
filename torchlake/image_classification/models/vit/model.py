@@ -32,9 +32,6 @@ class ViT(ModelBase):
         self.num_encoder_layers = num_encoder_layers
         super().__init__(input_channel, output_size)
 
-        # remove flatten
-        self.head.pop(0)
-
     @property
     def feature_dim(self) -> int:
         return self.embed_dim
@@ -81,6 +78,11 @@ class ViT(ModelBase):
                 norm_first=True,
             ),
             self.num_encoder_layers,
+        )
+
+    def build_head(self, output_size: int):
+        self.head = nn.Sequential(
+            nn.Linear(self.feature_dim, output_size),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
