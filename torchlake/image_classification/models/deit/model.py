@@ -31,6 +31,14 @@ class DeiT(ViT):
             }
         )
 
+    def build_head(self, output_size: int):
+        self.head = nn.ModuleDict(
+            {
+                "cls": nn.Linear(self.feature_dim, output_size),
+                "dis": nn.Linear(self.feature_dim, output_size),
+            }
+        )
+
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         # patch embedding
         # b, s, h
@@ -40,21 +48,24 @@ class DeiT(ViT):
         # b, 2+s, h
         cls_embed: torch.Tensor = self.foot["cls_embed"]()
         cls_embed = cls_embed.expand(x.size(0), *cls_embed.shape[1:])
+
         # dist embedding
         dist_embed: torch.Tensor = self.foot["dist_embed"]()
         dist_embed = dist_embed.expand(x.size(0), *dist_embed.shape[1:])
-
         y = torch.cat([cls_embed, y, dist_embed], 1)
 
         # position embedding
         # b, 2+s, h
         y = y + self.foot["pos_embed"](y)
 
-        # b, 2, h
-        y = self.neck(y)[:, [0, -1], :]
+        if self.training:
+            # b, 2, h
+            y = self.neck(y)[:, [0, -1], :]
 
-        # b, 2, h
-        y = self.head(y)
-
-        # cls, dist
-        return y[:, 0, :], y[:, 1, :]
+            # b, o # b, o
+            return self.head["cls"](y[:, 0, :]), self.head["dis"](y[:, -1, :])
+        else:
+            # b, h
+            y = self.neck(y)[:, 0, :]
+            # b, o
+            return self.head["cls"](y)
