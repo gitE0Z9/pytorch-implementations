@@ -35,7 +35,7 @@ class DeiT(ViT):
         self.head = nn.ModuleDict(
             {
                 "cls": nn.Linear(self.feature_dim, output_size),
-                "dis": nn.Linear(self.feature_dim, output_size),
+                "dist": nn.Linear(self.feature_dim, output_size),
             }
         )
 
@@ -52,20 +52,19 @@ class DeiT(ViT):
         # dist embedding
         dist_embed: torch.Tensor = self.foot["dist_embed"]()
         dist_embed = dist_embed.expand(x.size(0), *dist_embed.shape[1:])
-        y = torch.cat([cls_embed, y, dist_embed], 1)
+        y = torch.cat([cls_embed, dist_embed, y], 1)
 
         # position embedding
         # b, 2+s, h
         y = y + self.foot["pos_embed"](y)
 
-        if self.training:
-            # b, 2, h
-            y = self.neck(y)[:, [0, -1], :]
+        # b, 2, h
+        y = self.neck(y)[:, :2, :]
 
-            # b, o # b, o
-            return self.head["cls"](y[:, 0, :]), self.head["dis"](y[:, -1, :])
+        # b, o # b, o
+        cls_y, dist_y = self.head["cls"](y[:, 0, :]), self.head["dist"](y[:, 1, :])
+
+        if self.training:
+            return cls_y, dist_y
         else:
-            # b, h
-            y = self.neck(y)[:, 0, :]
-            # b, o
-            return self.head["cls"](y)
+            return (cls_y + dist_y) / 2

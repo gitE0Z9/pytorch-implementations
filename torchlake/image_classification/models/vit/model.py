@@ -18,7 +18,7 @@ class ViT(ModelBase):
         hidden_dim: int = 128,
         num_head: int = 8,
         num_encoder_layers: int = 6,
-        size: Literal["base", "large", "huge"] | None = None,
+        size: Literal["tiny", "small", "base", "large", "huge"] | None = None,
     ):
         if size is not None:
             self.size = size
@@ -40,6 +40,8 @@ class ViT(ModelBase):
     def config(self) -> list[list[int]]:
         # num_head, num_encoder_layers, embed_dim, hidden_dim
         return {
+            "tiny": [3, 12, 192, 768],
+            "small": [6, 12, 384, 1536],
             "base": [12, 12, 768, 3072],
             "large": [16, 24, 1024, 4096],
             "huge": [16, 32, 1280, 5120],
