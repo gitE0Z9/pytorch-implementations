@@ -225,3 +225,29 @@ class MutltOutputClassificationTrainer(ClassificationTrainer):
         y: torch.Tensor = y.to(self.device)
 
         return criterion(*y_hat, y.long())
+
+
+class SingleInputMutltOutputClassificationTrainer(ClassificationTrainer):
+    def _calc_loss(
+        self,
+        y_hat: tuple[torch.Tensor],
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        x, _ = row
+        x: torch.Tensor = x.to(self.device)
+
+        return criterion(*y_hat, x.long())
+
+
+class SingleInputMutltOutputRegressionTrainer(RegressionTrainer):
+    def _calc_loss(
+        self,
+        y_hat: tuple[torch.Tensor],
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        x, _ = row
+        x: torch.Tensor = x.to(self.device)
+
+        return criterion(*y_hat, x.float())

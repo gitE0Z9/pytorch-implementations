@@ -52,8 +52,13 @@ class VAE(ModelBase):
         )
         return mu + epsilion * sigma
 
-    def decode(self, x: torch.Tensor) -> torch.Tensor:
-        return self.head(x)
+    def decode(self, x: torch.Tensor, output_shape: torch.Size = None) -> torch.Tensor:
+        y = self.head(x)
+
+        if output_shape:
+            return y.view(*output_shape)
+
+        return y
 
     def forward(
         self,
@@ -65,9 +70,9 @@ class VAE(ModelBase):
 
         mu, logsigma = self.encode(x)
         y = self.sample(mu, logsigma)
-        y = self.decode(y)
+        y = self.decode(y, original_shape)
 
-        if output_param:
-            return y.view(*original_shape), mu, logsigma
+        if self.training:
+            return y, mu, logsigma
 
-        return y.view(*original_shape)
+        return y

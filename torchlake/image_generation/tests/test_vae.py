@@ -10,25 +10,27 @@ LATENT_DIM = 64
 
 
 class TestModel:
-    def test_forward_shape(self):
+    def test_forward_shape_eval(self):
         x = torch.rand(IMAGE_SHAPE)
 
         model = VAE(image_size=IMAGE_SIZE**2, latent_dim=LATENT_DIM)
+        model.eval()
 
         y = model(x)
 
         assert y.shape == torch.Size(IMAGE_SHAPE)
 
-    def test_forward_shape_with_param(self):
+    def test_forward_shape_train(self):
         x = torch.rand(IMAGE_SHAPE)
 
         model = VAE(image_size=IMAGE_SIZE**2, latent_dim=LATENT_DIM)
+        model.train()
 
-        y, mu, logsigma = model.forward(x, output_param=True)
+        y, mu, logsigma = model(x)
 
         assert y.shape == torch.Size(IMAGE_SHAPE)
-        assert mu.shape == torch.Size((1, 64))
-        assert logsigma.shape == torch.Size((1, 64))
+        assert mu.shape == torch.Size((1, LATENT_DIM))
+        assert logsigma.shape == torch.Size((1, LATENT_DIM))
 
 
 class TestLoss:

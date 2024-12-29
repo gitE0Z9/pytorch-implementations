@@ -15,7 +15,7 @@ class VAELoss(nn.Module):
         self.kld_weight = kld_weight
         self.loss_func = {
             "mse": F.mse_loss,
-            "bce": F.binary_cross_entropy,
+            "bce": F.binary_cross_entropy_with_logits,
         }[loss_type]
 
     def forward(
