@@ -60,6 +60,7 @@ package name: `object_detection`
 | Tiny YOLOv1                         | -                                                                                                               | ``yolov1_tiny`` |
 | YOLOv2                              | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43) | ``yolov2``      |
 | Single shot multibox detector (SSD) | -                                                                                                               | ``ssd``         |
+| RetinaNet                           | -                                                                                                               | ``retinanet``   |
 
 ### Semantic Segmentation
 
