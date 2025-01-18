@@ -1,8 +1,8 @@
-from .model import StackedHourGlass
-from .network import AuxiliaryHead, HourGlass2d
+from .model import StackedHourglass
+from .network import AuxiliaryHead, Hourglass2d
 
 __all__ = [
-    "StackedHourGlass",
+    "StackedHourglass",
     "AuxiliaryHead",
-    "HourGlass2d",
+    "Hourglass2d",
 ]

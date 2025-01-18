@@ -4,10 +4,10 @@ from torchlake.common.models import ResBlock
 from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
-from .network import AuxiliaryHead, BottleNeck, HourGlass2d
+from .network import AuxiliaryHead, BottleNeck, Hourglass2d
 
 
-class StackedHourGlass(ModelBase):
+class StackedHourglass(ModelBase):
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ class StackedHourGlass(ModelBase):
         self.blocks = nn.ModuleList(
             [
                 nn.Sequential(
-                    HourGlass2d(self.hidden_dim, self.num_nested, self.num_resblock),
+                    Hourglass2d(self.hidden_dim, self.num_nested, self.num_resblock),
                     *[
                         ResBlock(
                             self.hidden_dim,

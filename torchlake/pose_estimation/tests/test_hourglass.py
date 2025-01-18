@@ -1,17 +1,17 @@
 import pytest
 import torch
 
-from ..models.hourglass.model import StackedHourGlass
-from ..models.hourglass.network import AuxiliaryHead, HourGlass2d
+from ..models.hourglass.model import StackedHourglass
+from ..models.hourglass.network import AuxiliaryHead, Hourglass2d
 
 
-class TestStackedHourGlass:
+class TestStackedHourglass:
     @pytest.mark.parametrize("num_stack", [1, 2, 4, 8])
     @pytest.mark.parametrize("num_resblock", [1, 2])
     def test_forward_shape(self, num_stack, num_resblock):
         x = torch.rand((2, 3, 224, 224))
 
-        model = StackedHourGlass(
+        model = StackedHourglass(
             output_size=16,
             num_stack=num_stack,
             num_resblock=num_resblock,
@@ -22,11 +22,11 @@ class TestStackedHourGlass:
         assert y.shape == torch.Size((2, num_stack, 16, 56, 56))
 
 
-class TestHourGlass2d:
+class TestHourglass2d:
     def test_forward_shape(self):
         x = torch.rand((2, 8, 56, 56))
 
-        model = HourGlass2d(8, 4)
+        model = Hourglass2d(8, 4)
 
         y = model(x)
 

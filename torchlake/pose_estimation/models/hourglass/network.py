@@ -50,7 +50,7 @@ class BottleNeck(nn.Module):
         return self.block(x)
 
 
-class HourGlass2d(nn.Module):
+class Hourglass2d(nn.Module):
 
     def __init__(
         self,
@@ -70,7 +70,7 @@ class HourGlass2d(nn.Module):
             ]
         )
         self.block = (
-            HourGlass2d(hidden_dim, num_nested - 1) if num_nested > 1 else nn.Identity()
+            Hourglass2d(hidden_dim, num_nested - 1) if num_nested > 1 else nn.Identity()
         )
         self.downsample = nn.Sequential(
             nn.MaxPool2d(2, 2),
