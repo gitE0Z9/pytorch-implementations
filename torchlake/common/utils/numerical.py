@@ -1,3 +1,4 @@
+from typing import Literal
 import torch
 
 
@@ -58,13 +59,17 @@ def receptive_field(k, l):
     return (k - 1) ** (l - 1) + receptive_field(k, l - 1)
 
 
-def generate_grid(*shapes: tuple[int], center: bool = False) -> tuple[torch.Tensor]:
+def generate_grid(
+    *shapes: tuple[int],
+    center: bool = False,
+    indexing: Literal["xy", "ij"] = "xy",
+) -> tuple[torch.Tensor]:
     grids = torch.meshgrid(
         [torch.arange(shape) for shape in shapes],
         # xy will switch first 2 dim
         # so (h,w) => x,y
         # (t, h, w) => y,z,x
-        indexing="xy",
+        indexing=indexing,
     )
 
     if center:
