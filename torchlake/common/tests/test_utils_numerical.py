@@ -1,12 +1,13 @@
-import torch
 import pytest
+import torch
+from torch.testing import assert_close
+
 from ..utils.numerical import (
-    safe_sqrt,
-    safe_negative_factorial,
     generate_grid,
     log_sum_exp,
+    safe_negative_factorial,
+    safe_sqrt,
 )
-from torch.testing import assert_close
 
 
 @pytest.mark.parametrize(
@@ -43,27 +44,57 @@ def test_log_sum_exp():
     assert not torch.isnan(y).any()
 
 
-def test_generate_grid():
-    x, y = generate_grid(3, 3)
-
-    assert_close(
-        x,
-        torch.LongTensor(
-            [
-                [0, 1, 2],
-                [0, 1, 2],
-                [0, 1, 2],
-            ]
+@pytest.mark.parametrize(
+    "shape,center,expected",
+    [
+        (
+            (3,),
+            False,
+            (torch.LongTensor([0, 1, 2]),),
         ),
-    )
-
-    assert_close(
-        y,
-        torch.LongTensor(
-            [
-                [0, 0, 0],
-                [1, 1, 1],
-                [2, 2, 2],
-            ]
+        (
+            (3,),
+            True,
+            (torch.LongTensor([0, 1, 2]) - 1,),
         ),
-    )
+        (
+            (3, 3),
+            False,
+            (
+                torch.LongTensor([0, 1, 2]).expand(3, 3),
+                torch.LongTensor([0, 1, 2]).expand(3, 3).mT,
+            ),
+        ),
+        (
+            (3, 3),
+            True,
+            (
+                torch.LongTensor([0, 1, 2]).expand(3, 3) - 1,
+                torch.LongTensor([0, 1, 2]).expand(3, 3).mT - 1,
+            ),
+        ),
+        (
+            (3, 3, 3),
+            False,
+            (
+                torch.LongTensor([0, 1, 2]).expand(3, 3, 3).mT,
+                torch.LongTensor([0, 1, 2]).expand(3, 3, 3).permute(2, 1, 0),
+                torch.LongTensor([0, 1, 2]).expand(3, 3, 3),
+            ),
+        ),
+        (
+            (3, 3, 3),
+            True,
+            (
+                torch.LongTensor([0, 1, 2]).expand(3, 3, 3).mT - 1,
+                torch.LongTensor([0, 1, 2]).expand(3, 3, 3).permute(2, 1, 0) - 1,
+                torch.LongTensor([0, 1, 2]).expand(3, 3, 3) - 1,
+            ),
+        ),
+    ],
+)
+def test_generate_grid(shape: tuple[int], center: bool, expected: tuple[torch.Tensor]):
+    grids = generate_grid(*shape, center=center)
+
+    for grid, y in zip(grids, expected):
+        assert_close(grid, y)

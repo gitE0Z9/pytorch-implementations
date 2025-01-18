@@ -58,14 +58,25 @@ def receptive_field(k, l):
     return (k - 1) ** (l - 1) + receptive_field(k, l - 1)
 
 
-def generate_grid(grid_x: int, grid_y: int) -> torch.Tensor:
-    x_offset, y_offset = torch.meshgrid(
-        torch.arange(grid_x),
-        torch.arange(grid_y),
+def generate_grid(*shapes: tuple[int], center: bool = False) -> tuple[torch.Tensor]:
+    grids = torch.meshgrid(
+        [torch.arange(shape) for shape in shapes],
+        # xy will switch first 2 dim
+        # so (h,w) => x,y
+        # (t, h, w) => y,z,x
         indexing="xy",
     )
 
-    return x_offset, y_offset
+    if center:
+        grids = list(grids)
+        for i in range(len(shapes)):
+            mid = shapes[i] // 2
+            if shapes[i] % 2 == 0:
+                mid = (2 * mid + 1) / 2
+
+            grids[i] = grids[i] - mid
+
+    return grids
 
 
 def gaussian_kernel(x: torch.Tensor, y: torch.Tensor, std: float) -> torch.Tensor:
