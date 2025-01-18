@@ -25,6 +25,11 @@ def test_mpii_from_raw():
         transform=transform,
     )
 
+    # check shape
     assert len(dataset) > 1
     assert dataset[0][0].shape == torch.Size((3, 256, 256))
     assert dataset[0][1].shape == torch.Size((16, 2))
+
+    # run through whole dataset
+    # for _ in dataset:
+    #     pass
