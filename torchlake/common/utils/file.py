@@ -1,14 +1,16 @@
 import json
 from pathlib import Path
 
+import scipy.io
+
 
 def read_json_file(path: Path | str) -> str:
-    if isinstance(path, str):
-        path = Path(path)
-    return json.loads(path.read_bytes())
+    return json.loads(Path(path).read_bytes())
 
 
 def write_json_file(path: Path | str, data: dict) -> str:
-    if isinstance(path, str):
-        path = Path(path)
-    return path.write_text(json.dumps(data))
+    return Path(path).write_text(json.dumps(data))
+
+
+def read_matlab_file(path: Path | str) -> dict:
+    return scipy.io.loadmat(Path(path))
