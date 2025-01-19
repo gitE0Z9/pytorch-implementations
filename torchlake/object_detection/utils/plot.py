@@ -1,5 +1,4 @@
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -9,7 +8,7 @@ def draw_label(
     label: torch.Tensor,
     class_names: list[str],
     class_show: bool = True,
-    class_colors: dict[str, list[int]] = None,
+    class_colors: dict[str, list[int]] = {},
 ):
     """draw detection label
 
@@ -19,7 +18,7 @@ def draw_label(
         class_name (List[str]): class names
         class_show (bool, optional): show class and score. Defaults to True.
         verbose (bool, optional): print out class and score. Defaults to True.
-        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to None.
+        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
     """
     height, width, _ = img.shape
 
