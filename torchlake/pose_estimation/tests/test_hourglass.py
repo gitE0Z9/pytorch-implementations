@@ -3,6 +3,7 @@ import torch
 
 from ..models.hourglass.model import StackedHourglass
 from ..models.hourglass.network import AuxiliaryHead, Hourglass2d
+from ..models.hourglass.loss import StackedHourglassLoss
 
 
 class TestStackedHourglass:
@@ -47,3 +48,29 @@ class TestAuxiliaryHead:
             assert y[1].shape == torch.Size((2, 8, 7, 7))
         else:
             assert y.shape == torch.Size((2, 4, 7, 7))
+
+
+class TestLoss:
+    def test_forward(self):
+        # batch, stack, num point, h, w
+        x = torch.rand(2, 3, 3, 7, 7)
+        # batch, num point, 2
+        y = torch.LongTensor(
+            [
+                [
+                    [1, 1],
+                    [2, 2],
+                    [3, 3],
+                ],
+                [
+                    [1, 2],
+                    [2, 4],
+                    [3, 6],
+                ],
+            ]
+        )
+
+        criterion = StackedHourglassLoss()
+        loss = criterion(x, y)
+
+        assert not torch.isnan(loss)

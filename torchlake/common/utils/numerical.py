@@ -122,14 +122,11 @@ def build_heatmap(
     # declare
     device = x.device
     keypoint_shape = x.shape[:-1]
-    mu = torch.zeros(dim).to(device)
-    sd = sigma * torch.eye(dim).to(device)
-    dist = MultivariateNormal(mu, sd)
 
     # D x (shape)
     grids = generate_grid(*spatial_shape, indexing="ij")
     # D, *shape
-    grids = torch.stack(grids)
+    grids = torch.stack(grids).to(device)
 
     # b*c, D, 1, 1
     points = x.view(-1, dim)[:, :, None, None]
@@ -140,4 +137,10 @@ def build_heatmap(
         .mT.reshape(-1, dim)
     )
 
+    # https://discuss.pytorch.org/t/how-to-use-torch-distributions-multivariate-normal-multivariatenormal-in-multi-gpu-mode/135030/3
+    # manually control batch size, so gpu runtime error is not triggered
+    n = grids.size(0)
+    mu = torch.zeros(n, dim).to(device)
+    sd = sigma * torch.eye(dim).unsqueeze(0).repeat(n, *(1,) * dim).to(device)
+    dist = MultivariateNormal(mu, sd)
     return dist.log_prob(grids).view(*keypoint_shape, *spatial_shape)
