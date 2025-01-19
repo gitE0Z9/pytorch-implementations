@@ -22,7 +22,7 @@ class StackedHourglassTrainer(RegressionTrainer):
         y /= scales[None, None, :]
         # y_hat shape: batch, stack, channel, ...spatial
         # TODO(won't do): multi instance shape: batch, instance, stack, channel
-        y = build_heatmap(y, spatial_shape=y_hat.shape[3:])
+        y = build_heatmap(y, spatial_shape=y_hat.shape[3:]).exp()
         y = y.unsqueeze(1).expand_as(y_hat)
 
         return criterion(y_hat, y.float())
