@@ -39,11 +39,23 @@ class MPIIFromRaw(Dataset):
         # furthur clean labels
         if self.mode == "train":
             dropped = []
+            # remove labels without annotations
             for i, l in enumerate(labels["annorect"]):
                 try:
                     l["annopoints"]
                 except:
                     dropped.append(i)
+
+            # remove labels with empty points
+            for i, l in enumerate(labels["annorect"]):
+                if i not in dropped:
+                    for k in l["annopoints"][0]:
+                        try:
+                            k["point"]
+                        except:
+                            dropped.append(i)
+                            break
+
             print("dropped:", len(dropped))
             self.labels = np.delete(labels, dropped)
 
@@ -54,33 +66,48 @@ class MPIIFromRaw(Dataset):
         if index >= len(self):
             raise IndexError(f"invalid index {index}")
 
-        NUM_JOINTS = len(self.class_names)
-
-        keypoints_set = self.labels["annorect"][index]["annopoints"][0]
+        # image
         image = self.labels["image"][index]["name"][0][0][0]
         image = self.root.joinpath("data").joinpath(image)
         image = load_image(image, is_numpy=True)
 
         # num_person, num_joint, 2
+        NUM_JOINTS = len(self.class_names)
+        keypoints_set = self.labels["annorect"][index]["annopoints"][0]
         max_visible_points, max_idx = 0, 0
         annotations = []
         for p_idx, keypoints in enumerate(keypoints_set):
             annotation = [(0, 0) for _ in range(NUM_JOINTS)]
             visible_point = 0
             keypoints = keypoints["point"][0][0][0]
+
+            try:
+                keypoints["is_visible"]
+            except:
+                continue
+
             for x, y, c, is_visible in zip(
                 keypoints["x"],
                 keypoints["y"],
                 keypoints["id"],
                 keypoints["is_visible"],
             ):
-                if len(is_visible) and is_visible[0] == "1":
+                # https://stackoverflow.com/questions/59772847/mpii-pose-estimation-dataset-visibility-flag-not-present
+                # occluded: empty
+                # invisible: [["0"]]
+                # visible: [["1"]]
+                if len(is_visible) and (
+                    is_visible[0][0] == 1 or is_visible[0][0] == "1"
+                ):
                     annotation[c[0][0]] = (x[0][0], y[0][0])
                     visible_point += 1
             annotations.append(annotation)
             if visible_point > max_visible_points:
                 max_visible_points = visible_point
                 max_idx = p_idx
+
+        # single person and multi person
+        # and then transform
 
         if self.single_person:
             # for single person, choose most visible one
@@ -89,7 +116,7 @@ class MPIIFromRaw(Dataset):
 
         if self.transform:
             if not self.single_person:
-                annotations = annotations.view(-1, 2)
+                annotations = [ele for ele in annotation for annotation in annotations]
             transformed = self.transform(image=image, keypoints=annotations)
 
         annotations = torch.Tensor(transformed["keypoints"])

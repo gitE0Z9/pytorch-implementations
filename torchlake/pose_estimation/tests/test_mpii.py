@@ -1,3 +1,4 @@
+import enum
 from pathlib import Path
 
 import albumentations as A
@@ -14,7 +15,7 @@ def test_mpii_from_raw():
             A.Normalize(0, 1),
             ToTensorV2(),
         ],
-        keypoint_params=A.KeypointParams(format="xy"),
+        keypoint_params=A.KeypointParams(format="xy", remove_invisible=False),
     )
 
     dataset = MPIIFromRaw(
@@ -31,5 +32,5 @@ def test_mpii_from_raw():
     assert dataset[0][1].shape == torch.Size((16, 2))
 
     # run through whole dataset
-    # for _ in dataset:
-    #     pass
+    # for i in range(len(dataset)):
+    #     dataset[i]
