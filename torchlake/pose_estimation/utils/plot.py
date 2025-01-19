@@ -28,7 +28,7 @@ def draw_label(
             class_info = f"{class_name}"
             color = class_colors.get(class_name, (0, 0, 255))
 
-            cv2.circle(img, (int(x), int(y)), 5, color, 2)
+            cv2.circle(img, (int(x), int(y)), 8, color, -1)
 
             # if class_show:
             # y1 = max(y1 - 30, 0)
