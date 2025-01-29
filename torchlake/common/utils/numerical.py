@@ -1,7 +1,9 @@
+import math
 from typing import Literal
 
 import torch
-from torch.distributions import MultivariateNormal
+from torch.distributions.multivariate_normal import MultivariateNormal
+from torch.distributions.normal import Normal
 
 
 def safe_negative_factorial(
@@ -99,10 +101,12 @@ def causal_mask(*shape: int) -> torch.Tensor:
     return torch.tril(torch.ones(shape))
 
 
-def build_heatmap(
+def build_gaussian_heatmap(
     x: torch.Tensor,
     spatial_shape: tuple[int],
     sigma: float = 1,
+    effective: bool = True,
+    truncated: bool = False,
 ) -> torch.Tensor:
     """build guassian heatmap for keypoints
 
@@ -110,6 +114,8 @@ def build_heatmap(
         x (torch.Tensor): keypoints, in shape (batch, num_joint, dimension)
         spatial_shape (tuple[int]): size of heatmap, in shape (height, width)
         sigma (float, optional): standard deviation of guassian distribution. Defaults to 1.
+        effective (bool, optional): log probability is only effective in the neighborhood within 3 sd.
+        truncated (bool, optional): use truncated normal distribution, can only be used when effective is True.
 
     Returns:
         torch.Tensor: heatmap, in shape (batch, num_joint, height, width)
@@ -121,7 +127,9 @@ def build_heatmap(
 
     # declare
     device = x.device
+    # batch, num_joint
     keypoint_shape = x.shape[:-1]
+    num_points = math.prod(spatial_shape)
 
     # D x (shape)
     grids = generate_grid(*spatial_shape, indexing="ij")
@@ -137,10 +145,27 @@ def build_heatmap(
         .mT.reshape(-1, dim)
     )
 
+    # TODO: should upgrade! www
+    # torch 2.1.0 fix
     # https://discuss.pytorch.org/t/how-to-use-torch-distributions-multivariate-normal-multivariatenormal-in-multi-gpu-mode/135030/3
     # manually control batch size, so gpu runtime error is not triggered
     n = grids.size(0)
     mu = torch.zeros(n, dim).to(device)
     sd = sigma * torch.eye(dim).unsqueeze(0).repeat(n, *(1,) * dim).to(device)
     dist = MultivariateNormal(mu, sd)
-    return dist.log_prob(grids).view(*keypoint_shape, *spatial_shape)
+    # b*c, N
+    hm = dist.log_prob(grids).view(-1, num_points)
+
+    if effective:
+        # simplify computation by 1d
+        n = Normal(torch.Tensor([0]), torch.Tensor([sigma]))
+        threshold = (dim - 1) * n.log_prob(torch.Tensor([0])).item() + n.log_prob(
+            torch.Tensor([3 * sigma])
+        ).item()
+        hm[hm < threshold] = -torch.inf
+
+        if truncated:
+            hm -= hm.logsumexp(dim=-1, keepdim=True)
+            hm[hm.isnan()] = -torch.inf
+
+    return hm.view(*keypoint_shape, *spatial_shape)

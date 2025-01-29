@@ -15,6 +15,7 @@ def plot_grids(
     num_col: int = 1,
     figsize: tuple[int] = (8, 8),
     is_gray_scale: bool = False,
+    cmap: str | None = None,
 ):
     plt.figure(figsize=figsize)
 
@@ -26,6 +27,6 @@ def plot_grids(
         plt.axis("off")
 
         if is_gray_scale:
-            plt.imshow(image, cmap="gray")
-        else:
-            plt.imshow(image)
+            cmap = "gray"
+
+        plt.imshow(image, cmap)

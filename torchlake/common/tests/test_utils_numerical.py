@@ -3,7 +3,7 @@ import torch
 from torch.testing import assert_close
 
 from ..utils.numerical import (
-    build_heatmap,
+    build_gaussian_heatmap,
     generate_grid,
     log_sum_exp,
     safe_negative_factorial,
@@ -101,7 +101,8 @@ def test_generate_grid(shape: tuple[int], center: bool, expected: tuple[torch.Te
         assert_close(grid, y)
 
 
-def test_gaussian_heatmap():
+@pytest.mark.parametrize("truncated", [False, True])
+def test_gaussian_heatmap(truncated):
     x = torch.Tensor(
         [
             [
@@ -110,8 +111,13 @@ def test_gaussian_heatmap():
             ]
         ],
     )
-    y = build_heatmap(x, (3, 3), sigma=1)
+    y = build_gaussian_heatmap(
+        x,
+        (5, 5),
+        sigma=1,
+        truncated=truncated,
+    )
 
-    assert_close(y.shape, torch.Size((1, 2, 3, 3)))
+    assert_close(y.shape, torch.Size((1, 2, 5, 5)))
     assert y[0, 0, 1, 1] == y[0, 0].max()
     assert y[0, 1, 1, 2] == y[0, 1].max()
