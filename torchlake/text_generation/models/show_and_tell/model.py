@@ -28,12 +28,14 @@ class NeuralImageCation(ModelBase):
         self.num_layers = num_layers
         self.bidirectional = bidirectional
         self.context = context
-        super().__init__(input_channel, output_size)
-        # XXX: pytorch module conflict
-        self.foot = backbone
+        super().__init__(
+            input_channel,
+            output_size,
+            foot_kwargs={"backbone": backbone},
+        )
 
-    def build_foot(self, _):
-        self.foot = ...
+    def build_foot(self, _, **kwargs):
+        self.foot = kwargs.pop("backbone")
 
     def build_neck(self):
         self.neck = FlattenFeature()
@@ -63,7 +65,10 @@ class NeuralImageCation(ModelBase):
         result.forward = self.predict
         return result
 
-    def get_image_feature(self, x: torch.Tensor) -> tuple[torch.Tensor]:
+    def get_image_feature(
+        self,
+        x: torch.Tensor,
+    ) -> tuple[torch.Tensor, tuple[torch.Tensor]]:
         # B, C, H, W
         z: torch.Tensor = self.foot(x).pop()
 
@@ -71,23 +76,23 @@ class NeuralImageCation(ModelBase):
         z: torch.Tensor = self.neck(z).unsqueeze(1)
 
         batch_size = z.size(0)
-        # fed image feature as token
-        # so first token is generated
-        _, ht, states = self.head.model.feature_extract(
-            torch.zeros(batch_size, 1).to(self.context.device), z
+        # fed image feature as embedding
+        # use fake input seq to avoid pack
+        _, ht, states = self.head.head.feature_extract(
+            get_input_sequence((batch_size, 1), self.context), z
         )
 
-        return (ht, *states)
+        return ht, states
 
     def loss_forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        states = self.get_image_feature(x)
+        ht, states = self.get_image_feature(x)
 
         # B, S, V
-        return self.head.loss_forward(y, *states)
+        return self.head.loss_forward(y, ht, *states)
 
     def predict(self, x: torch.Tensor, topk: int = 1) -> torch.Tensor:
-        states = self.get_image_feature(x)
+        ht, states = self.get_image_feature(x)
 
         # B, S
         x = get_input_sequence((x.size(0), 1), self.context)
-        return self.head.predict(x, *states, topk=topk)
+        return self.head.predict(x, ht, *states, topk=topk)
