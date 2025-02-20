@@ -1,10 +1,13 @@
 from pathlib import Path
 
+import lmdb
 import pandas as pd
 import PIL
 import PIL.Image
 from torch.utils.data import Dataset
+from torchlake.common.mixins.dataset import LMDBMixin
 from torchlake.common.utils.image import load_image
+from tqdm import tqdm
 
 
 class Flickr8k(Dataset):
@@ -39,12 +42,67 @@ class Flickr8k(Dataset):
         img_name, caption = self.data[idx]
         img_path = self.img_root.joinpath(img_name)
 
-        img: PIL.Image = load_image(img_path)
+        img = load_image(img_path, is_numpy=True)
 
         if self.transform is not None:
-            img = self.transform(img)
+            image = self.transform(image=image)["image"]
 
         if self.text_transform is not None:
             caption = self.text_transform(caption)
 
-        return img, caption
+        return image, caption
+
+    def to_lmdb(self, env: lmdb.Environment):
+        with env.begin(write=True) as tx:
+            for i, (img, labels) in enumerate(tqdm(self)):
+                tx.put(f"{i}".encode("utf-8"), img.tobytes())
+                tx.put(
+                    f"{i}_shape".encode("utf-8"), str(list(img.shape)).encode("utf-8")
+                )
+                tx.put(f"{i}_label".encode("utf-8"), str(labels).encode("utf-8"))
+
+            tx.put(b"count", str(len(self)).encode("utf-8"))
+
+
+class Flickr8kFromLMDB(LMDBMixin, Dataset):
+
+    def __init__(
+        self,
+        lmdb_path: str | Path,
+        transform=None,
+        text_transform=None,
+    ):
+        """Flickr 8K caption dataset
+        data from [kaggle/adityajn105](https://www.kaggle.com/datasets/adityajn105/flickr8k)
+
+        Args:
+            lmdb_path (str | Path): root to lmdb folder
+            transform (torchvision.transforms, optional): image transform. Defaults to None.
+            text_transform (torchtext.transforms, optional): text transform. Defaults to None.
+        """
+        super().__init__()
+        self.transform = transform
+        self.text_transform = text_transform
+
+        self.post_init(lmdb_path)
+
+    def __getitem__(self, idx: int) -> tuple:
+        if idx >= self.data_size:
+            raise IndexError(f"invalid index {idx}")
+
+        img = self.get_image(idx)
+        caption = self.get_label(idx)
+
+        if self.transform is not None:
+            image = self.transform(image=image)["image"]
+
+        if self.text_transform is not None:
+            caption = self.text_transform(caption)
+
+        return image, caption
+
+    def get_label(self, idx: int) -> list[list[list[int, int, int]]]:
+        with self.env.begin() as tx:
+            label = str(tx.get(f"{idx}_label".encode("utf-8")))
+
+        return label
