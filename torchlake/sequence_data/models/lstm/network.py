@@ -49,7 +49,7 @@ class LSTMLayer(nn.Module):
             c = torch.zeros((1, 1, self.latent_dim))
 
         # recurrent network is suitable on cpu not gpu for sequential operation
-        # but for practical, implement in batch, max_seq_len, latent_dim
+        # loop over in the shape of max_seq_len, batch, latent_dim
         if self.batch_first:
             x = x.transpose(0, 1)
 
