@@ -66,7 +66,7 @@ class Hourglass2d(nn.Module):
                     hidden_dim,
                     block=BottleNeck(hidden_dim, hidden_dim // 2),
                 )
-                for _ in range(num_resblock * 2)
+                for _ in range(num_resblock if num_nested > 1 else num_resblock * 2)
             ]
         )
         self.block = (
