@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, Literal
+from typing import Iterator, Literal, TypeVar
 
 import numpy as np
 import torch
@@ -10,6 +10,8 @@ from torchlake.common.metrics.classification import IncrementalConfusionMatrix
 from tqdm import tqdm
 
 from ..mixins.controller import PredictFunctionMixin
+
+T = TypeVar("T")
 
 
 class EvaluatorBase(PredictFunctionMixin, ABC):
@@ -22,22 +24,23 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
         output: torch.Tensor | tuple[torch.Tensor],
     ) -> torch.Tensor | tuple[torch.Tensor]: ...
 
-    def run(self, data: Iterator, model: nn.Module):
+    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
+        metric.update(y.long(), yhat.detach().cpu().long())
+
+    def run(self, data: Iterator, model: nn.Module, metric: T | None = None) -> T:
         if not hasattr(self, "_predict"):
             self.build_predict_function_by_data_type(iter(data))
 
         model.eval()
         with torch.no_grad():
-
-            metric = self._build_metric()
+            metric = metric or self._build_metric()
             for row in tqdm(data):
                 _, y = row
                 output = self._predict(row, model)
                 output = self._decode_output(output)
-                metric.update(y.long(), output.detach().cpu().long())
+                self._update_metric(metric, y, output)
 
-            print(metric)
-
+        print(metric)
         return metric
 
 
@@ -76,6 +79,7 @@ class ClassificationEvaluator(EvaluatorBase):
         else:
             return output
 
+    # TODO: split classification matrix to itself utils, or just use torchmetric
     @staticmethod
     def get_matrix(
         confusion_matrix: IncrementalConfusionMatrix | np.ndarray,
