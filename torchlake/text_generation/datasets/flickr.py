@@ -42,7 +42,7 @@ class Flickr8k(Dataset):
         img_name, caption = self.data[idx]
         img_path = self.img_root.joinpath(img_name)
 
-        img = load_image(img_path, is_numpy=True)
+        image = load_image(img_path, is_numpy=True)
 
         if self.transform is not None:
             image = self.transform(image=image)["image"]
@@ -90,7 +90,7 @@ class Flickr8kFromLMDB(LMDBMixin, Dataset):
         if idx >= self.data_size:
             raise IndexError(f"invalid index {idx}")
 
-        img = self.get_image(idx)
+        image = self.get_image(idx)
         caption = self.get_label(idx)
 
         if self.transform is not None:
