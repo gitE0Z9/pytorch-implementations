@@ -39,6 +39,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
         self.feature_last = feature_last
         self.validate_interval = validate_interval
         self.checkpoint_interval = checkpoint_interval
+        self.recorder = TrainRecorder(total_epoch=self.epoches)
 
     def get_criterion(self):
         raise NotImplementedError
@@ -79,12 +80,10 @@ class TrainerBase(PredictFunctionMixin, ABC):
         torch.set_autocast_enabled(scaler is not None)
         print(f"Enable AMP: {torch.is_autocast_enabled()}")
 
-        # recorder
+        # TODO: overhead
         if recorder is None:
-            recorder = TrainRecorder(total_epoch=self.epoches)
-            # TODO: overhead
             print("Calculating dataset size...")
-            recorder.calc_dataset_size(data)
+            self.recorder.calc_dataset_size(data)
 
         model.train()
         # some models have extra layers during training

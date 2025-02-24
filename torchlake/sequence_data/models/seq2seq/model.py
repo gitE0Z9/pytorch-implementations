@@ -51,10 +51,8 @@ class Seq2Seq(ModelBase):
         Returns:
             torch.Tensor: encoding
         """
-        # 1409.3215 p.3: reverse x
-        y = x.flip(1)
         # embedding
-        y = self.foot.foot(y)
+        y = self.foot.foot(x)
         # rnn feature
         return self.foot.feature_extract(x, y)
 
@@ -86,6 +84,21 @@ class Seq2Seq(ModelBase):
         #     .permute(2, 0, 1, 3)
         #     .repeat(self.head.head.num_layers, 1, 1, 1)
         # )
+
+        # hs = hs[-self.foot.factor :, :, :].repeat(
+        #     self.head.head.factor * self.head.head.num_layers // self.foot.factor,
+        #     1,
+        #     1,
+        # )
+        # if states:
+        #     for state in states:
+        #         state = state[-self.foot.factor :, :, :].repeat(
+        #             self.head.head.factor
+        #             * self.head.head.num_layers
+        #             // self.foot.factor,
+        #             1,
+        #             1,
+        #         )
 
         return self.head.loss_forward(
             y,

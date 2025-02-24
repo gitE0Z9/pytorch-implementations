@@ -54,17 +54,15 @@ class RNNGenerator(ModelBase):
         self,
         ht: torch.Tensor,
         os: torch.Tensor,
-        output_score: bool = False,
-    ) -> torch.Tensor | tuple[torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """attend hidden state of source hidden state
 
         Args:
             ht (torch.Tensor): current hidden state
             os (torch.Tensor, optional): source output state. Defaults to None.
-            output_score (bool, optional): output attention score or not. Defaults to False.
 
         Returns:
-            torch.Tensor: attended representation
+            tuple[torch.Tensor, torch.Tensor]: attended representation, attention score
         """
         if self.neck is not None:
             # num_layers = self.head.num_layers
@@ -73,10 +71,9 @@ class RNNGenerator(ModelBase):
             # elif num_layers > 1:
             ht, score = self.neck(os, ht)
 
-            if output_score:
-                return ht, score
+            return ht, score
 
-        return ht
+        return ht, None
 
     def loss_forward(
         self,
@@ -86,6 +83,7 @@ class RNNGenerator(ModelBase):
         ot: torch.Tensor | None = None,
         teacher_forcing_ratio: float = 0.5,
         output_score: bool = False,
+        early_stopping: bool = True,
     ) -> torch.Tensor:
         """training loss forward
 
@@ -96,6 +94,7 @@ class RNNGenerator(ModelBase):
             ot (torch.Tensor, optional): output state. shape is (batch_size, seq_len, bidirectional * hidden_dim). Defaults to None.
             teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
             output_score (bool, optional): output attention score or not. Defaults to False.
+            early_stopping (bool, optional): stop generation after longest meaningful tokens in y. Defaults to True.
 
         Returns:
             torch.Tensor: generated sequence
@@ -118,15 +117,15 @@ class RNNGenerator(ModelBase):
 
         # next token prediction
         input_seq = get_input_sequence((batch_size, 1), context)
+        # early stopping by target sentence, since padding is ignored during training
+        if early_stopping:
+            max_seq_len = y.eq(self.head.context.padding_idx).sum(dim=1).max()
         for t in range(1, max_seq_len, 1):
             # attention
-            att = self.attend(ht, *source_states, output_score=output_score)
+            ht, score = self.attend(ht, *source_states)
             # store attention score
             if output_score:
-                ht, score = att
                 scores.append(score)
-            else:
-                ht = att
 
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
@@ -149,28 +148,8 @@ class RNNGenerator(ModelBase):
                 output.argmax(-1, keepdim=True),
             )
 
-            # early stopping
-            if (
-                input_seq[:, -1].eq(context.eos_idx).all()
-                or input_seq[:, -1].eq(context.padding_idx).all()
-            ):
-                break
-
         # B, ?, V
         outputs = torch.stack(outputs, 1)
-        # pad it back
-        need_pad_length = max_seq_len - outputs.size(1)
-        if need_pad_length > 0:
-            outputs = torch.cat(
-                [
-                    outputs,
-                    torch.full((batch_size, need_pad_length, output_size), -1e4).to(
-                        device
-                    ),
-                ],
-                1,
-            )
-            outputs[:, -need_pad_length:, context.padding_idx] = 1e4
 
         if output_score:
             # B, S, V # D, B, S, S'
@@ -237,13 +216,10 @@ class RNNGenerator(ModelBase):
         # beam search forward
         for t in range(1, max_seq_len, 1):
             # attention
-            att = self.attend(ht, *source_states, output_score=output_score)
+            ht, score = self.attend(ht, *source_states)
             # store attention score
             if output_score:
-                ht, score = att
                 scores.append(score)
-            else:
-                ht = att
 
             # topk, B, V
             # insert input token embedding, previous hidden and previous cell states
