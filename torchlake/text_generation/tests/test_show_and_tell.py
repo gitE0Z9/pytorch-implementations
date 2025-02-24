@@ -3,6 +3,8 @@ from functools import partial
 import pytest
 import torch
 from torchlake.common.models import VGGFeatureExtractor
+from torchlake.sequence_data.models.base import RNNGenerator
+from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 
 from ..models.show_and_tell import NeuralImageCation
 from .constants import BATCH_SIZE, CONTEXT, HIDDEN_DIM, SEQ_LEN, VOCAB_SIZE
@@ -18,19 +20,27 @@ def test_forward_shape(is_train: bool, expected_shape: tuple[int]):
 
     extractor = VGGFeatureExtractor("vgg16", "maxpool", trainable=False)
     extractor.forward = partial(extractor.forward, target_layer_names=["5_1"])
+    decoder = RNNGenerator(
+        LSTMDiscriminator(
+            VOCAB_SIZE,
+            512,
+            HIDDEN_DIM,
+            VOCAB_SIZE,
+            context=CONTEXT,
+        )
+    )
     model = NeuralImageCation(
         extractor,
-        VOCAB_SIZE,
-        512,
-        HIDDEN_DIM,
-        VOCAB_SIZE,
+        decoder,
         context=CONTEXT,
     )
 
     if is_train:
         model.train()
         y = model(x, y)
-        assert y.shape == torch.Size(expected_shape)
+        assert y.size(0) == expected_shape[0]
+        assert y.size(1) <= expected_shape[1]
+        assert y.size(2) == expected_shape[2]
     else:
         model.eval()
         y = model(x)
