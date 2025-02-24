@@ -3,9 +3,8 @@ from torchlake.common.models import FlattenFeature
 from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
-from torchlake.sequence_data.models.base import RNNGenerator
-from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 from torchlake.common.utils.sequence import get_input_sequence
+from torchlake.sequence_data.models.base import RNNGenerator
 
 
 class NeuralImageCation(ModelBase):
@@ -13,25 +12,15 @@ class NeuralImageCation(ModelBase):
     def __init__(
         self,
         backbone: ExtractorBase,
-        vocab_size: int,
-        embed_dim: int,
-        hidden_dim: int,
-        output_size: int = 1,
-        num_layers: int = 1,
-        bidirectional: bool = False,
+        decoder: RNNGenerator,
         context: NlpContext = NlpContext(),
     ):
-        input_channel = 3
-        self.vocab_size = vocab_size
-        self.embed_dim = embed_dim
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
         self.context = context
         super().__init__(
-            input_channel,
-            output_size,
+            None,
+            None,
             foot_kwargs={"backbone": backbone},
+            head_kwargs={"decoder": decoder},
         )
 
     def build_foot(self, _, **kwargs):
@@ -40,18 +29,8 @@ class NeuralImageCation(ModelBase):
     def build_neck(self):
         self.neck = FlattenFeature()
 
-    def build_head(self, output_size: int):
-        model = LSTMDiscriminator(
-            self.vocab_size,
-            self.embed_dim,
-            self.hidden_dim,
-            output_size,
-            num_layers=self.num_layers,
-            bidirectional=self.bidirectional,
-            context=self.context,
-        )
-
-        self.head = RNNGenerator(model)
+    def build_head(self, _, **kwargs):
+        self.head: RNNGenerator = kwargs.pop("decoder")
 
     def train(self, mode=True):
         result = super().train(mode)
@@ -84,15 +63,38 @@ class NeuralImageCation(ModelBase):
 
         return ht, states
 
-    def loss_forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def loss_forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        teacher_forcing_ratio: float = 0.5,
+        output_score: bool = False,
+    ) -> torch.Tensor:
         ht, states = self.get_image_feature(x)
 
         # B, S, V
-        return self.head.loss_forward(y, ht, *states)
+        return self.head.loss_forward(
+            y,
+            ht,
+            *states,
+            teacher_forcing_ratio=teacher_forcing_ratio,
+            output_score=output_score,
+        )
 
-    def predict(self, x: torch.Tensor, topk: int = 1) -> torch.Tensor:
+    def predict(
+        self,
+        x: torch.Tensor,
+        topk: int = 1,
+        output_score: bool = False,
+    ) -> torch.Tensor:
         ht, states = self.get_image_feature(x)
 
         # B, S
         x = get_input_sequence((x.size(0), 1), self.context)
-        return self.head.predict(x, ht, *states, topk=topk)
+        return self.head.predict(
+            x,
+            ht,
+            *states,
+            topk=topk,
+            output_score=output_score,
+        )
