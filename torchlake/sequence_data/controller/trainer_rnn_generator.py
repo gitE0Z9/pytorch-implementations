@@ -33,7 +33,11 @@ class RNNGeneratorTrainer(ClassificationTrainer):
             "inverse_sigmoid": self.inverse_sigmoid_strategy,
         }
 
-        return strategy_mapping[self.curriculum_strategy]()
+        curriculum_strategy = getattr(self, "curriculum_strategy", None)
+        if curriculum_strategy:
+            return strategy_mapping[self.curriculum_strategy]()
+        else:
+            return 0.5
 
     def linear_strategy(self) -> float:
         return max(self.epsilon, self.k - self.c * self.recorder.current_epoch)
@@ -58,10 +62,15 @@ class RNNGeneratorTrainer(ClassificationTrainer):
         x, y = row
         x = x.to(self.device)
         y = y.to(self.device)
+
+        if "teacher_forcing_ratio" in kwargs:
+            teacher_forcing_ratio = kwargs.pop("teacher_forcing_ratio")
+        else:
+            teacher_forcing_ratio = self.teacher_forcing_raio
         output = model.forward(
             x,
             y,
-            teacher_forcing_ratio=self.teacher_forcing_raio,
+            teacher_forcing_ratio=teacher_forcing_ratio,
             *args,
             **kwargs,
         )
