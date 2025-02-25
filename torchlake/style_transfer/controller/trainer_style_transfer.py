@@ -1,9 +1,7 @@
 import torch
 import torch.nn.functional as F
-from torchvision import transforms
-
-from ..models.neural_style_transfer.loss import NeuralStyleTransferLoss
-from ..models.neural_style_transfer.model import NeuralStyleTransfer
+import torchvision.transforms as T
+from ..models.neural_style_transfer import NeuralStyleTransfer, NeuralStyleTransferLoss
 
 
 def run_neural_style_transfer(
