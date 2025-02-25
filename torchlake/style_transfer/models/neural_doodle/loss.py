@@ -3,41 +3,22 @@ import torch.nn.functional as F
 from torch import nn
 
 
-def get_multiscale_sizes(
-    h: int,
-    w: int,
-    max_scale: float = 0.5,
-    min_size: int = 64,
-) -> list[int]:
-    max_h, max_w = int(h * max_scale), int(w * max_scale)
-    hw_list = [[max_h, max_w]]
-    while 1:
-        new_h, new_w = max_h // 2, max_w // 2
-        if new_h >= min_size or new_w >= min_size:
-            hw_list.append([new_h, new_w])
-            max_h, max_w = new_h, new_w
-        else:
-            break
-    return hw_list
-
-
-class MrfLoss(nn.Module):
+class MRFLoss(nn.Module):
     def __init__(
         self,
         content_weight: float,
         style_weight: float,
         smoothness: float = 1,
     ):
-        super(MrfLoss, self).__init__()
+        super().__init__()
         self.content_weight = content_weight
         self.style_weight = style_weight
         self.smoothness = smoothness
-        self.unfold = nn.Unfold(3)
 
     def patchify(self, x: torch.Tensor) -> torch.Tensor:
-        return self.unfold(x).squeeze()
+        return F.unfold(x, 3).squeeze(0)
 
-    def find_nn(
+    def find_neighbors(
         self,
         style_patch: torch.Tensor,
         input_patch: torch.Tensor,
@@ -62,12 +43,12 @@ class MrfLoss(nn.Module):
         style_patch = self.patchify(style_feature)
         input_patch = self.patchify(input_feature)
 
-        knn = self.find_nn(style_patch, input_patch)
+        neighbors = self.find_neighbors(style_patch, input_patch)
 
         # only style and output compared, no semantic map
         return F.mse_loss(
             input_patch[: (style_feature.size(1) - 3) * 3 * 3],
-            style_patch[: (style_feature.size(1) - 3) * 3 * 3, knn],
+            style_patch[: (style_feature.size(1) - 3) * 3 * 3, neighbors],
             reduction="sum",
         )
 
