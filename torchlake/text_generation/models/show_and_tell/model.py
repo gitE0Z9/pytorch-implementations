@@ -44,7 +44,7 @@ class NeuralImageCation(ModelBase):
         result.forward = self.predict
         return result
 
-    def get_image_feature(
+    def encode(
         self,
         x: torch.Tensor,
     ) -> tuple[torch.Tensor, tuple[torch.Tensor]]:
@@ -70,7 +70,7 @@ class NeuralImageCation(ModelBase):
         teacher_forcing_ratio: float = 0.5,
         output_score: bool = False,
     ) -> torch.Tensor:
-        ht, states = self.get_image_feature(x)
+        ht, states = self.encode(x)
 
         # B, S, V
         return self.head.loss_forward(
@@ -87,7 +87,7 @@ class NeuralImageCation(ModelBase):
         topk: int = 1,
         output_score: bool = False,
     ) -> torch.Tensor:
-        ht, states = self.get_image_feature(x)
+        ht, states = self.encode(x)
 
         # B, S
         x = get_input_sequence((x.size(0), 1), self.context)

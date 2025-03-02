@@ -34,6 +34,10 @@ class TextCNN(ModelBase):
         self.dropout_prob = dropout_prob
         super().__init__(vocab_size, output_size)
 
+    @property
+    def feature_dim(self) -> int:
+        return self.hidden_dim * len(self.kernels)
+
     def build_foot(self, vocab_size: int):
         self.foot = nn.Embedding(
             vocab_size,
@@ -55,7 +59,7 @@ class TextCNN(ModelBase):
     def build_head(self, output_size):
         self.head = nn.Sequential(
             nn.Dropout(self.dropout_prob),
-            nn.Linear(self.hidden_dim * len(self.kernels), output_size),
+            nn.Linear(self.feature_dim, output_size),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

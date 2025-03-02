@@ -62,6 +62,7 @@ class Seq2Seq(ModelBase):
         y: torch.Tensor,
         teacher_forcing_ratio: float = 0.5,
         output_score: bool = False,
+        early_stopping: bool = True,
     ) -> torch.Tensor | tuple[torch.Tensor]:
         """training loss forward
 
@@ -70,6 +71,7 @@ class Seq2Seq(ModelBase):
             y (torch.Tensor): groundtruth sequence, shape is (batch_size, seq_len)
             teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
             output_score (bool, optional): output attention score or not. Defaults to False.
+            early_stopping (bool, optional): stop generation after longest meaningful tokens in y. Defaults to True.
 
         Returns:
             torch.Tensor: generated sequence
@@ -107,6 +109,7 @@ class Seq2Seq(ModelBase):
             ot=o,
             teacher_forcing_ratio=teacher_forcing_ratio,
             output_score=output_score,
+            early_stopping=early_stopping,
         )
 
     def predict(
