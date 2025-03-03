@@ -1,12 +1,12 @@
 import torch
 
-from torchlake.common.utils.random import generate_standard_normal
+from torchlake.common.utils.random import generate_normal
 from ..models.gan import GANDiscriminator, GANGenerator
 
 
 class TestModel:
     def test_generator_forward_shape(self):
-        z = generate_standard_normal(1, 128)
+        z = generate_normal(1, 128)
 
         model = GANGenerator(128, 256, (3, 32, 32))
 
