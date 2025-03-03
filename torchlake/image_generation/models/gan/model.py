@@ -1,6 +1,5 @@
 from math import prod
 
-import torch
 from torch import nn
 from torchlake.common.models.model_base import ModelBase
 
@@ -41,12 +40,8 @@ class GANGenerator(ModelBase):
         self.head = nn.Sequential(
             nn.Linear(self.hidden_dim * 4, output_size),
             nn.Tanh(),
+            nn.Unflatten(-1, self.image_shape),
         )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = super().forward(x)
-        y = y.view(-1, *self.image_shape)
-        return y
 
 
 class GANDiscriminator(ModelBase):
@@ -56,7 +51,7 @@ class GANDiscriminator(ModelBase):
         image_shape: tuple[int],
         dropout_prob: float = 0.5,
     ):
-        """_summary_
+        """Discriminator of GAN
 
         Args:
             hidden_dim (int): dimension of hidden layer
@@ -70,13 +65,16 @@ class GANDiscriminator(ModelBase):
 
     def build_foot(self, input_channel, **kwargs):
         self.foot = nn.Sequential(
+            nn.Flatten(),
             nn.Linear(input_channel, self.hidden_dim * 2),
+            # nerf
             nn.LeakyReLU(0.2, inplace=True),
         )
 
     def build_blocks(self, **kwargs):
         self.blocks = nn.Sequential(
             nn.Linear(self.hidden_dim * 2, self.hidden_dim),
+            # nerf
             nn.LeakyReLU(0.2, inplace=True),
         )
 
@@ -85,8 +83,3 @@ class GANDiscriminator(ModelBase):
             nn.Dropout(p=self.dropout_prob),
             nn.Linear(self.hidden_dim, output_size),
         )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        batch_size = x.size(0)
-        y = x.view(batch_size, -1)
-        return super().forward(y)
