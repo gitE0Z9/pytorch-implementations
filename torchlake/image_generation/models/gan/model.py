@@ -24,12 +24,17 @@ class GANGenerator(ModelBase):
         super().__init__(input_channel, prod(image_shape))
 
     def build_foot(self, input_channel, **kwargs):
-        self.foot = nn.Linear(input_channel, self.hidden_dim)
+        self.foot = nn.Sequential(
+            nn.Linear(input_channel, self.hidden_dim),
+            nn.LeakyReLU(0.2),
+        )
 
     def build_blocks(self, **kwargs):
         self.blocks = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim * 2),
+            nn.LeakyReLU(0.2),
             nn.Linear(self.hidden_dim * 2, self.hidden_dim * 4),
+            nn.LeakyReLU(0.2),
         )
 
     def build_head(self, output_size, **kwargs):
