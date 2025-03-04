@@ -1,19 +1,8 @@
-from glob import glob
 import json
 from pathlib import Path
 
 import lmdb
 import numpy as np
-
-
-class ImageDatasetConstructorMixin:
-    def __init__(self, pattern: str, transform=None, debug_size: int = 0):
-        self.path = list(glob(pattern))
-        self.transform = transform
-        self.debug_size = debug_size
-
-    def __len__(self) -> int:
-        return len(self.path) if self.debug_size <= 0 else self.debug_size
 
 
 class LMDBMixin:

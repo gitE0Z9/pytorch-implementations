@@ -1,55 +1,42 @@
 import random
-from functools import lru_cache
 from glob import glob
 from pathlib import Path
 
-import cv2
 import numpy as np
 import torch
-from PIL import Image
 from torch.utils.data import Dataset
+
 from ..utils.image import load_image
 
 
-class DatasetBaseMixin:
+class ImageDataset(Dataset):
     def __init__(self, pattern: str, transform=None, debug_size: int = 0):
+        assert debug_size >= 0, "debug size must be non-negative"
+
         self.path = list(glob(pattern))
         self.transform = transform
         self.debug_size = debug_size
 
     def __len__(self) -> int:
-        return len(self.path) if self.debug_size <= 0 else self.debug_size
+        return self.debug_size or len(self.path)
 
-
-class ImageDataset(DatasetBaseMixin, Dataset):
     def __getitem__(self, idx: int) -> torch.Tensor:
-        pic = Image.open(self.path[idx]).convert("RGB")
+        pic = load_image(self.path[idx])
         if self.transform:
             pic = self.transform(pic)
 
         return pic
 
 
-class Pix2PixDataset(DatasetBaseMixin, Dataset):
+class Pix2PixDataset(ImageDataset):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor]:
-        pic = Image.open(self.path[idx]).convert("RGB")
+        pic = super().__getitem__(idx)
 
-        if self.transform:
-            pic = self.transform(pic)
-
+        # a pair of horizontal images
         return pic.split(pic.size(-1) // 2, -1)
 
 
-class ImagePairDataset(DatasetBaseMixin, Dataset):
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor]:
-        pic = Image.open(self.path[idx]).convert("RGB")
-        if self.transform:
-            pic = self.transform(pic)
-
-        return pic
-
-
-class ImagePairDataset(torch.utils.data.Dataset):
+class ImagePairDataset(Dataset):
     def __init__(self, content_root: str, style_root: str, transform=None):
         self.content_root = Path(content_root)
         self.style_root = Path(style_root)
@@ -66,12 +53,10 @@ class ImagePairDataset(torch.utils.data.Dataset):
         style, _, _ = self.get_style_img()
 
         if self.transform:
-            kwargs = dict(image=content)
-            transformed = self.transform(**kwargs)
+            transformed = self.transform(image=content)
             content = transformed["image"]
 
-            kwargs = dict(image=style)
-            transformed = self.transform(**kwargs)
+            transformed = self.transform(image=style)
             style = transformed["image"]
 
         return content, style
@@ -90,7 +75,6 @@ class ImagePairDataset(torch.utils.data.Dataset):
 
         return self.get_img(collection[idx].as_posix())
 
-    @lru_cache
     def get_img(self, filename: str | Path) -> tuple[np.ndarray, int, int]:
         img = load_image(filename, is_numpy=True)
         h, w, _ = img.shape
