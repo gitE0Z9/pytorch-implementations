@@ -55,10 +55,13 @@ class Flickr8k(Dataset):
     def to_lmdb(self, env: lmdb.Environment):
         with env.begin(write=True) as tx:
             for i, (img, labels) in enumerate(tqdm(self)):
-                tx.put(f"{i}".encode("utf-8"), img.tobytes())
-                tx.put(
-                    f"{i}_shape".encode("utf-8"), str(list(img.shape)).encode("utf-8")
-                )
+                if i % 5 == 0:
+                    tx.put(f"{i // 5}".encode("utf-8"), img.tobytes())
+                    tx.put(
+                        f"{i // 5}_shape".encode("utf-8"),
+                        str(list(img.shape)).encode("utf-8"),
+                    )
+
                 tx.put(f"{i}_label".encode("utf-8"), str(labels).encode("utf-8"))
 
             tx.put(b"count", str(len(self)).encode("utf-8"))
@@ -90,7 +93,7 @@ class Flickr8kFromLMDB(LMDBMixin, Dataset):
         if idx >= self.data_size:
             raise IndexError(f"invalid index {idx}")
 
-        image = self.get_image(idx)
+        image = self.get_image(idx // 5)
         caption = self.get_label(idx)
 
         if self.transform is not None:
