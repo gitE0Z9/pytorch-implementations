@@ -19,7 +19,7 @@ class NeuralStyleTransferLoss(nn.Module):
         content_weight: float,
         style_weight: float,
     ):
-        super(NeuralStyleTransferLoss, self).__init__()
+        super().__init__()
         self.content_layer_idx = content_layer_idx
         self.content_weight = content_weight
         self.style_weight = style_weight
