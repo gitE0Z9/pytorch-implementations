@@ -67,8 +67,8 @@ class TrainerBase(PredictFunctionMixin, ABC):
         scheduler: LRScheduler | None = None,
         scaler: GradScaler | None = None,
         recorder: TrainRecorder | None = None,
-        validate_func: Callable | None = None,
-        checkpoint_func: Callable | None = None,
+        validate_func: Callable[[nn.Module], None] | None = None,
+        checkpoint_func: Callable[[nn.Module, Optimizer], None] | None = None,
         *args,
         **kwargs,
     ) -> list[float]:
