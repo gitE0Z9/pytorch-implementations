@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from torchlake.common.models import FlattenFeature
 from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
@@ -14,20 +15,35 @@ class NeuralImageCation(ModelBase):
         backbone: ExtractorBase,
         decoder: RNNGenerator,
         context: NlpContext = NlpContext(),
+        encode_dim: int | None = None,
     ):
         self.context = context
         super().__init__(
             None,
             None,
             foot_kwargs={"backbone": backbone},
+            neck_kwargs={
+                "encode_dim": encode_dim or backbone.feature_dims[-1],
+                "embed_dim": decoder.head.embed_dim,
+            },
             head_kwargs={"decoder": decoder},
         )
 
     def build_foot(self, _, **kwargs):
         self.foot = kwargs.pop("backbone")
 
-    def build_neck(self):
-        self.neck = FlattenFeature()
+    def build_neck(self, **kwargs):
+        encode_dim = kwargs.pop("encode_dim")
+        embed_dim = kwargs.pop("embed_dim")
+
+        self.neck = nn.Sequential(
+            FlattenFeature(),
+        )
+
+        if encode_dim != embed_dim:
+            self.neck.append(
+                nn.Linear(encode_dim, embed_dim),
+            )
 
     def build_head(self, _, **kwargs):
         self.head: RNNGenerator = kwargs.pop("decoder")
