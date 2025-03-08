@@ -159,9 +159,10 @@ package name: `tag_prediction`
 
 package name: `text_generation`
 
-| Model         | Article Link | Package           |
-| ------------- | ------------ | ----------------- |
-| Show and tell | -            | ``show_and_tell`` |
+| Model                 | Article Link                                                                                                                   | Package              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------- |
+| Show and tell         | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-show-and-tell-attend-2638dce945fe) | ``show_and_tell``    |
+| Show, attend and tell | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-show-and-tell-attend-2638dce945fe) | ``show_attend_tell`` |
 
 ### Few-shot learning
 
