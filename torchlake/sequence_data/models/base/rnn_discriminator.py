@@ -1,3 +1,4 @@
+from typing import overload
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
@@ -14,6 +15,7 @@ class RNNDiscriminator(ModelBase):
         hidden_dim: int = 128,
         output_size: int = 1,
         num_layers: int = 1,
+        context_dim: int = 0,
         bidirectional: bool = False,
         sequence_output: bool = False,
         enable_embed: bool = True,
@@ -29,6 +31,7 @@ class RNNDiscriminator(ModelBase):
             hidden_dim (int): dimension of hidden layer
             output_size (int, optional): number of features of output. Defaults to 1.
             num_layers (int, optional): number of layers. Defaults to 1.
+            context_dim (int, optional): dimension of context vector. Defaults to 0.
             bidirectional (bool, optional): is bidirectional layer. Defaults to False.
             sequence_output (bool, optional): is output tensor a sequence. Defaults to False.
             enable_embed (bool, optional): need an embedding layer. Defaults to True.
@@ -40,6 +43,7 @@ class RNNDiscriminator(ModelBase):
         self.output_size = output_size  # for record
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
+        self.context_dim = context_dim
         self.num_layers = num_layers
         self.bidirectional = bidirectional
         self.sequence_output = sequence_output
@@ -69,7 +73,7 @@ class RNNDiscriminator(ModelBase):
 
     def build_blocks(self):
         self.blocks = self.model_class(
-            self.embed_dim,
+            self.embed_dim + self.context_dim,
             self.hidden_dim,
             self.num_layers,
             batch_first=True,
@@ -168,21 +172,26 @@ class RNNDiscriminator(ModelBase):
         x: torch.Tensor,
         ht: torch.Tensor | None = None,
         *states: tuple[torch.Tensor],
+        context_vector: torch.Tensor | None = None,
         output_state: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor, tuple[torch.Tensor]]:
         """forward
 
         Args:
-            x (torch.Tensor): input. shape is (batch_size, seq_len)
+            x (torch.Tensor): input. shape is (batch_size, 1)
             ht (torch.Tensor, optional): hidden state. shape is (bidirectional * num_layers, batch_size, hidden_dim). Defaults to None.
             *states (tuple[torch.Tensor]): other hidden states.
+            context_vector (torch.Tensor, optional): context vector from attention. shape is (batch_size, 1, context_dim). Defaults to None.
             output_state (bool, optional): also return hidden state. Defaults to False.
 
         Returns:
             torch.Tensor: prediction or prediction and states
         """
-        # batch_size, seq_len, embed_dim
+        # batch_size, 1, embed_dim
         y = self.foot(x)
+        if context_vector is not None:
+            # batch_size, 1, embed_dim + context_dim
+            y = torch.cat([y, context_vector], -1)
 
         o, ht, states = self.feature_extract(x, y, *(ht, *states))
 

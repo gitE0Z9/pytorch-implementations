@@ -54,26 +54,17 @@ class RNNGenerator(ModelBase):
         self,
         ht: torch.Tensor,
         os: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """attend hidden state of source hidden state
 
         Args:
             ht (torch.Tensor): current hidden state
-            os (torch.Tensor, optional): source output state. Defaults to None.
+            os (torch.Tensor): source output state.
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: attended representation, attention score
         """
-        if self.neck is not None:
-            # num_layers = self.head.num_layers
-            # if num_layers == 1:
-            # ht, score = self.neck(hs, ht)
-            # elif num_layers > 1:
-            ht, score = self.neck(os, ht)
-
-            return ht, score
-
-        return ht, None
+        return self.neck(os, ht)
 
     def loss_forward(
         self,
@@ -83,6 +74,7 @@ class RNNGenerator(ModelBase):
         ot: torch.Tensor | None = None,
         teacher_forcing_ratio: float = 0.5,
         output_score: bool = False,
+        output_state: bool = False,
         early_stopping: bool = True,
     ) -> torch.Tensor:
         """training loss forward
@@ -94,10 +86,13 @@ class RNNGenerator(ModelBase):
             ot (torch.Tensor, optional): output state. shape is (batch_size, seq_len, bidirectional * hidden_dim). Defaults to None.
             teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
             output_score (bool, optional): output attention score or not. Defaults to False.
+            output_state (bool, optional): output hidden state or not. Defaults to False.
             early_stopping (bool, optional): stop generation after longest meaningful tokens in y. Defaults to True.
 
         Returns:
             torch.Tensor: generated sequence
+            torch.Tensor: attention scores, in shape of (D, B, S, S')
+            torch.Tensor: hidden states, list of tuple of tensor in shape of (D, B, dh)
         """
         context: NlpContext = self.head.context
         batch_size = y.size(0)
@@ -105,10 +100,12 @@ class RNNGenerator(ModelBase):
         max_seq_len = context.max_seq_len
         device = context.device
 
-        # keep attention source states
-        source_states = (ot,)
         # keep attention score
         scores = []
+        # keep hidden states
+        all_states = []
+        if output_state:
+            all_states.append(tuple(ht, *states))
 
         # tensor to store generated logit
         outputs = [torch.full((batch_size, output_size), -1e4).to(device)]
@@ -119,10 +116,13 @@ class RNNGenerator(ModelBase):
         input_seq = get_input_sequence((batch_size, 1), context)
         # early stopping by target sentence, since padding is ignored during training
         if early_stopping:
-            max_seq_len = y.eq(self.head.context.padding_idx).sum(dim=1).max()
+            max_seq_len = y.ne(self.head.context.padding_idx).sum(dim=1).max()
+        # context vector for attention
+        c = None
         for t in range(1, max_seq_len, 1):
             # attention
-            ht, score = self.attend(ht, *source_states)
+            if self.neck is not None:
+                c, score = self.attend(ht, ot)
             # store attention score
             if output_score:
                 scores.append(score)
@@ -130,8 +130,15 @@ class RNNGenerator(ModelBase):
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
             # B, V
-            output, states = self.head(input_seq, ht, *states)
+            output, states = self.head(
+                input_seq,
+                ht,
+                *states,
+                context_vector=c,
+            )
             ht, states = states[0], states[1:]
+            if output_state:
+                all_states.append(tuple(ht, *states))
 
             # place predictions in a tensor holding predictions for each token
             # B, V
@@ -151,9 +158,13 @@ class RNNGenerator(ModelBase):
         # B, ?, V
         outputs = torch.stack(outputs, 1)
 
-        if output_score:
+        if output_score and output_state:
+            return outputs, torch.stack(scores, -1), all_states
+        elif output_score:
             # B, S, V # D, B, S, S'
             return outputs, torch.stack(scores, -1)
+        elif output_state:
+            return outputs, all_states
         else:
             # B, S, V
             return outputs
@@ -187,8 +198,6 @@ class RNNGenerator(ModelBase):
         device = context.device
         output_size = self.head.output_size
 
-        # keep attention source states
-        source_states = (ot,)
         # keep attention score
         scores = []
 
@@ -199,10 +208,19 @@ class RNNGenerator(ModelBase):
             input_seq = primer
         batch_size = input_seq.size(0)
 
+        # context vector for attention
+        c = None
         # (B, 1, V), (D, B, h)
-        output, states = self.head(input_seq, ht, *states)
+        # attention
+        if self.neck is not None:
+            c, score = self.attend(ht, ot)
+        # store attention score
+        if output_score:
+            scores.append(score)
+        output, states = self.head(input_seq, ht, *states, context_vector=c)
         # D, topk*B, h
         states = tuple(state.repeat(1, topk, 1) for state in states)
+        ht, states = states[0], states[1:]
 
         # B, 1, topk
         topk_values, topk_indices = output.topk(topk, dim=-1)
@@ -216,28 +234,32 @@ class RNNGenerator(ModelBase):
         # beam search forward
         for t in range(1, max_seq_len, 1):
             # attention
-            ht, score = self.attend(ht, *source_states)
+            if self.neck is not None:
+                c, score = self.attend(ht, ot)
             # store attention score
             if output_score:
                 scores.append(score)
 
-            # topk, B, V
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
             output, states = self.head(
-                paths.reshape(-1, paths.size(-1)),
+                paths.flatten(0, -2)[:, -1].unsqueeze_(-1),
+                # paths.reshape(-1, paths.size(-1)),
+                ht,
                 *states,
+                context_vector=c,
             )
-            output: torch.Tensor = output.view(topk, batch_size, 1 + t, -1)[:, :, -1]
+            ht, states = states[0], states[1:]
 
+            # topk, B, V
+            # output: torch.Tensor = output.view(topk, batch_size, 1 + t, -1)[:, :, -1]
+            output: torch.Tensor = output.view(topk, batch_size, -1)
             # B, topk
             topk_values, topk_indices = (
                 output.permute(1, 0, 2).reshape(batch_size, -1).topk(topk, dim=-1)
             )
-
             # B, topk
             parents = topk_indices // output_size
-
             # topk, B, t
             paths = torch.cat(
                 [

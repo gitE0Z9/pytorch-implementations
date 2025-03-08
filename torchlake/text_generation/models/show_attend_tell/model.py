@@ -5,10 +5,10 @@ from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.common.utils.sequence import get_input_sequence
-from torchlake.sequence_data.models.base import RNNGenerator
+from torchlake.sequence_data.models.base.rnn_generator import RNNGenerator
 
 
-class NeuralImageCation(ModelBase):
+class ShowAttendTell(ModelBase):
 
     def __init__(
         self,
@@ -18,13 +18,17 @@ class NeuralImageCation(ModelBase):
         encode_dim: int | None = None,
     ):
         self.context = context
+
+        multiple_state = isinstance(decoder.head.blocks, nn.LSTM)
+
         super().__init__(
             None,
             None,
             foot_kwargs={"backbone": backbone},
             neck_kwargs={
+                "multiple_state": multiple_state,
                 "encode_dim": encode_dim or backbone.feature_dims[-1],
-                "embed_dim": decoder.head.embed_dim,
+                "decode_dim": decoder.head.hidden_dim,
             },
             head_kwargs={"decoder": decoder},
         )
@@ -34,16 +38,17 @@ class NeuralImageCation(ModelBase):
 
     def build_neck(self, **kwargs):
         encode_dim = kwargs.pop("encode_dim")
-        embed_dim = kwargs.pop("embed_dim")
+        decode_dim = kwargs.pop("decode_dim")
 
-        self.neck = nn.Sequential(
-            FlattenFeature(),
+        self.neck = nn.ModuleDict(
+            {
+                "flatten": FlattenFeature(),
+                "h": nn.Linear(encode_dim, decode_dim),
+            }
         )
 
-        if encode_dim != embed_dim:
-            self.neck.append(
-                nn.Linear(encode_dim, embed_dim),
-            )
+        if kwargs.pop("multiple_state"):
+            self.neck["c"] = nn.Linear(encode_dim, decode_dim)
 
     def build_head(self, _, **kwargs):
         self.head: RNNGenerator = kwargs.pop("decoder")
@@ -63,37 +68,41 @@ class NeuralImageCation(ModelBase):
     def encode(
         self,
         x: torch.Tensor,
-    ) -> tuple[torch.Tensor, tuple[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor, tuple[torch.Tensor]]:
         # B, C, H, W
-        z: torch.Tensor = self.foot(x).pop()
+        a: torch.Tensor = self.foot(x).pop()
 
-        # B, 1, C
-        z: torch.Tensor = self.neck(z).unsqueeze(1)
+        # 1, B, C
+        z: torch.Tensor = self.neck["flatten"](a).unsqueeze(0)
+        D = self.head.head.num_layers * self.head.head.factor
+        ht = self.neck["h"](z)
+        states = tuple()
+        if "c" in self.neck:
+            states = tuple(self.neck["c"](z))
 
-        batch_size = z.size(0)
-        # fed image feature as embedding
-        # use fake input seq to avoid pack
-        _, ht, states = self.head.head.feature_extract(
-            get_input_sequence((batch_size, 1), self.context), z
+        # B, H*W, C # D, B, h # D, B, h
+        return (
+            a.flatten(2).transpose(-1, -2),
+            ht.repeat(D, 1, 1),
+            tuple(state.repeat(D, 1, 1) for state in states),
         )
-
-        return ht, states
 
     def loss_forward(
         self,
         x: torch.Tensor,
         y: torch.Tensor,
         teacher_forcing_ratio: float = 0.5,
-        output_score: bool = False,
+        output_score: bool = True,
         early_stopping: bool = True,
     ) -> torch.Tensor:
-        ht, states = self.encode(x)
+        o, ht, states = self.encode(x)
 
         # B, S, V
         return self.head.loss_forward(
             y,
             ht,
             *states,
+            ot=o,
             teacher_forcing_ratio=teacher_forcing_ratio,
             output_score=output_score,
             early_stopping=early_stopping,
@@ -105,7 +114,7 @@ class NeuralImageCation(ModelBase):
         topk: int = 1,
         output_score: bool = False,
     ) -> torch.Tensor:
-        ht, states = self.encode(x)
+        o, ht, states = self.encode(x)
 
         # B, S
         x = get_input_sequence((x.size(0), 1), self.context)
@@ -113,6 +122,7 @@ class NeuralImageCation(ModelBase):
             x,
             ht,
             *states,
+            ot=o,
             topk=topk,
             output_score=output_score,
         )
