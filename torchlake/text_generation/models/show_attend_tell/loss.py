@@ -26,7 +26,9 @@ class DoublyStochasticAttentionLoss(nn.Module):
         gt: torch.Tensor,
         att: torch.Tensor,
     ) -> torch.Tensor:
-        att_sum = att.sum(1)
+        att_sum = att.sum(2)
         return self.cc(pred, gt) + self.lambda_coef * F.mse_loss(
-            att_sum, torch.ones_like(att_sum)
+            att_sum,
+            torch.ones_like(att_sum),
+            reduction="sum",
         )

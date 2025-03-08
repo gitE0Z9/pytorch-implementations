@@ -13,14 +13,10 @@ from ..models.show_attend_tell import (
 )
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 from torchlake.common.models.vgg_feature_extractor import VGGFeatureExtractor
+from .constants import BATCH_SIZE, SEQ_LEN, VOCAB_SIZE, EMBED_DIM, CONTEXT
 
-BATCH_SIZE = 2
-SEQ_LEN = 16
-VOCAB_SIZE = 32
-EMBED_DIM = 4
 ENCODE_DIM = 512
 DECODE_DIM = 8
-CONTEXT = NlpContext(device="cpu", max_seq_len=SEQ_LEN)
 extractor = VGGFeatureExtractor("vgg16", "relu", False)
 extractor.forward = partial(extractor.forward, target_layer_names=["5_3"])
 NUM_PATCH = 196
@@ -54,21 +50,11 @@ class TestNetwork:
 
 
 class TestModel:
-    @pytest.mark.parametrize(
-        "is_train,expected_shape",
-        [(True, (BATCH_SIZE, SEQ_LEN, VOCAB_SIZE)), (False, (BATCH_SIZE, SEQ_LEN))],
-    )
-    @pytest.mark.parametrize("bidirectional", [True, False])
-    def test_forward_shape_soft_attention(
-        self,
-        is_train: bool,
-        expected_shape: tuple,
-        bidirectional: bool,
-    ):
-        x = torch.rand(BATCH_SIZE, 3, 224, 224)
-        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+    def setUpSoftAttention(self, bidirectional: bool):
+        self.x = torch.rand(BATCH_SIZE, 3, 224, 224)
+        self.y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
-        model = ShowAttendTell(
+        self.model = ShowAttendTell(
             backbone=extractor,
             decoder=RNNGenerator(
                 model=LSTMDiscriminator(
@@ -89,37 +75,11 @@ class TestModel:
             context=CONTEXT,
         )
 
-        if is_train:
-            model.train()
-            y, a = model(x, y, early_stopping=True)
-            assert y.size(0) == expected_shape[0]
-            assert y.size(1) <= expected_shape[1]
-            assert y.size(2) == expected_shape[2]
+    def setUpHardAttention(self, bidirectional: bool):
+        self.x = torch.rand(BATCH_SIZE, 3, 224, 224)
+        self.y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
-            assert a.size(0) == BATCH_SIZE
-            assert a.size(1) == NUM_PATCH
-            assert a.size(2) <= SEQ_LEN
-        else:
-            model.eval()
-            y = model(x)
-            assert y.size(0) == BATCH_SIZE
-            assert y.size(1) <= SEQ_LEN + 1
-
-    @pytest.mark.parametrize(
-        "is_train,expected_shape",
-        [(True, (BATCH_SIZE, SEQ_LEN, VOCAB_SIZE)), (False, (BATCH_SIZE, SEQ_LEN))],
-    )
-    @pytest.mark.parametrize("bidirectional", [True, False])
-    def test_forward_shape_hard_attention(
-        self,
-        is_train: bool,
-        expected_shape: tuple,
-        bidirectional: bool,
-    ):
-        x = torch.rand(BATCH_SIZE, 3, 224, 224)
-        y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
-
-        model = ShowAttendTell(
+        self.model = ShowAttendTell(
             backbone=extractor,
             decoder=RNNGenerator(
                 model=LSTMDiscriminator(
@@ -140,21 +100,77 @@ class TestModel:
             context=CONTEXT,
         )
 
-        if is_train:
-            model.train()
-            y, a = model(x, y, early_stopping=True)
-            assert y.size(0) == expected_shape[0]
-            assert y.size(1) <= expected_shape[1]
-            assert y.size(2) == expected_shape[2]
+    @pytest.mark.parametrize("early_stopping", [True, False])
+    @pytest.mark.parametrize("bidirectional", [True, False])
+    def test_forward_shape_soft_attention_train(
+        self,
+        early_stopping: bool,
+        bidirectional: bool,
+    ):
+        self.setUpSoftAttention(bidirectional)
 
-            assert a.size(0) == BATCH_SIZE
-            assert a.size(1) == NUM_PATCH
-            assert a.size(2) <= SEQ_LEN
+        self.model.train()
+        y, a = self.model(self.x, self.y, early_stopping=early_stopping)
+        assert y.size(0) == BATCH_SIZE
+        if early_stopping:
+            assert y.size(1) <= SEQ_LEN
         else:
-            model.eval()
-            y = model(x)
-            assert y.size(0) == BATCH_SIZE
-            assert y.size(1) <= SEQ_LEN + 1
+            assert y.size(1) == SEQ_LEN
+        assert y.size(2) == VOCAB_SIZE
+
+        assert a.size(0) == BATCH_SIZE
+        assert a.size(1) == NUM_PATCH
+        assert a.size(2) <= SEQ_LEN
+
+    @pytest.mark.parametrize("topk", [1, 2])
+    @pytest.mark.parametrize("bidirectional", [True, False])
+    def test_forward_shape_soft_attention_inference(
+        self,
+        topk: int,
+        bidirectional: bool,
+    ):
+        self.setUpSoftAttention(bidirectional)
+
+        self.model.eval()
+        y = self.model(self.x, topk=topk)
+        assert y.size(0) == BATCH_SIZE
+        assert y.size(1) <= SEQ_LEN + 1
+
+    @pytest.mark.parametrize("early_stopping", [True, False])
+    @pytest.mark.parametrize("bidirectional", [True, False])
+    def test_forward_shape_hard_attention_train(
+        self,
+        early_stopping: bool,
+        bidirectional: bool,
+    ):
+        self.setUpSoftAttention(bidirectional)
+
+        self.model.train()
+        y, a = self.model(self.x, self.y, early_stopping=early_stopping)
+        assert y.size(0) == BATCH_SIZE
+        if early_stopping:
+            assert y.size(1) <= SEQ_LEN
+        else:
+            assert y.size(1) == SEQ_LEN
+        assert y.size(2) == VOCAB_SIZE
+
+        assert a.size(0) == BATCH_SIZE
+        assert a.size(1) == NUM_PATCH
+        assert a.size(2) <= SEQ_LEN
+
+    @pytest.mark.parametrize("topk", [1, 2])
+    @pytest.mark.parametrize("bidirectional", [True, False])
+    def test_forward_shape_hard_attention_inference(
+        self,
+        topk: int,
+        bidirectional: bool,
+    ):
+        self.setUpSoftAttention(bidirectional)
+
+        self.model.eval()
+        y = self.model(self.x, topk=topk)
+        assert y.size(0) == BATCH_SIZE
+        assert y.size(1) <= SEQ_LEN + 1
 
 
 class TestLoss:

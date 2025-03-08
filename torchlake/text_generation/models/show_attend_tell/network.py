@@ -57,10 +57,14 @@ class Attention(nn.Module):
         Returns:
             tuple[torch.Tensor]: context vector(D, B, eh), attention weight(D, B, S)
         """
-        # only use first layer
+        # only use first layer of hidden states
         top_layer_idx = 2 if self.decoder_bidirectional else 1
         # B, dbi*dh
         ht = ht[:top_layer_idx, :, :].permute(1, 0, 2).flatten(start_dim=1)
+
+        # fix: beam search has shape topk*batch_size, dbi*dh
+        if ht.size(0) != os.size(0):
+            os = os.repeat(ht.size(0) // os.size(0), 1, 1)
 
         # B, S
         attentions = self.get_attention_weight(os, ht)
