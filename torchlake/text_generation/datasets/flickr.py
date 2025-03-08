@@ -106,6 +106,6 @@ class Flickr8kFromLMDB(LMDBMixin, Dataset):
 
     def get_label(self, idx: int) -> list[list[list[int, int, int]]]:
         with self.env.begin() as tx:
-            label = str(tx.get(f"{idx}_label".encode("utf-8")))
+            label = tx.get(f"{idx}_label".encode("utf-8")).decode()
 
         return label
