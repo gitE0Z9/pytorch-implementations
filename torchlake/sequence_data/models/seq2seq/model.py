@@ -79,29 +79,6 @@ class Seq2Seq(ModelBase):
         # encoding
         o, hs, states = self.encode(x)
 
-        # dL*ebi, B, S, eh
-        # hs = (
-        #     o[:, -1, :]
-        #     .unflatten(-1, (self.foot.factor, -1))
-        #     .permute(2, 0, 1, 3)
-        #     .repeat(self.head.head.num_layers, 1, 1, 1)
-        # )
-
-        # hs = hs[-self.foot.factor :, :, :].repeat(
-        #     self.head.head.factor * self.head.head.num_layers // self.foot.factor,
-        #     1,
-        #     1,
-        # )
-        # if states:
-        #     for state in states:
-        #         state = state[-self.foot.factor :, :, :].repeat(
-        #             self.head.head.factor
-        #             * self.head.head.num_layers
-        #             // self.foot.factor,
-        #             1,
-        #             1,
-        #         )
-
         return self.head.loss_forward(
             y,
             hs,
