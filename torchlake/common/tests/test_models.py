@@ -28,6 +28,7 @@ from ..models import (
     ResNetFeatureExtractor,
     SqueezeExcitation2d,
     VGGFeatureExtractor,
+    StackedPatch2d,
 )
 from ..models.kernel_pca import KernelEnum
 from ..models.vit_feature_extractor import ViTFeatureExtractor
@@ -531,3 +532,12 @@ class TestViTFeatureExtractor:
             assert y.pop(0).shape == torch.Size((1, seq_len, dim))
 
         assert y.pop(0).shape == torch.Size((1, seq_len, dim))
+
+
+class TestStackedPatch:
+    def test_forward_shape_2d(self):
+        layer = StackedPatch2d(2)
+        test_x = torch.rand(2, 3, 224, 224)
+
+        output: torch.Tensor = layer(test_x)
+        assert_close(output.shape, torch.Size([2, 12, 112, 112]))

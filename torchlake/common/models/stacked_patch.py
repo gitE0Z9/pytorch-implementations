@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 
-class ReorgLayer(nn.Module):
+class StackedPatch2d(nn.Module):
     def __init__(self, stride: int):
         """Stack patch
 

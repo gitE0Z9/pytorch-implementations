@@ -19,6 +19,7 @@ from .efficientnet_feature_extractor import EfficientNetFeatureExtractor
 from .efficientnetv2_feature_extractor import EfficientNetV2FeatureExtractor
 from .vit_feature_extractor import ViTFeatureExtractor
 from .channel_vector import ChannelVector
+from .stacked_patch import StackedPatch2d
 
 __all__ = [
     "SqueezeExcitation2d",
@@ -42,4 +43,5 @@ __all__ = [
     "L2Norm",
     "PositionEncoding1d",
     "ChannelVector",
+    "StackedPatch2d",
 ]

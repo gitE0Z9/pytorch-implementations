@@ -4,7 +4,7 @@ from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
-from .network import ReorgLayer
+from torchlake.common.models import StackedPatch2d
 from ...constants.schema import DetectorContext
 
 
@@ -39,7 +39,8 @@ class YOLOV2(ModelBase):
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
                     ),
-                    ReorgLayer(2),
+                    # reorg layer
+                    StackedPatch2d(2),
                 ),
                 "neck": nn.Sequential(
                     Conv2dNormActivation(
