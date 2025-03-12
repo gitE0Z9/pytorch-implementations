@@ -1,16 +1,15 @@
 import torch
-from torchlake.object_detection.constants.schema import DetectorContext
-from torchlake.object_detection.models.yolov2.anchor import PriorBox
-from torchlake.object_detection.utils.inference import generate_grid
+from torchlake.common.utils.numerical import generate_grid
+
+from ...constants.schema import DetectorContext
+from ...mixins.decode_yolo import YOLODecodeMixin
+from .anchor import PriorBox
 
 
-class Decoder:
+class Decoder(YOLODecodeMixin):
     def __init__(self, context: DetectorContext):
-        self.anchors = PriorBox(
-            context.num_anchors,
-            context.dataset,
-            context.anchors_path,
-        ).anchors
+        self.context = context
+        self.anchors = PriorBox(context).anchors
 
     def decode(
         self,
