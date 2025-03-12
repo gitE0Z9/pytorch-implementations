@@ -17,7 +17,7 @@ class ModelBase(nn.Module, ABC):
         neck_kwargs: dict | None = {},
         head_kwargs: dict | None = {},
     ):
-        super(ModelBase, self).__init__()
+        super().__init__()
         self.build_foot(input_channel, **foot_kwargs)
         self.build_blocks(**blocks_kwargs)
         self.build_neck(**neck_kwargs)

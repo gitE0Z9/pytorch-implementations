@@ -30,7 +30,7 @@ class ImageNetFromXML(Dataset):
         img_root = self.root.joinpath("Data").joinpath("CLS-LOC").joinpath(mode)
         self.imgs = list(img_root.glob("*"))
 
-        ann_root = root.joinpath("Annotations").joinpath("CLS-LOC").joinpath(mode)
+        ann_root = self.root.joinpath("Annotations").joinpath("CLS-LOC").joinpath(mode)
         self.anns = list(ann_root.glob("*"))
 
         assert len(self.imgs) == len(
