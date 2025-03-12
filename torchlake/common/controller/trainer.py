@@ -102,11 +102,13 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 ):
                     # predict and loss calculation
                     output = self._predict(row, model, *args, **kwargs)
-                    loss = self._calc_loss(output, row, criterion)
-                if not isinstance(loss, tuple):
-                    losses: list[torch.Tensor] = [loss]
+                    losses = self._calc_loss(output, row, criterion)
+                if not isinstance(losses, tuple):
+                    losses: tuple[torch.Tensor] = tuple(
+                        losses,
+                    )
 
-                losses = [loss / self.acc_iters for loss in losses]
+                losses = tuple(loss / self.acc_iters for loss in losses)
                 for loss in losses:
                     assert not torch.isnan(loss), "Loss is singular"
 
@@ -139,7 +141,12 @@ class TrainerBase(PredictFunctionMixin, ABC):
             if scheduler:
                 scheduler.step(last_loss)
 
-            print(f"Epoch {e+1} : {last_loss} ({recorder.get_last_improvement()[0]}%)")
+            print(f"Epoch {e+1}")
+            print("------------------------------------")
+            for training_loss, last_improvement in zip(
+                recorder.training_losses, recorder.get_last_improvement()
+            ):
+                print(f"{training_loss[-1]} ({last_improvement}%)")
             recorder.increment_epoch()
 
             if validate_func is not None and (e + 1) % self.validate_interval == 0:
@@ -192,7 +199,7 @@ class ClassificationTrainer(TrainerBase):
 class RegressionTrainer(TrainerBase):
     @staticmethod
     def get_criterion(
-        type: Literal["l1", "l2", "smoothl1", "huber"]
+        type: Literal["l1", "l2", "smoothl1", "huber"],
     ) -> nn.MSELoss | nn.SmoothL1Loss | nn.HuberLoss | nn.L1Loss:
         return {
             "l1": nn.L1Loss(),
