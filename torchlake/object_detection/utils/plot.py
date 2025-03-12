@@ -1,3 +1,4 @@
+from typing import Sequence
 import cv2
 import numpy as np
 import torch
@@ -6,20 +7,21 @@ import torch
 def draw_label(
     img: np.ndarray,
     label: torch.Tensor,
-    class_names: list[str],
-    class_show: bool = True,
+    class_names: Sequence[str] | None = None,
     class_colors: dict[str, list[int]] = {},
+    class_show: bool = True,
 ):
     """draw detection label
 
     Args:
         img (np.ndarray): image
-        label (torch.Tensor): normalized x,y,w,h coordinates and class index
-        class_name (List[str]): class names
+        label (torch.Tensor): normalized x,y,w,h coordinates and class index, in shape (N, 5)
+        class_names (Sequence[str] | None, optional): class names. Defaults to None.
+        class_colors (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
         class_show (bool, optional): show class and score. Defaults to True.
-        verbose (bool, optional): print out class and score. Defaults to True.
-        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
     """
+    FALLBACK_COLOR = (0, 0, 255)
+    TEXT_COLOR = (255, 255, 255)
     height, width, _ = img.shape
 
     for x, y, w, h, c in label:
@@ -30,9 +32,8 @@ def draw_label(
             int(x + w),
             int(y + h),
         )
-        class_name = class_names[c]
-        class_info = f"{class_name}"
-        color = class_colors.get(class_name, (0, 0, 255))
+        class_name = class_names[c] if class_names else None
+        color = class_colors.get(class_name, FALLBACK_COLOR)
 
         cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 
@@ -45,13 +46,14 @@ def draw_label(
 
             tx = x1 + 5
             ty = y1 - 10 if y1 > 0 else y1 + 35
+            class_info = f"{class_name}"
             cv2.putText(
                 img,
                 text=class_info,
                 org=(tx, ty),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.8,
-                color=(255, 255, 255),
+                color=TEXT_COLOR,
                 thickness=1,
             )
 
@@ -60,19 +62,19 @@ def draw_pred(
     img: np.ndarray,
     bboxes: torch.Tensor,
     class_names: list[str],
+    class_colors: dict[str, list[int]] = {},
     class_show: bool = True,
     verbose: bool = True,
-    class_colors: dict[str, list[int]] = {},
 ):
     """draw predicted bbox
 
     Args:
         img (np.ndarray): image
-        bboxes (torch.Tensor): decoded bounding boxes
+        bboxes (torch.Tensor): decoded bounding boxes, in shape (N, 5+C)
         class_name (List[str]): class names
+        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
         class_show (bool, optional): show class and score. Defaults to True.
         verbose (bool, optional): print out class and score. Defaults to True.
-        class_color (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
     """
 
     for bbox in bboxes:
@@ -109,14 +111,23 @@ def draw_pred(
             )
 
 
-def draw_anchors(anchors: torch.Tensor):
-    scale = 100
-    canvas = np.zeros((scale, scale))
+def draw_anchors(anchors: torch.Tensor) -> np.ndarray:
+    """draw anchors
+
+    Args:
+        anchors (torch.Tensor): normalized anchors, in shape (N, 4), in format (cx, cy, w, h)
+
+    Returns:
+        canvas: image, in shape (100, 100)
+    """
+    BORDER_COLOR = (255, 255, 255)
+    SCALE = 100
 
     wh = anchors[:, -2:].float()
-    xyxy = (scale * torch.cat([0.5 - wh / 2, 0.5 + wh / 2], 1)).int()
+    xyxy = (SCALE * torch.cat([0.5 - wh / 2, 0.5 + wh / 2], 1)).int()
 
+    canvas = np.zeros((SCALE, SCALE))
     for x1, y1, x2, y2 in xyxy.tolist():
-        cv2.rectangle(canvas, (x1, y1), (x2, y2), (255, 255, 255), 1)
+        cv2.rectangle(canvas, (x1, y1), (x2, y2), BORDER_COLOR, 1)
 
     return canvas
