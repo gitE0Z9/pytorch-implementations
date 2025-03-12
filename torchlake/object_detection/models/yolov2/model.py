@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
+from torchlake.common.models import StackedPatch2d
 from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
-from torchlake.common.models import StackedPatch2d
 from ...constants.schema import DetectorContext
 
 

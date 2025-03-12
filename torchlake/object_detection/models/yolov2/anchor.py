@@ -1,13 +1,14 @@
 from pathlib import Path
+from typing import Iterable
 
 import numpy as np
 import torch
-from torchlake.object_detection.constants.enums import OperationMode
-from torchlake.object_detection.datasets.coco.datasets import COCODatasetFromCSV
-from torchlake.object_detection.datasets.voc.datasets import VOCDatasetFromCSV
+from torchlake.common.models import KMeans
+
+from torchlake.object_detection.constants.schema import DetectorContext
 
 
-def dist_metric(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+def iou_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """compute iou to each centroid"""
     # compute pairwise iou
     iou = []
@@ -26,55 +27,21 @@ def dist_metric(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 def avg_iou(x: torch.Tensor, group: torch.Tensor, center: torch.Tensor) -> float:
     cluster_num = center.size(0)
     within_cluster_iou = [
-        (1 - dist_metric(x[group == i], center))[:, i].mean().item()
+        (1 - iou_dist(x[group == i], center))[:, i].mean().item()
         for i in range(cluster_num)
     ]
     iou = sum(within_cluster_iou) / cluster_num
     return iou
 
 
-def kmeans(
-    x: torch.Tensor,
-    cluster_num: int = 5,
-    total_iter: int = 300,
-    error_acceptance: float = 1e-2,
-) -> torch.Tensor:
-    """generate kmeans index and center"""
-    # init group
-    init_point = torch.rand(cluster_num, 2)
-    distance = dist_metric(x, init_point)
-    group_index = distance.argmin(1)
-
-    # iteratively update group
-    prev_avg_iou = avg_iou(x, group_index, init_point)
-    print("init mean IOU: ", prev_avg_iou)
-
-    for _ in range(total_iter):
-        for i in range(cluster_num):
-            init_point[i] = x[group_index.eq(i)].mean(0)
-        distance = dist_metric(x, init_point)
-        group_index = distance.argmin(1)
-
-        new_avg_iou = avg_iou(x, group_index, init_point)
-        print("mean IOU: ", new_avg_iou)
-
-        # early stopping
-        if new_avg_iou - prev_avg_iou > error_acceptance:
-            prev_avg_iou = new_avg_iou
-        else:
-            break
-
-    # final group and cluster center
-    return group_index, init_point
-
-
 class PriorBox:
-    def __init__(self, num_anchors: int, dataset: str, anchors_path: str = ""):
-        self.num_anchors = num_anchors
-        self.dataset = dataset
-        self.anchors_path = anchors_path
+    def __init__(self, context: DetectorContext):
+        self.anchors_path = context.anchors_path
+        self.num_anchors = context.num_anchors
 
-        if Path(self.anchors_path).exists():
+        p = Path(self.anchors_path)
+
+        if p.exists() and p.is_file():
             self.anchors = self.load_anchors()
         else:
             print("Can't find anchor file to path %s" % (self.anchors_path))
@@ -85,40 +52,33 @@ class PriorBox:
 
         return anchors
 
-    def build_anchors(self) -> torch.Tensor:
-        dataset_class_mapping = {
-            "VOC": VOCDatasetFromCSV,
-            "COCO": COCODatasetFromCSV,
-        }
+    def build_anchors(
+        self,
+        wh: Iterable[tuple[int | float, int | float]],
+    ) -> torch.Tensor:
+        na = self.num_anchors
 
-        # comment lines of raw data
-        dataset = dataset_class_mapping.get(self.dataset.upper())(
-            mode=OperationMode.TRAIN.value
-        )
-
-        wh = torch.from_numpy(dataset.table[["w", "h"]].to_numpy())
+        wh: torch.Tensor = torch.Tensor(wh)
         print("gt shape: ", wh.shape)
 
-        group_indices, anchors = kmeans(wh, self.num_anchors)
+        m = KMeans(na, dist_metric=iou_dist, eval_metric=avg_iou)
+        group_indices = m.fit(wh)
+        anchors = m.centroids
 
         final_avg_iou = (
             sum(
                 [
-                    (1 - dist_metric(wh[group_indices == i], anchors))[:, i]
-                    .mean()
-                    .item()
-                    for i in range(self.num_anchors)
+                    (1 - iou_dist(wh[group_indices == i], anchors))[:, i].mean().item()
+                    for i in range(na)
                 ]
             )
-            / self.num_anchors
+            / na
         )
         print("final mean IOU: ", final_avg_iou)
 
         print(
-            "member number in each group",
-            (
-                group_indices.view(-1, 1) == torch.arange(self.num_anchors).view(1, -1)
-            ).sum(0),
+            "member count of each group: ",
+            (group_indices.view(-1, 1) == torch.arange(na).view(1, -1)).sum(0).tolist(),
         )
 
         return anchors
