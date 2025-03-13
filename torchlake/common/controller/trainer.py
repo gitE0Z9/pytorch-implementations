@@ -104,7 +104,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
                     output = self._predict(row, model, *args, **kwargs)
                     losses = self._calc_loss(output, row, criterion)
                 if not isinstance(losses, tuple):
-                    losses: tuple[torch.Tensor] = tuple(
+                    losses: tuple[torch.Tensor] = (
                         losses,
                     )
 
