@@ -61,7 +61,7 @@ class YOLOV2Loss(nn.Module):
         grid_y: int,
     ) -> torch.Tensor:
         """match anchor to groundtruth
-        1. if iou over threshold, don't update obj/noobj loss, but class loss
+        1. if iou over threshold, don't update obj/noobj loss
         2. before 12800 pictures, update prior loss
         3. update coord/obj/class loss for best box
 
