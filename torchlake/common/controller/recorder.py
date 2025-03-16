@@ -101,5 +101,14 @@ class TrainRecorder:
 
         return ratios
 
+    def display_epoch_result(self):
+        print("------------------------------------")
+        print(f"Epoch {self.current_epoch+1}")
+        print("------------------------------------")
+        for training_loss, last_improvement in zip(
+            self.training_losses, self.get_last_improvement()
+        ):
+            print(f"{training_loss[-1]} ({last_improvement}%)")
+
 
 class EvalRecorder: ...

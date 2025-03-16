@@ -104,13 +104,11 @@ class TrainerBase(PredictFunctionMixin, ABC):
                     output = self._predict(row, model, *args, **kwargs)
                     losses = self._calc_loss(output, row, criterion)
                 if not isinstance(losses, tuple):
-                    losses: tuple[torch.Tensor] = (
-                        losses,
-                    )
+                    losses: tuple[torch.Tensor] = (losses,)
 
                 losses = tuple(loss / self.acc_iters for loss in losses)
                 for loss in losses:
-                    assert not torch.isnan(loss), "Loss is singular"
+                    assert not torch.isnan(loss), f"Loss is singular. Losses: {losses}"
 
                 # gradient backward
                 main_loss = losses[0]
@@ -141,12 +139,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
             if scheduler:
                 scheduler.step(last_loss)
 
-            print(f"Epoch {e+1}")
-            print("------------------------------------")
-            for training_loss, last_improvement in zip(
-                recorder.training_losses, recorder.get_last_improvement()
-            ):
-                print(f"{training_loss[-1]} ({last_improvement}%)")
+            recorder.display_epoch_result()
             recorder.increment_epoch()
 
             if validate_func is not None and (e + 1) % self.validate_interval == 0:
