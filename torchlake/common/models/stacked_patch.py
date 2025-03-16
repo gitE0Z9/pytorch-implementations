@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 
@@ -13,11 +14,11 @@ class StackedPatch2d(nn.Module):
         self.stride = stride
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, c, h, w = x.shape
-        x = x.reshape(
-            b,
-            c * self.stride * self.stride,
-            h // self.stride,
-            w // self.stride,
+        _, c, h, w = x.shape
+        k = (h // self.stride, w // self.stride)
+        return (
+            F.unfold(x, k, stride=k)
+            .unflatten(1, (c, *k))
+            .permute(0, 1, 4, 2, 3)
+            .flatten(1, 2)
         )
-        return x
