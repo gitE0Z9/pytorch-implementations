@@ -15,7 +15,7 @@ def draw_label(
 
     Args:
         img (np.ndarray): image
-        label (torch.Tensor): normalized x,y,w,h coordinates and class index, in shape (N, 5)
+        label (torch.Tensor): normalized x,y,w,h coordinates and class index, in shape (N, 5) and format (x, y, w, h, c)
         class_names (Sequence[str] | None, optional): class names. Defaults to None.
         class_colors (Dict[str, List[int]], optional): palette for each class. Defaults to {}.
         class_show (bool, optional): show class and score. Defaults to True.
@@ -32,7 +32,7 @@ def draw_label(
             int(x + w),
             int(y + h),
         )
-        class_name = class_names[c] if class_names else None
+        class_name = class_names[int(c)] if class_names else None
         color = class_colors.get(class_name, FALLBACK_COLOR)
 
         cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)

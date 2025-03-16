@@ -119,14 +119,14 @@ def build_flatten_targets(
     """build flatten targets
 
     Args:
-        gt_batch (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, p)
-        grid_shape (tuple[int], optional): grid shape. Defaults to None.
+        gt_batch (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, c)
+        grid_shape (tuple[int], optional): grid shape e.g. (grid_y, grid_x). Defaults to None.
         delta_coord (bool, optional): represent center coord in translation delta and grid index. Defaults to True.
 
     Returns:
         tuple[torch.Tensor, list[int]]:
-        element1: batched bboxes, in format(dx, dy, grid_x, grid_y, w, h, p) if delta coord is true
-        or in format of (cx, cy, w, h, p).
+        element1: batched bboxes, in format(dx, dy, grid_x, grid_y, w, h, c) if delta coord is true
+        or in format of (cx, cy, w, h, c).
         element2: number of detections of each image
     """
     if delta_coord:

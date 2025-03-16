@@ -34,7 +34,6 @@ class Decoder(YOLODecodeMixin):
 
         input_h, input_w = image_size
         stride_x, stride_y = input_w / fm_w, input_h / fm_h
-
         grid_x, grid_y = generate_grid(fm_w, fm_h)
 
         # batch_size, 1, boxes * grid_y * grid_x
@@ -72,6 +71,4 @@ class Decoder(YOLODecodeMixin):
         )
 
         # batch_size, boxes * grid_y * grid_x, 5+C
-        result = torch.cat([x, y, w, h, conf, prob], 1).transpose(1, 2)
-
-        return result
+        return torch.cat([x, y, w, h, conf, prob], 1).transpose(1, 2)

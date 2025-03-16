@@ -37,50 +37,43 @@ class Decoder(YOLODecodeMixin):
         grid_x, grid_y = generate_grid(fm_w, fm_h)
 
         cx = (
-            feature_map[:, :, 0:1, :, :]
+            feature_map[:, :, 0, :, :]
             .sigmoid()
             .multiply(input_w)
             .add(grid_x * stride_x)
-            .transpose(1, 2)
             .reshape(batch_size, 1, -1)
         )
         cy = (
-            feature_map[:, :, 1:2, :, :]
+            feature_map[:, :, 1, :, :]
             .sigmoid()
             .multiply(input_h)
             .add(grid_y * stride_y)
-            .transpose(1, 2)
             .reshape(batch_size, 1, -1)
         )
         w = (
-            feature_map[:, :, 2:3, :, :]
+            feature_map[:, :, 2, :, :]
             .exp()
-            .multiply(self.anchors[:, :, 0:1, :, :])
+            .multiply(self.anchors[:, :, 0, :, :])
             .multiply(input_w)
-            .transpose(1, 2)
             .reshape(batch_size, 1, -1)
         )
         h = (
-            feature_map[:, :, 3:4, :, :]
+            feature_map[:, :, 3, :, :]
             .exp()
-            .multiply(self.anchors[:, :, 1:2, :, :])
+            .multiply(self.anchors[:, :, 1, :, :])
             .multiply(input_h)
-            .transpose(1, 2)
             .reshape(batch_size, 1, -1)
         )
-        conf = (
-            feature_map[:, :, 4:5, :, :]
-            .sigmoid()
-            .transpose(1, 2)
-            .reshape(batch_size, 1, -1)
-        )
+        conf = feature_map[:, :, 4, :, :].sigmoid().reshape(batch_size, 1, -1)
         prob = (
             feature_map[:, :, 5:, :, :]
-            .softmax(1)
+            .float()
+            .softmax(2)
             .transpose(1, 2)
             .reshape(batch_size, num_classes, -1)
         )
         x = cx - w / 2
         y = cy - h / 2
 
-        return torch.cat([x, y, w, h, conf, prob], 1)
+        # batch_size, boxes * grid_y * grid_x, 5+C
+        return torch.cat([x, y, w, h, conf, prob], 1).transpose(1, 2)
