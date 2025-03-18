@@ -3,23 +3,16 @@ from torch.testing import assert_close
 
 # from ..models.darknet53.feature_extractor import DarkNet53FeatureExtractor
 from ..models.darknet53.model import DarkNet53
-from ..models.darknet53.network import darknet_block, darknet_bottleneck
+from ..models.darknet53.network import DarkNetBlock
 
 
 class TestNetwork:
     def test_forward_shape_darknet_block(self):
         x = torch.rand(2, 4, 16, 16)
-        layer = darknet_block(4, 8)
+        layer = DarkNetBlock(4, 8)
 
         output: torch.Tensor = layer(x)
         assert_close(output.shape, torch.Size([2, 16, 16, 16]))
-
-    def test_forward_shape_darknet_bottleneck(self):
-        x = torch.rand(2, 4, 16, 16)
-        layer = darknet_bottleneck(4, 8)
-
-        output: torch.Tensor = layer(x)
-        assert_close(output.shape, torch.Size([2, 16, 8, 8]))
 
 
 class TestDarkNet53:

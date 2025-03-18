@@ -9,8 +9,7 @@ class DarkNetBlock(nn.Module):
         self,
         input_channel: int,
         base_channel: int,
-        expansion_ratios: list[int],
-        stride: int,
+        expansion_ratios: list[int] = [1, 2],
     ):
         """
         DarkNet53 block
@@ -19,7 +18,6 @@ class DarkNetBlock(nn.Module):
             input_channel (int): input channel size
             base_channel (int): the smallest channel
             expansion_ratios (list[int]): expansion ratio of channels of each layer
-            stride (int): stride of the first convolution layer
         """
         super().__init__()
         self.blocks = nn.Sequential(
@@ -28,7 +26,6 @@ class DarkNetBlock(nn.Module):
                     base_channel * in_r if i != 0 else input_channel,
                     base_channel * out_r,
                     kernel_size=1 if out_r == 1 else 3,
-                    stride=stride if i == 0 else 1,
                     activation_layer=lambda: nn.LeakyReLU(0.1),
                     inplace=None,
                 )
@@ -38,21 +35,3 @@ class DarkNetBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.blocks(x)
-
-
-def darknet_bottleneck(input_channel: int, base_channel: int) -> DarkNetBlock:
-    return DarkNetBlock(
-        input_channel,
-        base_channel,
-        expansion_ratios=[2, 1, 2],
-        stride=2,
-    )
-
-
-def darknet_block(input_channel: int, base_channel: int) -> DarkNetBlock:
-    return DarkNetBlock(
-        input_channel,
-        base_channel,
-        expansion_ratios=[1, 2],
-        stride=1,
-    )
