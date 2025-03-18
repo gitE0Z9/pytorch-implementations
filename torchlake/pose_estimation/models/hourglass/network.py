@@ -127,10 +127,8 @@ class AuxiliaryHead(nn.Module):
         y1 = self.conv(x)
         y = self.output(y1)
 
-        y1 = self.conv_neck(y1)
-        y1 = y1 + self.output_neck(y)
-
         if output_neck:
+            y1 = self.conv_neck(y1) + self.output_neck(y)
             return y, y1
 
         return y
