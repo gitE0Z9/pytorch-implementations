@@ -6,7 +6,7 @@ class NlpContext(BaseModel):
     unk_idx: int = 0
     bos_idx: int = 1
     eos_idx: int = 2
-    padding_idx: int = 3
+    padding_idx: int | None = 3
     min_seq_len: int = 5
     max_seq_len: int = 256
     min_frequency: int = 5

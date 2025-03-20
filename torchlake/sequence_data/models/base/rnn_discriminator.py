@@ -108,11 +108,12 @@ class RNNDiscriminator(ModelBase):
             tuple[torch.Tensor, torch.Tensor]: output and hidden states
         """
         _, seq_len, _ = y.shape
-        y = pack_sequence(
-            y,
-            x.ne(self.context.padding_idx).sum(dim=1).long().detach().cpu(),
-            self.context.padding_idx,
-        )
+        if self.context.padding_idx is not None:
+            y = pack_sequence(
+                y,
+                x.ne(self.context.padding_idx).sum(dim=1).long().detach().cpu(),
+                self.context.padding_idx,
+            )
 
         # o, (ht, ct)
         # o: batch_size, seq_len, bidirectional * num_layers * hidden_dim
@@ -136,7 +137,8 @@ class RNNDiscriminator(ModelBase):
         else:
             ht, states = states, tuple()
 
-        o = unpack_sequence(o, seq_len)
+        if self.context.padding_idx is not None:
+            o = unpack_sequence(o, seq_len)
 
         return o, ht, states
 
