@@ -86,7 +86,7 @@ class DarkNet19FeatureExtractor(ExtractorBase):
                 stage_count += 1
 
         # stage 4_1 has no maxpool2d
-        if self.layer_type in ["block", "last_conv"] and "4_1" in target_layer_names:
+        if "4_1" in target_layer_names:
             features.append(y)
 
         if self.layer_type == "block" and "output" in target_layer_names:
