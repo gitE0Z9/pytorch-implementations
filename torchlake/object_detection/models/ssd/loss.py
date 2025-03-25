@@ -180,7 +180,8 @@ class MultiBoxLoss(nn.Module):
                         gt[gt_idx_of_acceptable_prior, :4],
                         anchors[over_threshold],
                     ),
-                    gt[gt_idx_of_acceptable_prior, 4:5],
+                    # 0 is background, so move class forward
+                    gt[gt_idx_of_acceptable_prior, 4:5] + 1,
                 ],
                 1,
             )
@@ -192,7 +193,8 @@ class MultiBoxLoss(nn.Module):
             placeholder[best_prior_idx] = torch.cat(
                 [
                     self.encode(gt[:, :4], anchors[best_prior_idx]),
-                    gt[:, 4:5],
+                    # 0 is background, so move class forward
+                    gt[:, 4:5] + 1,
                 ],
                 1,
             )
@@ -222,8 +224,6 @@ class MultiBoxLoss(nn.Module):
 
         # shape is (B, 5), format is (cx, cy, w, h, p)
         gt, spans = build_flatten_targets(gt, delta_coord=False)
-        # 0 is background, so move class forward
-        gt[:, -1] += 1
         gt = gt.to(self.device)
         # shape is (batch size, 8732, 5)
         # unmatched will gain 0 as background

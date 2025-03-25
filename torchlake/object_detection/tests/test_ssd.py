@@ -1,13 +1,13 @@
 import random
 import torch
 from torch.testing import assert_close
+from torchlake.common.models import VGGFeatureExtractor
 
 from ..constants.schema import DetectorContext
 from ..models.ssd.anchor import PriorBox
-from ..models.ssd.decode import Decoder
 from ..models.ssd.loss import MultiBoxLoss
 from ..models.ssd.model import SSD
-from ..models.ssd.network import Backbone, RegHead
+from ..models.ssd.network import RegHead
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 300  # 512
@@ -24,25 +24,6 @@ CONTEXT = DetectorContext(
 TOTAL_ANCHORS = 8732
 
 
-class TestBackbone:
-    def test_forward_shape(self):
-        x = torch.rand((BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE))
-
-        model = Backbone()
-
-        features = model(x)
-        expected_shapes = (
-            torch.Size((BATCH_SIZE, dim, scale, scale))
-            for dim, scale in zip(
-                (512, 1024, 512, 256, 256, 256),
-                (38, 19, 10, 5, 3, 1),
-            )
-        )
-
-        for feature, expected_shape in zip(features, expected_shapes):
-            assert_close(feature.shape, expected_shape)
-
-
 class TestRegHead:
     def test_output_shape(self):
         x = torch.rand(BATCH_SIZE, 16, 7, 7)
@@ -57,26 +38,42 @@ class TestRegHead:
 
 
 class TestSSD:
+    def test_backbone_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE))
+
+        backbone = VGGFeatureExtractor("vgg16", "relu", trainable=False)
+        model = SSD(backbone, CONTEXT)
+
+        features = model.foot(x)
+        expected_shapes = (
+            torch.Size((BATCH_SIZE, dim, scale, scale))
+            for dim, scale in zip(
+                (512, 1024, 512, 256, 256, 256),
+                (38, 19, 10, 5, 3, 1),
+            )
+        )
+
+        for feature, expected_shape in zip(features, expected_shapes):
+            assert_close(feature.shape, expected_shape)
+
     def test_forward_shape(self):
         x = torch.rand((BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = SSD(CONTEXT)
+        backbone = VGGFeatureExtractor("vgg16", "relu", trainable=False)
+        model = SSD(backbone, CONTEXT)
 
         y = model(x)
 
         assert_close(
             y.shape,
-            torch.Size((BATCH_SIZE, 8732, 4 + 1 + CONTEXT.num_classes)),
+            torch.Size((BATCH_SIZE, TOTAL_ANCHORS, 4 + 1 + CONTEXT.num_classes)),
         )
 
 
 class TestPriorBox:
-    def test_build_anchors_shape(self): ...
-
-
-class TestDecoder:
-    def test_decode_shape(self): ...
-    def test_post_process_shape(self): ...
+    def test_build_anchors_shape(self):
+        anchors = PriorBox().build_anchors()
+        assert_close(anchors.shape, torch.Size((TOTAL_ANCHORS, 4)))
 
 
 class TestMultiBoxLoss:
