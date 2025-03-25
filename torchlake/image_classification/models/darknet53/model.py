@@ -15,7 +15,7 @@ class DarkNet53(ModelBase):
     @property
     def config(self) -> list[list[list[int]]]:
         return [
-            # channel, block number, block class
+            # channel, block number
             # stage 0
             [32, 1],
             # stage 1
