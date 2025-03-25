@@ -1,5 +1,4 @@
 from itertools import pairwise
-import torch
 import torch.nn as nn
 from torchlake.common.models.flatten import FlattenFeature
 from torchlake.common.models.model_base import ModelBase
@@ -74,10 +73,5 @@ class YOLOV1Tiny(ModelBase):
         self.head = nn.Sequential(
             FlattenFeature(reduction=None),
             nn.Linear(self.feature_dim, output_size),
+            nn.Unflatten(-1, (self.output_size, 7, 7)),
         )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.foot(x)
-        y = self.blocks(y)
-
-        return self.head(y).view(-1, self.output_size, 7, 7)
