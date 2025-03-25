@@ -36,6 +36,15 @@ class DarkNetConvertor:
 
     #     return output
 
+    def read_header(self, weight_handle: BufferedReader):
+        # https://github.com/qqwweee/keras-yolo3/blob/e6598d13c703029b2686bc2eb8d5c09badf42992/convert.py#L74
+        major, minor, revision = np.fromfile(weight_handle, count=3, dtype=np.int32)
+        if (major * 10 + minor) >= 2 and major < 1000 and minor < 1000:
+            seen = np.fromfile(weight_handle, count=1, dtype=np.int64)
+        else:
+            seen = np.fromfile(weight_handle, count=1, dtype=np.int32)
+        print("Weights Header: ", major, minor, revision, seen)
+
     def convert_bn(self, weight_handle: BufferedReader, dest: nn.BatchNorm2d):
         print("start converting bn")
 
@@ -93,9 +102,10 @@ class DarkNetConvertor:
     def extra_convert(self, weight_handle: BufferedReader, dest: nn.Module):
         pass
 
-    def run(self, weights_path: str, dest: nn.Module):
+    def run(self, weights_path: str, dest: nn.Module, check_headers: bool = True):
         weight_handle = open(weights_path, "rb")
-        _ = np.fromfile(weight_handle, count=4, dtype=np.int32)
+        if check_headers:
+            _ = self.read_header(weight_handle)
 
         for network_module in dest.children():
             if isinstance(network_module, nn.Sequential):
