@@ -49,7 +49,7 @@ class Decoder:
         # cx, cy -> x, y
         loc_pred[:, :, :2] -= loc_pred[:, :, 2:] / 2
 
-        conf_pred = conf_pred.softmax(dim=-1)
+        conf_pred = conf_pred.float().softmax(dim=-1)
 
         # batch size, #num_anchor * #num_grid_y * #num_grid_x, 4+num_class+1
         return torch.cat([loc_pred, conf_pred], -1)
