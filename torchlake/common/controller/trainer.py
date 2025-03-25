@@ -82,8 +82,10 @@ class TrainerBase(PredictFunctionMixin, ABC):
 
         # TODO: overhead
         if recorder is None:
-            print("Calculating dataset size...")
-            self.recorder.calc_dataset_size(data)
+            recorder = self.recorder
+            if self.recorder.is_data_size_static and self.recorder.data_size <= 0:
+                print("Calculating dataset size...")
+                self.recorder.calc_dataset_size(data)
 
         model.train()
         # some models have extra layers during training
@@ -94,8 +96,13 @@ class TrainerBase(PredictFunctionMixin, ABC):
         for e in range(recorder.current_epoch, recorder.total_epoch):
             optimizer.zero_grad()
             recorder.reset_running_loss()
+            if not recorder.is_data_size_static:
+                recorder.reset_data_size()
 
             for batch_idx, row in enumerate(tqdm(data)):
+                if not recorder.is_data_size_static:
+                    recorder.increment_data_size(recorder.calc_row_size(row))
+
                 with torch.autocast(
                     device_type=self.device.type,
                     enabled=torch.is_autocast_enabled(),
