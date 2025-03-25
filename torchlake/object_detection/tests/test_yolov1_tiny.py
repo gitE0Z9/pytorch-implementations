@@ -1,4 +1,3 @@
-import random
 import torch
 from torch.testing import assert_close
 
@@ -7,7 +6,7 @@ from ..models.yolov1_tiny.model import YOLOV1Tiny
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 448
-GRID_SIZE = 7  # XXX
+GRID_SIZE = 7
 MAX_OBJECT_SIZE = 100
 CONTEXT = DetectorContext(
     detector_name="yolov1-tiny",

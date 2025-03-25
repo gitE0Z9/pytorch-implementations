@@ -1,4 +1,5 @@
 from itertools import pairwise
+from typing import Literal
 import torch.nn as nn
 from torchlake.common.models.flatten import FlattenFeature
 from torchlake.common.models.model_base import ModelBase
@@ -11,20 +12,24 @@ class YOLOV1Tiny(ModelBase):
     def __init__(
         self,
         context: DetectorContext,
+        output_size: int = 1,
         dropout_prob: float = 0.5,
+        head_type: Literal["classification", "detection"] = "detection",
     ):
         """tiny YOLOV1
 
         Args:
             context (DetectorContext): detector context
+            output_size (int, optional): output size for classification. Defaults to 1.
             dropout_prob (float, optional): dropout prob. Defaults to 0.5.
         """
         self.dropout_prob = dropout_prob
+        self.head_type = head_type
         self.context = context
         self.output_size = context.num_anchors * 5 + context.num_classes
         super().__init__(
             3,
-            self.output_size * 7 * 7,
+            self.output_size * 7 * 7 if head_type == "detection" else output_size,
         )
 
     @property
@@ -73,5 +78,9 @@ class YOLOV1Tiny(ModelBase):
         self.head = nn.Sequential(
             FlattenFeature(reduction=None),
             nn.Linear(self.feature_dim, output_size),
-            nn.Unflatten(-1, (self.output_size, 7, 7)),
         )
+
+        if self.head_type == "detection":
+            self.head.append(
+                nn.Unflatten(-1, (self.output_size, 7, 7)),
+            )
