@@ -34,6 +34,7 @@
 | Residual attention network(AttentionNet56) | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-and-its-variants-2-f8f77cef8e2b)   | ``residual_attention`` |
 | DenseNet                                   | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976)                   | ``densenet``           |
 | Highway Network                            | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-highway-network-1e8bd63e432f)            | ``highway``            |
+| ConvNeXt                                   | -                                                                                                                                     | ``convnext``           |
 | MobileNet v1                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenet``          |
 | MobileNet v2                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenetv2``        |
 | MobileNet v3                               | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc)               | ``mobilenetv3``        |
@@ -47,6 +48,7 @@
 | SqueezeNeXt                                | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)      | ``squeezenext``        |
 | Extraction                                 | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22)                       | ``extraction``         |
 | DarkNet19                                  | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43)                       | ``darknet19``          |
+| DarkNet53                                  | -                                                                                                                                     | ``darknet53``          |
 | Vision transformer (ViT)                   | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-vit-11ecba1796a3)                         | ``vit``                |
 | Distillated Vision transformer (DeiT)      | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-deit-f93bb1d46d21)                        | ``deit``               |
 
@@ -59,6 +61,7 @@
 | You only look once (YOLO)           | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov1-a56b49024c22) | ``yolov1``      |
 | Tiny YOLOv1                         | -                                                                                                               | ``yolov1_tiny`` |
 | YOLOv2                              | [medium](https://acrocanthosaurus627.medium.com/object-detection-from-scratch-with-pytorch-yolov2-722c4d66cd43) | ``yolov2``      |
+| Tiny YOLOv2                         | -                                                                                                               | ``yolov2_tiny`` |
 | Single shot multibox detector (SSD) | -                                                                                                               | ``ssd``         |
 | RetinaNet                           | -                                                                                                               | ``retinanet``   |
 
