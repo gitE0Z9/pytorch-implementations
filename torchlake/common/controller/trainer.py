@@ -80,12 +80,11 @@ class TrainerBase(PredictFunctionMixin, ABC):
         torch.set_autocast_enabled(scaler is not None)
         print(f"Enable AMP: {torch.is_autocast_enabled()}")
 
-        # TODO: overhead
         if recorder is None:
             recorder = self.recorder
-            if self.recorder.is_data_size_static and self.recorder.data_size <= 0:
+            if recorder.is_data_size_static and recorder.data_size <= 0:
                 print("Calculating dataset size...")
-                self.recorder.calc_dataset_size(data)
+                recorder.calc_dataset_size(data)
 
         model.train()
         # some models have extra layers during training
