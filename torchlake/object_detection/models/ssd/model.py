@@ -104,11 +104,8 @@ class SSD(ModelBase):
             (1, 1),
         )
 
+        backbone.fix_target_layers(["4_3", "6_2", "6_4", "6_6", "6_8", "6_10"])
         self.foot = backbone
-        self.foot.forward = partial(
-            self.foot.forward,
-            target_layer_names=["4_3", "6_2", "6_4", "6_6", "6_8", "6_10"],
-        )
 
     def build_neck(self):
         self.neck = L2Norm(512, scale=20.0)
