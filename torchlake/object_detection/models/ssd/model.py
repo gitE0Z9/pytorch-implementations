@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 from torchlake.common.models import L2Norm
