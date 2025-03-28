@@ -7,9 +7,6 @@ setup(
     packages=find_packages(),
     package_data={
         "": [
-            "object_detection/configs/**/*.yml",
-            "object_detection/datasets/**/*.yml",
-            "object_detection/configs/**/*.txt",
             "common/datasets/**/*.txt",
         ]
     },
