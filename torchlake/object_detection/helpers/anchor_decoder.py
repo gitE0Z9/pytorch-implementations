@@ -69,20 +69,23 @@ class Decoder:
             list[torch.Tensor]: #batch * (#selected, 5 + #class)
         """
         batch_size, _, _ = decoded.shape
-        cls_index = decoded[:, :, 5:].argmax(-1)
+        cls_indices = decoded[:, :, 4:].argmax(-1)
 
         processed_result = []
-        for i in range(batch_size):
+        for batch_idx in range(batch_size):
             detection_result = []
+            # plus 1 to skip background class
             for class_index in range(self.context.num_classes):
-                is_this_class: torch.Tensor = cls_index[i].eq(class_index)
-                if not is_this_class.any():
+                is_this_class_candidate: torch.Tensor = cls_indices[batch_idx].eq(
+                    class_index + 1
+                )
+                if not is_this_class_candidate.any():
                     continue
 
-                this_class_detection = decoded[i, is_this_class]
+                this_class_detection = decoded[batch_idx, is_this_class_candidate]
                 best_index = select_best_index(
                     this_class_detection[:, :4],
-                    this_class_detection[:, 5 + class_index],
+                    this_class_detection[:, 4 + class_index],
                     postprocess_config,
                 )
                 detection_result.append(this_class_detection[best_index])
