@@ -47,7 +47,7 @@ class VGGFeatureExtractor(ExtractorBase):
 
     def build_feature_extractor(self, network_name: str, weights: Weights) -> nn.Module:
         model_class = getattr(torchvision.models, network_name)
-        feature_extractor: nn.Module = model_class(weights=weights).features.eval()
+        feature_extractor: nn.Module = model_class(weights=weights).features
 
         if not self.trainable:
             for param in feature_extractor.parameters():
