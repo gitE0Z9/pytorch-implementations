@@ -19,7 +19,7 @@ class PointNetLoss(nn.Module):
         reg_loss = sum(
             F.mse_loss(
                 torch.bmm(transform.transpose(-1, -2), transform),
-                torch.eye(transform.size(-1)).expand_as(transform),
+                torch.eye(transform.size(-1)).expand_as(transform).to(transform.device),
             )
             for transform in transforms
         )
