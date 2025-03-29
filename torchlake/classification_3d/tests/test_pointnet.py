@@ -62,7 +62,7 @@ class TestLoss:
         )
         criterion = PointNetLoss()
 
-        loss = criterion(yhat, y, t)
+        loss = criterion(yhat, t, y)
 
         assert not torch.isnan(loss)
 
@@ -75,5 +75,5 @@ class TestLoss:
         )
         criterion = PointNetLoss()
 
-        loss = criterion(yhat, y, t)
+        loss = criterion(yhat, t, y)
         loss.backward()

@@ -12,8 +12,8 @@ class PointNetLoss(nn.Module):
     def forward(
         self,
         pred: torch.Tensor,
-        gt: torch.Tensor,
         transforms: tuple[torch.Tensor],
+        gt: torch.Tensor,
     ) -> torch.Tensor:
         main_loss = F.cross_entropy(pred, gt)
         reg_loss = sum(
