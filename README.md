@@ -84,6 +84,14 @@
 | ParseNet                                    | -                                                                                                                                   | ``parsenet``       |
 | Segmentation transformer (SETR)             | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-setr-0091abf13f82)                     | ``setr``           |
 
+### 3D辨識
+
+套件名: `classification_3d` (unstable naming)
+
+| Model    | Article Link | Package      |
+| -------- | ------------ | ------------ |
+| PointNet | -            | ``pointnet`` |
+
 ### 光學文字辨識
 
 套件名: `ocr`
