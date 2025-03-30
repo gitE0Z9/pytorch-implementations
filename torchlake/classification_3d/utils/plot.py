@@ -1,14 +1,17 @@
-from pathlib import Path
 import open3d as o3d
+from open3d.web_visualizer import draw as open3d_drawer
 
 
 def plot_mesh(
-    path: Path | str,
+    mesh,
     color: tuple[float, float, float] | None = None,
+    embed_notebook: bool = False,
 ):
-    mesh = o3d.io.read_triangle_mesh(Path(path))
     mesh.compute_vertex_normals()
     if color is not None:
         mesh.paint_uniform_color(color)
 
-    o3d.visualization.draw_geometries([mesh])
+    if embed_notebook:
+        open3d_drawer(mesh)
+    else:
+        o3d.visualization.draw_geometries([mesh])
