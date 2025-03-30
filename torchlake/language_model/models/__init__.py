@@ -5,11 +5,9 @@ from .character_aware.model import (
 )
 from .glove.model import GloVe
 from .vlbl.model import IVLBL, VLBL
-from .word2vec.model import Word2Vec
 from .subword.model import SubwordLM
 
 __all__ = [
-    "Word2Vec",
     "VLBL",
     "IVLBL",
     "GloVe",
