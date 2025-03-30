@@ -18,7 +18,7 @@ class PointNetLoss(nn.Module):
         main_loss = F.cross_entropy(pred, gt)
         reg_loss = sum(
             F.mse_loss(
-                torch.bmm(transform.transpose(-1, -2), transform),
+                torch.bmm(transform, transform.transpose(-1, -2)),
                 torch.eye(transform.size(-1)).expand_as(transform).to(transform.device),
             )
             for transform in transforms
