@@ -2,7 +2,6 @@ from torch import nn
 import torch
 
 from torchlake.common.models.conv import ConvBnRelu
-from torchlake.common.models.flatten import FlattenFeature
 from torchlake.common.models.model_base import ModelBase
 
 from .network import TransformModule
@@ -49,11 +48,12 @@ class PointNet(ModelBase):
 
     def build_head(self, output_size: int, **kwargs):
         self.head = nn.Sequential(
-            FlattenFeature("max", "1d"),
-            nn.Linear(self.feature_dim, 512),
+            nn.AdaptiveMaxPool1d((1)),
+            ConvBnRelu(self.feature_dim, 512, 1, dimension="1d"),
             nn.Dropout(p=self.dropout_prob),
-            nn.Linear(512, 256),
+            ConvBnRelu(512, 256, 1, dimension="1d"),
             nn.Dropout(p=self.dropout_prob),
+            nn.Flatten(),
             nn.Linear(256, output_size),
         )
 
