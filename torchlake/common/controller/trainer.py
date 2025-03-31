@@ -219,7 +219,7 @@ class RegressionTrainer(TrainerBase):
         return criterion(y_hat, y.float())
 
 
-class MutltOutputClassificationTrainer(ClassificationTrainer):
+class MultiOutputClassificationTrainer(ClassificationTrainer):
     def _calc_loss(
         self,
         y_hat: tuple[torch.Tensor],
@@ -232,7 +232,7 @@ class MutltOutputClassificationTrainer(ClassificationTrainer):
         return criterion(*y_hat, y.long())
 
 
-class SingleInputMutltOutputClassificationTrainer(ClassificationTrainer):
+class SingleInputMultiOutputClassificationTrainer(ClassificationTrainer):
     def _calc_loss(
         self,
         y_hat: tuple[torch.Tensor],
@@ -245,7 +245,7 @@ class SingleInputMutltOutputClassificationTrainer(ClassificationTrainer):
         return criterion(*y_hat, x.long())
 
 
-class SingleInputMutltOutputRegressionTrainer(RegressionTrainer):
+class SingleInputMultiOutputRegressionTrainer(RegressionTrainer):
     def _calc_loss(
         self,
         y_hat: tuple[torch.Tensor],
