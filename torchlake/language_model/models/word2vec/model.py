@@ -21,7 +21,7 @@ class CBOW(nn.Module):
             padding_idx (int | None, optional): index of padding token. Defaults to None.
             reduction (Literal[mean] | Literal[sum], optional): redution mode. Defaults to "mean".
         """
-        super(CBOW, self).__init__()
+        super().__init__()
 
         self.embeddings = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
 
@@ -76,7 +76,7 @@ class SkipGram(nn.Module):
             embed_dim (int): embedding dimension
             padding_idx (int | None, optional): index of padding token. Defaults to None.
         """
-        super(SkipGram, self).__init__()
+        super().__init__()
         self.embeddings = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -111,7 +111,7 @@ class Word2Vec(nn.Module):
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CROSS_ENTROPY.
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
-        super(Word2Vec, self).__init__()
+        super().__init__()
         self.context = context
         self.model_type = model_type
         self.loss_type = loss_type

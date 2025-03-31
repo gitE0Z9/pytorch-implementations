@@ -46,6 +46,27 @@ class HuffmanNode:
 
         return count
 
+    def show(self):
+        output = []
+        queue = deque([self])
+        while queue:
+            node = queue.popleft()
+            output.append(f"{node.value}:{node.freq}")
+
+            if node.left is not None:
+                if node.left.is_leaf:
+                    output.append(f"{node.left.value}:{node.left.freq}")
+                if not node.left.is_leaf:
+                    queue.append(node.left)
+
+            if node.right is not None:
+                if node.right.is_leaf:
+                    output.append(f"{node.right.value}:{node.right.freq}")
+                if not node.right.is_leaf:
+                    queue.append(node.right)
+
+        return ",".join(output)
+
 
 def build_huffman_tree(freqs: list[int | float]) -> HuffmanNode:
     """Build huffman tree with frequencies.

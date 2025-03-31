@@ -161,28 +161,29 @@ class TestHierarchicalSoftmax:
             VOCAB_SIZE,
             context=CONTEXT,
         )
-        root = criterion.build_tree()
+        root = criterion.build_tree(WORD_COUNTS)
 
         assert isinstance(root, HuffmanNode)
-        assert root.internal_index > 0
+        assert root.value > 0
         assert root.left is not None
         assert root.right is not None
 
-    def test_hs_build_huffman_path(self):
+    def test_hs_get_paths(self):
         criterion = HierarchicalSoftmax(
             WORD_COUNTS,
             EMBED_SIZE,
             VOCAB_SIZE,
             context=CONTEXT,
         )
-        root = criterion.build_tree()
-        paths = criterion.build_huffman_path(root)
+        root = criterion.build_tree(WORD_COUNTS)
+        path_indices, path_codes = criterion.get_paths(root)
 
-        assert len(paths.keys()) == VOCAB_SIZE
-        for node_value, path in paths.items():
-            assert isinstance(node_value, int)
-            assert path["code"].size(0) <= VOCAB_SIZE
-            assert path["indices"].size(0) <= VOCAB_SIZE
+        assert len(path_indices) == VOCAB_SIZE
+        assert len(path_codes) == VOCAB_SIZE
+        for path_idx, path_code in zip(path_indices.values(), path_codes.values()):
+            assert path_code.size(0) == path_idx.size(0)
+            assert path_code.size(0) <= VOCAB_SIZE
+            assert path_idx.size(0) <= VOCAB_SIZE
 
     def test_hs_forward(self):
         x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)

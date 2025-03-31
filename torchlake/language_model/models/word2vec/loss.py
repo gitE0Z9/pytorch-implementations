@@ -1,11 +1,9 @@
-import heapq
-from operator import itemgetter
-
 import torch
 from torch import nn
 from torch.nn.functional import binary_cross_entropy_with_logits
 from torchlake.common.schemas.nlp import NlpContext
-from torchlake.common.utils.tree import HuffmanNode
+from torchlake.common.utils.tree import HuffmanNode, build_huffman_tree
+from operator import itemgetter
 
 
 class NegativeSampling(nn.Module):
@@ -28,7 +26,7 @@ class NegativeSampling(nn.Module):
             power (float, optional): power parameter. Defaults to 0.75.
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
-        super(NegativeSampling, self).__init__()
+        super().__init__()
         self.context = context
         self.negative_ratio = negative_ratio
         self.power = power
@@ -135,95 +133,69 @@ class HierarchicalSoftmax(nn.Module):
             vocab_size (int): vocabulary size
             context (NlpContext, optional): context object. Defaults to NlpContext().
         """
-        super(HierarchicalSoftmax, self).__init__()
-        self.context = context
-        self.word_counts = word_counts
+        super().__init__()
         self.vocab_size = vocab_size
+        self.context = context
         # leaf size + combined node size = vocab + (vocab - 1)
-        self.tree_size = 2 * vocab_size - 1
+        # self.tree_size = 2 * vocab_size - 1
 
-        self.tree = self.build_tree()
-        self.paths = self.build_huffman_path(self.tree)
+        tree = self.build_tree(word_counts)
+        self.path_indices, self.path_codes = self.get_paths(tree)
+        # vectors of path nodes
         self.fc = nn.Parameter(torch.rand((vocab_size - 1, embed_dim)))
 
-    def build_tree(self) -> HuffmanNode:
+    def build_tree(self, word_counts: torch.Tensor) -> HuffmanNode:
         """build huffman tree by word counts
 
         Returns:
             HuffmanNode: root of huffman tree
         """
+        root = build_huffman_tree(word_counts.tolist())
 
-        nodes: list[HuffmanNode] = [
-            HuffmanNode(index, count)
-            for index, count in enumerate(self.word_counts.tolist())
-        ]
-        heapq.heapify(nodes)
+        # combined node size is (vocab - 1)
+        # so 0-index is (vocab - 2)
+        assert root.value == (
+            2 * self.vocab_size - 2
+        ), "Size of intermediate nodes is incorrect."
 
-        # index for combined node
-        internal_index = 0
-        while len(nodes) > 1:
-            left = heapq.heappop(nodes)
-            right = heapq.heappop(nodes)
-            combined_node = HuffmanNode(None, left.freq + right.freq, internal_index)
-            combined_node.left = left
-            combined_node.right = right
-            internal_index += 1
-            heapq.heappush(nodes, combined_node)
+        return root
 
-        # combined node size is (vocab - 1), another -1 for being root
-        if nodes[0].internal_index != (self.vocab_size - 2):
-            print("Size of inner nodes is incorrect.")
-
-        return nodes[0]
-
-    def build_huffman_path(
+    def get_paths(
         self,
         root: HuffmanNode,
-        current_codes: list[int] = [],
-        current_internal_indices: list[int] = [],
-        huffman_codes={},
-    ) -> dict[int, torch.Tensor]:
-        """build path information to leaves on huffman tree
+    ) -> tuple[dict[int, torch.LongTensor], dict[int, torch.Tensor]]:
+        """get paths to leaves of huffman tree
 
         Args:
             root (HuffmanNode): root of huffman tree
-            current_codes (list[int], optional): list of 1 and 0 until this node. Defaults to [].
-            current_internal_indices (list[int], optional): list of internal indices(weight indices) utils this node. Defaults to [].
-            huffman_codes (dict, optional): dict of codes and indices of leaves until this code. Defaults to {}.
 
         Returns:
-            dict[int, torch.Tensor]: dict of codes and indices of leaves until this code
+            tuple[dict[int, torch.LongTensor], dict[int, torch.Tensor]]: intermediate indices to leaves and codes
         """
-        if root is None:
-            return huffman_codes
+        assert root is not None, "root should be a HuffmanNode"
+        N = self.vocab_size
 
-        # reach leaf
-        if root.value is not None:
-            huffman_codes[root.value] = {
-                # shape is depth; value btw 1 or 0
-                "code": torch.Tensor(current_codes).to(self.context.device),
-                # shape is depth
-                "indices": torch.LongTensor(current_internal_indices).to(
-                    self.context.device
-                ),
-            }
+        # shape is depth
+        path_indices = {}
+        # shape is depth; value is 0 or 1
+        path_codes = {}
 
-        # search leftside and collect internal index, left code is 0
-        self.build_huffman_path(
-            root.left,
-            current_codes + [0],
-            current_internal_indices + [root.internal_index],
-            huffman_codes,
-        )
-        # search rightside and collect internal index, right code is 1
-        self.build_huffman_path(
-            root.right,
-            current_codes + [1],
-            current_internal_indices + [root.internal_index],
-            huffman_codes,
-        )
+        def traverse(node: HuffmanNode, indices: list[int], codes: list[int]):
+            if node.is_leaf:
+                leaf_idx = node.value
+                path_indices[leaf_idx] = torch.LongTensor(indices)
+                path_codes[leaf_idx] = torch.FloatTensor(codes)
+                return
 
-        return huffman_codes
+            node_idx = node.value - N
+            if node.left:
+                traverse(node.left, indices + [node_idx], codes + [0])
+            if node.right:
+                traverse(node.right, indices + [node_idx], codes + [1])
+
+        traverse(root, [], [])
+
+        return path_indices, path_codes
 
     def forward(self, embedding: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """forward
@@ -235,23 +207,26 @@ class HierarchicalSoftmax(nn.Module):
         Returns:
             torch.Tensor: loss
         """
+        device = self.context.device
         # (N = B * c * #subseq), h
         embedding = embedding.view(-1, embedding.size(-1))
 
         # target mapping and concat
         # N
-        paths = itemgetter(*target.flatten().tolist())(self.paths)
+        y = target.view(-1).tolist()
+        path_indices = itemgetter(*y)(self.path_indices)
+        path_codes = itemgetter(*y)(self.path_codes)
 
         # indices, shape is ?
-        internal_indices = torch.cat([path["indices"] for path in paths])
+        internal_indices = torch.cat(path_indices).to(device)
 
         # index of sample
         # for example return 1, 1, 2, 3
         # if sample 1 with tree depth 2, sample 2 and 3 with tree depth 1
-        sample_indices = []
-        for i, path in enumerate(paths):
-            sample_indices.extend(path["indices"].size(0) * [i])
-        sample_indices = torch.LongTensor(sample_indices).to(self.context.device)
+        sample_indices = torch.repeat_interleave(
+            torch.arange(len(path_indices)),
+            torch.LongTensor([path_idx.shape[0] for path_idx in path_indices]),
+        ).to(device)
 
         # ?
         pred = torch.einsum(
@@ -261,6 +236,6 @@ class HierarchicalSoftmax(nn.Module):
         )
 
         # ?
-        target = torch.cat([path["code"] for path in paths])
+        target = torch.cat(path_codes).to(device)
 
         return binary_cross_entropy_with_logits(pred, target)

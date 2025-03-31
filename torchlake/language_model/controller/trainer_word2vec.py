@@ -22,7 +22,7 @@ class SkipGramTrainer(ClassificationTrainer):
         return model(gram, neighbor_size, *args, **kwargs)
 
 
-class CbowTrainer(ClassificationTrainer):
+class CBOWTrainer(ClassificationTrainer):
     def _predict(
         self,
         row: tuple[Iterable],
