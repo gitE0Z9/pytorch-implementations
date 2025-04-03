@@ -41,7 +41,8 @@
 | EfficientNet v1                            | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-efficientnet-v1-v2-bdd18eb59b3a)          | ``efficientnet``       |
 | EfficientNet v2                            | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-efficientnet-v1-v2-bdd18eb59b3a)          | ``efficientnetv2``     |
 | GhostNet                                   | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnet-10b0bab4110e)                   | ``ghostnet``           |
-| GhostNet v2                                | -                                                                                                                                     | ``ghostnetv2``         |
+| GhostNet v2                                | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnetv2-v3-202529dd7671)              | ``ghostnetv2``         |
+| GhostNet v3                                | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnetv2-v3-202529dd7671)              | ``ghostnetv3``         |
 | ShuffleNet                                 | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)            | ``shufflenet``         |
 | ShuffleNetV2                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-shufflenet-v1-v2-c37ff4c3197d)            | ``shufflenetv2``       |
 | SqueezeNet                                 | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-squeezenet-squeezenext-45049b438316)      | ``squeezenet``         |
