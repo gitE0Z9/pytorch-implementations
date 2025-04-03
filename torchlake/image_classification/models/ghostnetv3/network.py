@@ -79,7 +79,17 @@ class InceptionModule(nn.Module):
 
         return y
 
-    def reparameterize(self, dest: nn.Conv2d):
+    def reparameterize(self) -> nn.Conv2d:
+        device = self.convs[0][0].weight.data.device
+        dest = nn.Conv2d(
+            self.input_channel,
+            self.output_channel,
+            self.kernel,
+            self.stride,
+            padding=self.kernel // 2,
+            groups=self.groups,
+            device=device,
+        )
         # reset to zero for final sum operation
         empty_conv(dest)
 
@@ -99,7 +109,7 @@ class InceptionModule(nn.Module):
                 self.stride,
                 groups=self.groups,
                 bias=True,
-                device=dest.weight.data.device,
+                device=device,
             )
             fuse_conv_bn(self.scale_branch[0], self.scale_branch[1], temp)
             placeholder.append(temp)
@@ -110,6 +120,8 @@ class InceptionModule(nn.Module):
             placeholder.append(temp)
 
         fuse_sum_parallel_convs(*placeholder, dest=dest)
+
+        return dest
 
 
 class GhostModuleV3(nn.Module):
@@ -156,8 +168,8 @@ class GhostModuleV3(nn.Module):
         return torch.cat([y, self.ghost(y)], 1)
 
     def reparameterize(self, dest: GhostModule):
-        self.pointwise_conv.reparameterize(dest.pointwise_conv[0])
-        self.ghost.reparameterize(dest.ghost[0])
+        dest.pointwise_conv = self.pointwise_conv.reparameterize()
+        dest.ghost = self.ghost.reparameterize()
 
 
 class GhostBottleNeckV3(nn.Module):
@@ -272,8 +284,10 @@ class GhostBottleNeckV3(nn.Module):
 
         # dw
         if self.dw is not None:
-            self.dw[0].reparameterize(dest.dw[0])
-            dest.dw[1].load_state_dict(self.dw[1].state_dict())
+            conv = self.dw[0].reparameterize()
+            cloned = deepcopy(conv)
+            fuse_conv_bn(conv, self.dw[1], cloned)
+            dest.dw = cloned
 
 
 class GhostLayerV3(nn.Module):

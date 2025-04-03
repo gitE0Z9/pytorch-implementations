@@ -2,11 +2,11 @@ from math import ceil
 
 import pytest
 import torch
-from torch import nn
 from torch.testing import assert_close
 
 from ..models.ghostnet.network import GhostModule
 from ..models.ghostnetv2.network import GhostBottleNeckV2, GhostLayerV2
+from ..models.ghostnetv2.model import GhostNetV2
 from ..models.ghostnetv3.model import GhostNetV3
 from ..models.ghostnetv3.network import (
     GhostBottleNeckV3,
@@ -14,8 +14,6 @@ from ..models.ghostnetv3.network import (
     GhostModuleV3,
     InceptionModule,
 )
-
-DEVICE = "cpu"
 
 
 class TestGhostNetV3:
@@ -30,9 +28,23 @@ class TestGhostNetV3:
 
         assert y.shape == torch.Size((2, 5))
 
+    def test_reparameterize(self):
+        x = torch.randn(2, 3, 224, 224)
+        dest = GhostNetV2(output_size=5).eval()
+        model = GhostNetV3(output_size=5).eval()
+
+        model.reparameterize(dest)
+
+        y = model(x)
+        y_prime = dest(x)
+
+        # rounding error is huge, only acceptable until the third block of body
+        # so the workaround is check order preservation to ensure classification
+        # the feature itself is not recommended
+        assert_close(y.argmax(1), y_prime.argmax(1))
+
 
 class TestInceptionModule:
-
     @pytest.mark.parametrize("in_c,out_c", [[16, 64], [16, 16]])
     @pytest.mark.parametrize("kernel", [1, 3])
     def test_forward_shape(self, in_c: int, out_c: int, kernel: int):
@@ -54,9 +66,8 @@ class TestInceptionModule:
     @pytest.mark.parametrize("kernel", [1, 3])
     def test_reparameterize(self, in_c: int, out_c: int, groups: int, kernel: int):
         x = torch.randn(2, in_c, 14, 14)
-        dest = nn.Conv2d(in_c, out_c, kernel, 1, kernel // 2, groups=groups).eval()
         model = InceptionModule(in_c, out_c, kernel, groups=groups, num_branch=3).eval()
-        model.reparameterize(dest)
+        dest = model.reparameterize()
 
         y = model(x)
         y_prime = dest(x)

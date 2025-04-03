@@ -40,7 +40,10 @@ class GhostNetV3(GhostNetV2):
             ]
         )
 
-    def reparameterize(self, dest: GhostNetV2):
-        for src, dest in zip(self.blocks, dest.blocks):
-            src: GhostLayerV3
+    def reparameterize(self, target: GhostNetV2):
+        for src, dest in zip(self.blocks, target.blocks):
             src.reparameterize(dest)
+
+        target.foot.load_state_dict(self.foot.state_dict())
+        target.neck.load_state_dict(self.neck.state_dict())
+        target.head.load_state_dict(self.head.state_dict())
