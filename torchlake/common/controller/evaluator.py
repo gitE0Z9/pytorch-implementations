@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from seaborn import heatmap
 from torch import nn
 from torchlake.common.metrics.classification import IncrementalConfusionMatrix
+from torchmetrics import MeanSquaredError
 from tqdm import tqdm
 
 from ..mixins.controller import PredictFunctionMixin
@@ -143,3 +144,16 @@ class ClassificationEvaluator(EvaluatorBase):
             annot=annot,
             cmap=cmap,
         )
+
+
+class RegressionEvaluator(PredictFunctionMixin, ABC):
+    @abstractmethod
+    def _build_metric(self):
+        return MeanSquaredError()
+
+    @abstractmethod
+    def _decode_output(
+        self,
+        output: torch.Tensor | tuple[torch.Tensor],
+    ) -> torch.Tensor | tuple[torch.Tensor]:
+        return output
