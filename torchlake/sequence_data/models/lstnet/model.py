@@ -18,6 +18,7 @@ class LSTNet(ModelBase):
         highway_window_size: int = 24,
         skip_window_size: int = 24,
         dropout_prob: float = 0.2,
+        activation: nn.Module | None = None,
     ):
         self.output_size = output_size
         self.hidden_dim_c = hidden_dim_c
@@ -28,6 +29,7 @@ class LSTNet(ModelBase):
         self.highway_window_size = highway_window_size
         self.skip_window_size = skip_window_size
         self.dropout_prob = dropout_prob
+        self.activation = activation
         super().__init__(1, output_size)
 
     @property
@@ -82,7 +84,8 @@ class LSTNet(ModelBase):
             self.head["highway"] = Highway(self.highway_window_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # shape of x: B, 1, S, C
+        # shape of x: B, S, C => B, 1, S, C
+        x = x.unsqueeze_(1)
 
         # B, hc, S-k+1, 1
         c = self.foot(x)
@@ -107,4 +110,7 @@ class LSTNet(ModelBase):
         if self.highway_window_size > 0:
             y = self.head["highway"](x, y)
 
-        return y.sigmoid()
+        if self.activation is not None:
+            y = self.activation(y)
+
+        return y

@@ -43,7 +43,7 @@ class TestModel:
         highway_window_size: int,
         skip_window_size: int,
     ):
-        x = torch.rand(BATCH_SIZE, 1, SEQ_LEN, OUTPUT_SIZE)
+        x = torch.rand(BATCH_SIZE, SEQ_LEN, OUTPUT_SIZE)
 
         model = LSTNet(
             output_size=OUTPUT_SIZE,
