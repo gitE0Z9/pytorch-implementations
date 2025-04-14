@@ -37,6 +37,23 @@ class SkipRNN(nn.Module):
         return torch.cat([r, y], -1)
 
 
+class TemporalAttention(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, c: torch.Tensor, r: torch.Tensor) -> torch.Tensor:
+        # c: B, hc, ? # r: B, hr
+
+        # B, 1, hr x B, hc, ? => B, 1, ?
+        a = torch.bmm(r[:, None, :], c)
+        # B, hc, ? x B, ?, 1 => B, hc
+        y = torch.bmm(c, a.softmax(-1).transpose(-1, -2)).squeeze(-1)
+
+        # B, hc
+        return y
+
+
 class Highway(nn.Module):
 
     def __init__(
@@ -48,6 +65,8 @@ class Highway(nn.Module):
         self.linear = nn.Linear(highway_window_size, 1)
 
     def forward(self, x: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+        # x: B, 1, S, C # z: B, C
+
         output_size = x.size(-1)
         # B, highway window size, C
         x = x[:, 0, -self.highway_window_size :, :]

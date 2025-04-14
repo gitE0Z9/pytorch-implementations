@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchlake.common.models.model_base import ModelBase
 
-from .network import Highway, SkipRNN
+from .network import Highway, SkipRNN, TemporalAttention
 
 
 class LSTNet(ModelBase):
@@ -17,6 +17,7 @@ class LSTNet(ModelBase):
         window_size: int = 24 * 7,
         highway_window_size: int = 24,
         skip_window_size: int = 24,
+        attention: bool = False,
         dropout_prob: float = 0.2,
         activation: nn.Module | None = None,
     ):
@@ -28,6 +29,7 @@ class LSTNet(ModelBase):
         self.window_size = window_size
         self.highway_window_size = highway_window_size
         self.skip_window_size = skip_window_size
+        self.attention = attention
         self.dropout_prob = dropout_prob
         self.activation = activation
         super().__init__(1, output_size)
@@ -36,7 +38,7 @@ class LSTNet(ModelBase):
     def feature_dim(self) -> int:
         hidden_dim = self.hidden_dim_r
 
-        if self.skip_window_size > 0:
+        if self.skip_window_size > 0 and not self.attention:
             return hidden_dim + self.skip_window_size * self.hidden_dim_skip
 
         return hidden_dim
@@ -63,7 +65,9 @@ class LSTNet(ModelBase):
     def build_neck(self, **kwargs):
         self.neck = None
 
-        if self.skip_window_size > 0:
+        if self.attention:
+            self.neck = TemporalAttention()
+        elif self.skip_window_size > 0:
             self.neck = SkipRNN(
                 self.hidden_dim_c,
                 self.hidden_dim_skip,
