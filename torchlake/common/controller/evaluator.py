@@ -146,12 +146,26 @@ class ClassificationEvaluator(EvaluatorBase):
         )
 
 
-class RegressionEvaluator(PredictFunctionMixin, ABC):
-    @abstractmethod
+class RegressionEvaluator(EvaluatorBase):
+    def __init__(
+        self,
+        device: torch.device,
+        feature_dim: int | tuple[int] = 1,
+    ):
+        """Evaluator for classification task
+
+        Args:
+            device (torch.device): which device to use
+            feature_dim (int | tuple[int], optional): which dimensions should be used as features. Defaults to 1.
+        """
+        self.device = device
+        self.feature_dim = feature_dim
+        # TODO: ugly fix
+        self.feature_last = False
+
     def _build_metric(self):
         return MeanSquaredError()
 
-    @abstractmethod
     def _decode_output(
         self,
         output: torch.Tensor | tuple[torch.Tensor],
