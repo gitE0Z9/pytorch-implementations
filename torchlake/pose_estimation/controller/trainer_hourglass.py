@@ -38,7 +38,7 @@ class StackedHourglassTrainer(RegressionTrainer):
             spatial_shape=y_hat.shape[3:],
             sigma=self.sigma,
             effective=True,
-            truncated=True,
+            kde=True,
         ).exp()
         coords = coords.unsqueeze(1).expand_as(y_hat)
 

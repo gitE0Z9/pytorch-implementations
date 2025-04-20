@@ -43,7 +43,7 @@ class TestAuxiliaryHead:
         y = model(x, output_neck=output_neck)
 
         if output_neck:
-            assert y[0].shape == torch.Size((2, 4, 7, 7))
-            assert y[1].shape == torch.Size((2, 8, 7, 7))
-        else:
-            assert y.shape == torch.Size((2, 4, 7, 7))
+            y, neck = y
+            assert neck.shape == torch.Size((2, 8, 7, 7))
+
+        assert y.shape == torch.Size((2, 4, 7, 7))

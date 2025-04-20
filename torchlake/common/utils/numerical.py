@@ -106,6 +106,7 @@ def build_gaussian_heatmap(
     spatial_shape: tuple[int],
     sigma: float = 1,
     effective: bool = True,
+    kde: bool = True,
     truncated: bool = False,
 ) -> torch.Tensor:
     """build guassian heatmap for keypoints
@@ -114,8 +115,9 @@ def build_gaussian_heatmap(
         x (torch.Tensor): keypoints, in shape (batch, num_joint, dimension)
         spatial_shape (tuple[int]): size of heatmap, in shape (height, width)
         sigma (float, optional): standard deviation of guassian distribution. Defaults to 1.
-        effective (bool, optional): log probability is only effective in the neighborhood within 3 sd.
-        truncated (bool, optional): use truncated normal distribution, can only be used when effective is True.
+        effective (bool, optional): log probability is only effective in the neighborhood within 3 sd. Defaults to True.
+        kde (bool, optional): use gaussian kernel instead of gaussian pdf. Defaults to True.
+        truncated (bool, optional): use truncated normal distribution, can only be used when effective is True. Defauts to False.
 
     Returns:
         torch.Tensor: heatmap, in shape (batch, num_joint, height, width)
@@ -167,5 +169,8 @@ def build_gaussian_heatmap(
         if truncated:
             hm -= hm.logsumexp(dim=-1, keepdim=True)
             hm[hm.isnan()] = -torch.inf
+
+    if kde:
+        hm += dim * (math.log(2 * math.pi) / 2 + math.log(sigma))
 
     return hm.view(*keypoint_shape, *spatial_shape)
