@@ -55,7 +55,16 @@ def log_sum_exp(x: torch.Tensor, dim: int = -1, keepdim: bool = False) -> torch.
     return y if keepdim else y.squeeze(dim)
 
 
-def receptive_field(k, l):
+def receptive_field(k: int, l: int) -> int:
+    """calculate size of receptive field of convolution filter
+
+    Args:
+        k (int): kernel size
+        l (int): layer 1-index
+
+    Returns:
+        int: receptive field of convolution filter
+    """
     if l == 0:
         return 1
     if l == 1:
@@ -65,9 +74,19 @@ def receptive_field(k, l):
 
 def generate_grid(
     *shapes: tuple[int],
-    center: bool = False,
+    centered: bool = False,
     indexing: Literal["xy", "ij"] = "xy",
 ) -> tuple[torch.Tensor]:
+    """generate
+
+    Args:
+        shapes (tuple[int]): grid shape
+        centered (bool, optional): use manhattan distance to the center of the grid. Defaults to False.
+        indexing (Literal["xy", "ij"], optional): xy will flip, ij will preserve the order. Defaults to "xy".
+
+    Returns:
+        tuple[torch.Tensor]: grid
+    """
     grids = torch.meshgrid(
         [torch.arange(shape) for shape in shapes],
         # xy will switch first 2 dim
@@ -76,7 +95,7 @@ def generate_grid(
         indexing=indexing,
     )
 
-    if center:
+    if centered:
         grids = list(grids)
         for i in range(len(shapes)):
             mid = shapes[i] // 2
@@ -105,8 +124,9 @@ def build_gaussian_heatmap(
     x: torch.Tensor,
     spatial_shape: tuple[int],
     sigma: float = 1,
-    effective: bool = True,
-    kde: bool = True,
+    effective_range: int = 3,
+    normalized: bool = True,
+    amplitude: float = 1,
     truncated: bool = False,
 ) -> torch.Tensor:
     """build guassian heatmap for keypoints
@@ -115,8 +135,9 @@ def build_gaussian_heatmap(
         x (torch.Tensor): keypoints, in shape (batch, num_joint, dimension)
         spatial_shape (tuple[int]): size of heatmap, in shape (height, width)
         sigma (float, optional): standard deviation of guassian distribution. Defaults to 1.
-        effective (bool, optional): log probability is only effective in the neighborhood within 3 sd. Defaults to True.
-        kde (bool, optional): use gaussian kernel instead of gaussian pdf. Defaults to True.
+        effective_range (bool, optional): log probability is only effective in the neighborhood within the range. Defaults to 3.
+        normalized (bool, optional): normalized gaussian pdf. Defaults to True.
+        amplitude (float, optional): multiply heatmap with amplitude. Defaults to 1.
         truncated (bool, optional): use truncated normal distribution, can only be used when effective is True. Defauts to False.
 
     Returns:
@@ -133,9 +154,8 @@ def build_gaussian_heatmap(
     keypoint_shape = x.shape[:-1]
     num_points = math.prod(spatial_shape)
 
-    # D x (shape)
     grids = generate_grid(*spatial_shape, indexing="ij")
-    # D, *shape
+    # D, ...spatial
     grids = torch.stack(grids).to(device)
 
     # b*c, D, 1, 1
@@ -154,23 +174,26 @@ def build_gaussian_heatmap(
     n = grids.size(0)
     mu = torch.zeros(n, dim).to(device)
     sd = sigma * torch.eye(dim).unsqueeze(0).repeat(n, *(1,) * dim).to(device)
-    dist = MultivariateNormal(mu, sd)
+    dist = MultivariateNormal(mu, sd**2)
     # b*c, N
-    hm = dist.log_prob(grids).view(-1, num_points)
+    hm: torch.Tensor = dist.log_prob(grids).view(-1, num_points)
 
-    if effective:
+    if effective_range > 0:
         # simplify computation by 1d
-        n = Normal(torch.Tensor([0]), torch.Tensor([sigma]))
-        threshold = (dim - 1) * n.log_prob(torch.Tensor([0])).item() + n.log_prob(
-            torch.Tensor([3 * sigma])
-        ).item()
-        hm[hm < threshold] = -torch.inf
+        ndist = Normal(torch.Tensor([0]), torch.Tensor([sigma]))
+        threshold: torch.Tensor = ndist.log_prob(torch.Tensor([effective_range])) + (
+            dim - 1
+        ) * ndist.log_prob(torch.Tensor([0]))
+        hm[hm < threshold.item()] = -torch.inf
 
         if truncated:
             hm -= hm.logsumexp(dim=-1, keepdim=True)
             hm[hm.isnan()] = -torch.inf
 
-    if kde:
+    if not normalized:
         hm += dim * (math.log(2 * math.pi) / 2 + math.log(sigma))
+
+    if amplitude != 1:
+        hm += math.log(amplitude)
 
     return hm.view(*keypoint_shape, *spatial_shape)

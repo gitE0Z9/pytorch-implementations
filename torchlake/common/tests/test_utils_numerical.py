@@ -95,7 +95,7 @@ def test_log_sum_exp():
     ],
 )
 def test_generate_grid(shape: tuple[int], center: bool, expected: tuple[torch.Tensor]):
-    grids = generate_grid(*shape, center=center)
+    grids = generate_grid(*shape, centered=center)
 
     for grid, y in zip(grids, expected):
         assert_close(grid, y)

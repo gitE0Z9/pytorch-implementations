@@ -7,9 +7,18 @@ from torchlake.common.utils.numerical import build_gaussian_heatmap
 
 
 class StackedHourglassTrainer(RegressionTrainer):
-    def __init__(self, sigma: float = 1, *args, **kwargs):
+    def __init__(
+        self,
+        sigma: float = 1,
+        effective_range: int = 3,
+        amplitude: float = 1,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.sigma = sigma
+        self.effective_range = effective_range
+        self.amplitude = amplitude
 
     def _calc_loss(
         self,
@@ -32,13 +41,14 @@ class StackedHourglassTrainer(RegressionTrainer):
         coords /= scales[None, None, :]
 
         # y_hat shape: batch, stack, channel, ...spatial
-        # TODO(won't do): multi instance shape: batch, instance, stack, channel
+        # not support multi instance, shape: batch, instance, stack, channel, ...spatial
         coords = build_gaussian_heatmap(
             coords,
             spatial_shape=y_hat.shape[3:],
             sigma=self.sigma,
-            effective=True,
-            kde=True,
+            effective_range=self.effective_range,
+            normalized=False,
+            amplitude=self.amplitude,
         ).exp()
         coords = coords.unsqueeze(1).expand_as(y_hat)
 

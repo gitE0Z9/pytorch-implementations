@@ -23,6 +23,8 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
     def _decode_output(
         self,
         output: torch.Tensor | tuple[torch.Tensor],
+        *args,
+        **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor]: ...
 
     def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
@@ -38,7 +40,7 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
             for row in tqdm(data):
                 _, y = row
                 output = self._predict(row, model)
-                output = self._decode_output(output)
+                output = self._decode_output(output, row=row)
                 self._update_metric(metric, y, output)
 
         print(metric)
