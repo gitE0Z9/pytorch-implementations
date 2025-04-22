@@ -102,6 +102,14 @@ package name: `ocr`
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
 | Convolution recurrent neural network (CRNN) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-crnn-b2a7a8fa1698) | ``crnn`` |
 
+### Pose estimation
+
+套件名: `pose_estimation`
+
+| Model             | Article Link | Package       |
+| ----------------- | ------------ | ------------- |
+| Stacked hourglass | -            | ``hourglass`` |
+
 ### Image generation
 
 package name: `image_generation`
