@@ -1,7 +1,8 @@
 import pytest
 import torch
 from ..models.pixelcnn.model import PixelCNN
-from ..models.pixelcnn.network import MaskedConv2d
+from ..models.pixelcnn.network import MaskedConv2d, BottleNeck
+from torch.testing import assert_close
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 32
@@ -11,22 +12,47 @@ OUTPUT_SIZE = 5
 
 class TestNetwork:
     @pytest.mark.parametrize("mask_type", ["A", "B"])
-    def test_forward_shape(self, mask_type: str):
-        x = torch.rand(BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE)
+    def test_masked_conv_2d_build_mask(self, mask_type: str):
+        k = 3
+        model = MaskedConv2d(3, 3, k, padding=1, mask_type=mask_type, mask_groups=3)
 
-        model = MaskedConv2d(3, HIDDEN_DIM, 3, padding=1, mask_type=mask_type)
+        if mask_type == "A":
+            expected = torch.ones(3, 3).tril_() - torch.eye(3)
+        else:
+            expected = torch.ones(3, 3).tril_()
+
+        assert_close(model.mask[:, :, k // 2, k // 2], expected)
+
+    @pytest.mark.parametrize("mask_type", ["A", "B"])
+    @pytest.mark.parametrize("in_c", [3, HIDDEN_DIM])
+    def test_masked_conv_2d_forward_shape(self, mask_type: str, in_c: int):
+        x = torch.rand(BATCH_SIZE, in_c, IMAGE_SIZE, IMAGE_SIZE)
+
+        model = MaskedConv2d(in_c, HIDDEN_DIM, 3, padding=1, mask_type=mask_type)
 
         y = model(x)
 
         assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE))
 
+    def test_bottleneck_forward_shape(self):
+        x = torch.rand(BATCH_SIZE, 2 * HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
 
-class TestModel:
-    def test_forward_shape(self):
-        x = torch.rand(BATCH_SIZE, 1, IMAGE_SIZE, IMAGE_SIZE)
-
-        model = PixelCNN(1, 256, HIDDEN_DIM, 6)
+        model = BottleNeck(HIDDEN_DIM)
 
         y = model(x)
 
-        assert y.shape == torch.Size((BATCH_SIZE, 256, IMAGE_SIZE, IMAGE_SIZE))
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, 2 * HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
+        )
+
+
+class TestModel:
+    @pytest.mark.parametrize("in_c", [1, 3])
+    def test_forward_shape(self, in_c: int):
+        x = torch.rand(BATCH_SIZE, in_c, IMAGE_SIZE, IMAGE_SIZE)
+
+        model = PixelCNN(in_c, 256, HIDDEN_DIM, num_layer=6)
+
+        y = model(x)
+
+        assert y.shape == torch.Size((BATCH_SIZE, in_c, 256, IMAGE_SIZE, IMAGE_SIZE))
