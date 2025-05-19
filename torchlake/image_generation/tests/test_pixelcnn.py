@@ -1,8 +1,9 @@
 import pytest
 import torch
-from ..models.pixelcnn.model import PixelCNN
-from ..models.pixelcnn.network import MaskedConv2d, BottleNeck
 from torch.testing import assert_close
+
+from ..models.pixelcnn.model import PixelCNN
+from ..models.pixelcnn.network import BottleNeck, MaskedConv2d
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 32
