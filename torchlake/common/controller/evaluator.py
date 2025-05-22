@@ -76,6 +76,8 @@ class ClassificationEvaluator(EvaluatorBase):
     def _decode_output(
         self,
         output: torch.Tensor | tuple[torch.Tensor],
+        *args,
+        **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor]:
         if self.reduction == "max":
             return output.argmax(dim=self.feature_dim)
@@ -171,5 +173,7 @@ class RegressionEvaluator(EvaluatorBase):
     def _decode_output(
         self,
         output: torch.Tensor | tuple[torch.Tensor],
+        *args,
+        **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor]:
         return output
