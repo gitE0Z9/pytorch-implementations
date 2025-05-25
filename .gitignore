@@ -14,3 +14,4 @@ dist
 runs
 __pycache_
 .pytest_cache
+.venv

@@ -1,6 +1,0 @@
-pytest
-pytest-sugar
-pytest-cov
-pytest-xdist
-pytest-html
-pytest-benchmark
