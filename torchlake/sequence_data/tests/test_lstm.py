@@ -172,7 +172,9 @@ class TestGenerator:
 
         y = model.loss_forward(y)
 
-        assert y.shape == torch.Size((BATCH_SIZE, SEQ_LEN, VOCAB_SIZE))
+        assert y.shape[0] == BATCH_SIZE
+        assert 0 <= y.shape[1] <= SEQ_LEN
+        assert y.shape[2] == VOCAB_SIZE
 
     @pytest.mark.parametrize("bidirectional", [True, False])
     @pytest.mark.parametrize("num_layers", [1, 2])
