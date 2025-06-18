@@ -39,8 +39,8 @@ class RNNDiscriminator(ModelBase):
             context (NlpContext, optional): nlp context. Defaults to NlpContext().
             model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
         """
-        self.input_channel = input_channel  # for record
-        self.output_size = output_size  # for record
+        assert issubclass(model_class, nn.Module), "model class is not a nn.module"
+
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.context_dim = context_dim
@@ -55,7 +55,6 @@ class RNNDiscriminator(ModelBase):
         self.factor = 2 if bidirectional else 1
 
         super().__init__(input_channel, output_size)
-        assert issubclass(model_class, nn.Module), "model class is not a nn.module"
 
     @property
     def feature_dim(self) -> int:

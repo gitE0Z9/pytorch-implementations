@@ -18,10 +18,20 @@ class ModelBase(nn.Module, ABC):
         head_kwargs: dict | None = {},
     ):
         super().__init__()
+        self._input_channel = input_channel
+        self._output_size = output_size
         self.build_foot(input_channel, **foot_kwargs)
         self.build_blocks(**blocks_kwargs)
         self.build_neck(**neck_kwargs)
         self.build_head(output_size, **head_kwargs)
+
+    @property
+    def input_channel(self) -> int:
+        return self._input_channel
+
+    @property
+    def output_size(self) -> int:
+        return self._output_size
 
     @property
     def feature_dim(self) -> int:
