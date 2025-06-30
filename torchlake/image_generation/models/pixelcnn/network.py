@@ -73,18 +73,3 @@ class BottleNeck(nn.Sequential):
             nn.ReLU(),
             MaskedConv2d(hidden_dim, 2 * hidden_dim, 1, mask_type="B"),
         )
-
-
-class GatedLayer(nn.Module):
-    def __init__(
-        self,
-        hidden_dim: int,
-        kernel: int,
-    ):
-        super().__init__()
-        self.cf = nn.Conv2d(2 * hidden_dim, hidden_dim, kernel, padding=kernel // 2)
-        self.cg = nn.Conv2d(2 * hidden_dim, hidden_dim, kernel, padding=kernel // 2)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x1, x2 = x.split(2, 1)
-        return self.cf(x1).tanh() * self.cg(x2).sigmoid()
