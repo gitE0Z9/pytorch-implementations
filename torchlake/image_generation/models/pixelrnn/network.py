@@ -1,5 +1,7 @@
 from typing import Literal
+
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from ..pixelcnn.network import MaskedConv2d
@@ -12,8 +14,16 @@ class RowLSTM(nn.Module):
         hidden_dim: int,
         kernel: int,
     ):
+        """Row LSTM, a form of PixelRNN learned row by row
+
+        Args:
+            input_channel (int): input channel size
+            hidden_dim (int): dimension of hidden layers
+            kernel (int): kernel size of the input-to-state and the state-to-state layers
+        """
         super().__init__()
         self.hidden_dim = hidden_dim
+
         # is: input to state
         self.conv_is = MaskedConv2d(
             input_channel,
@@ -30,12 +40,29 @@ class RowLSTM(nn.Module):
             padding=(0, kernel // 2),
         )
 
-    def forward(self, x: torch.Tensor, h: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        h: torch.Tensor | None = None,
+        c: torch.Tensor | None = None,
+        cond: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         B, _, H, W = x.size()
-        h = torch.zeros(B, self.hidden_dim, 1, W, device=x.device)
-        c = torch.zeros(B, self.hidden_dim, 1, W, device=x.device)
+        h = (
+            h
+            if h is not None
+            else torch.zeros(B, self.hidden_dim, 1, W, device=x.device)
+        )
+        c = (
+            c
+            if c is not None
+            else torch.zeros(B, self.hidden_dim, 1, W, device=x.device)
+        )
 
         z_is = self.conv_is(x)
+        if cond is not None:
+            z_is = z_is + cond
+
         outputs = []
         for i in range(H):
             # use conv to get row level representation
@@ -48,7 +75,7 @@ class RowLSTM(nn.Module):
         return torch.cat(outputs, dim=2)
 
 
-class DiagonalLSTM(nn.Module):
+class DiagonalLSTMCell(nn.Module):
     def __init__(
         self,
         input_channel: int,
@@ -71,7 +98,6 @@ class DiagonalLSTM(nn.Module):
             hidden_dim,
             4 * hidden_dim,
             kernel_size=(kernel, 1),
-            padding=(kernel // 2, 0),
         )
 
     @staticmethod
@@ -95,18 +121,26 @@ class DiagonalLSTM(nn.Module):
 
         return x[:, :, row_indices, col_indices]
 
-    def forward(self, x: torch.Tensor, h: torch.Tensor | None = None) -> torch.Tensor:
-        B, _, H, W = x.size()
-        h = torch.zeros(B, self.hidden_dim, H, 1, device=x.device)
-        c = torch.zeros(B, self.hidden_dim, H, 1, device=x.device)
+    def forward(
+        self,
+        x: torch.Tensor,
+        h: torch.Tensor,
+        c: torch.Tensor,
+        cond: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        _, _, _, W = x.size()
 
-        z_is = self.conv_is(self.skew(x))
+        z_is = self.conv_is(x)
+        if cond is not None:
+            z_is = z_is + cond
+        z_is = self.skew(z_is)
+
         outputs = []
-        for j in range(z_is.size(3)):
+        for j in range(2 * W - 1):
             # diagonal
-            z = (
-                z_is[:, :, :, j : j + 1]
-                + self.conv_ss(h)[:, :, : -(self.kernel - 1), :]
+            z = z_is[:, :, :, j : j + 1] + self.conv_ss(
+                # pad size is backward, so w first then h, and so on.
+                F.pad(h, (0, 0, self.kernel - 1, 0))
             )
             # lstm
             i, f, o = z[:, : 3 * self.hidden_dim, :, :].sigmoid().chunk(3, 1)
@@ -120,25 +154,48 @@ class DiagonalLSTM(nn.Module):
         return outputs
 
 
-class DiagonalBiLSTM(nn.Module):
+class DiagonalLSTM(nn.Module):
     def __init__(
         self,
         input_channel: int,
         hidden_dim: int,
         kernel: int,
+        bidirectional: bool = False,
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.kernel = kernel
+        self.bidirectional = bidirectional
+        self.factor = 2 if self.bidirectional else 1
 
-        self.lstm_l = DiagonalLSTM(input_channel, hidden_dim, kernel)
-        self.lstm_r = DiagonalLSTM(input_channel, hidden_dim, kernel)
+        self.lstm_l = DiagonalLSTMCell(input_channel, hidden_dim, kernel)
+        if bidirectional:
+            self.lstm_r = DiagonalLSTMCell(input_channel, hidden_dim, kernel)
 
-    def forward(self, x: torch.Tensor, h: torch.Tensor | None = None) -> torch.Tensor:
-        zl = self.lstm_l(x, h)
-        zr = self.lstm_r(x.flip(2), h)
+    def forward(
+        self,
+        x: torch.Tensor,
+        h: torch.Tensor | None = None,
+        c: torch.Tensor | None = None,
+        cond: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        B, _, H, _ = x.size()
+        h = (
+            h
+            if h is not None
+            else torch.zeros(self.factor, B, self.hidden_dim, H, 1, device=x.device)
+        )
+        c = (
+            c
+            if c is not None
+            else torch.zeros(self.factor, B, self.hidden_dim, H, 1, device=x.device)
+        )
 
-        zl[:, :, 1:, :] = zl[:, :, 1:, :] + zr[:, :, :-1, :]
+        zl = self.lstm_l(x, h[0], c[0], cond)
+        if self.bidirectional:
+            zr = self.lstm_r(x.flip(3), h[1], c[1], cond)
+            # move one row down, so the future information will not flow back
+            zl[:, :, 1:, :] = zl[:, :, 1:, :] + zr[:, :, :-1, :]
 
         return zl
 
@@ -149,12 +206,18 @@ class BottleNeck(nn.Sequential):
         hidden_dim: int,
         kernel: int,
         type: Literal["row", "diag"],
+        bidirectional: bool = False,
     ):
         super().__init__(
             (
                 RowLSTM(2 * hidden_dim, hidden_dim, kernel)
                 if type == "row"
-                else DiagonalBiLSTM(2 * hidden_dim, hidden_dim, kernel)
+                else DiagonalLSTM(
+                    2 * hidden_dim,
+                    hidden_dim,
+                    kernel,
+                    bidirectional=bidirectional,
+                )
             ),
             MaskedConv2d(hidden_dim, 2 * hidden_dim, 1, mask_type="B"),
         )
