@@ -15,7 +15,14 @@ class TestNetwork:
     @pytest.mark.parametrize("mask_type", ["A", "B"])
     def test_masked_conv_2d_build_mask(self, mask_type: str):
         k = 3
-        model = MaskedConv2d(3, 3, k, padding=1, mask_type=mask_type, mask_groups=3)
+        model = MaskedConv2d(
+            3,
+            3,
+            k,
+            padding=1,
+            mask_type=mask_type,
+            mask_groups=3,
+        )
 
         if mask_type == "A":
             expected = torch.ones(3, 3).tril_() - torch.eye(3)
@@ -25,25 +32,35 @@ class TestNetwork:
         assert_close(model.mask[:, :, k // 2, k // 2], expected)
 
     @pytest.mark.parametrize("mask_type", ["A", "B"])
-    @pytest.mark.parametrize("in_c", [3, HIDDEN_DIM])
-    def test_masked_conv_2d_forward_shape(self, mask_type: str, in_c: int):
-        x = torch.rand(BATCH_SIZE, in_c, IMAGE_SIZE, IMAGE_SIZE)
+    @pytest.mark.parametrize("mask_groups", [1, 3])
+    def test_masked_conv_2d_forward_shape(self, mask_type: str, mask_groups: int):
+        x = torch.rand(BATCH_SIZE, mask_groups * HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
 
-        model = MaskedConv2d(in_c, HIDDEN_DIM, 3, padding=1, mask_type=mask_type)
-
-        y = model(x)
-
-        assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE))
-
-    def test_bottleneck_forward_shape(self):
-        x = torch.rand(BATCH_SIZE, 2 * HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
-
-        model = BottleNeck(HIDDEN_DIM)
+        model = MaskedConv2d(
+            mask_groups * HIDDEN_DIM,
+            mask_groups * HIDDEN_DIM,
+            3,
+            padding=1,
+            mask_type=mask_type,
+            mask_groups=mask_groups,
+        )
 
         y = model(x)
 
         assert y.shape == torch.Size(
-            (BATCH_SIZE, 2 * HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
+            (BATCH_SIZE, mask_groups * HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
+        )
+
+    @pytest.mark.parametrize("mask_groups", [1, 3])
+    def test_bottleneck_forward_shape(self, mask_groups: int):
+        x = torch.rand(BATCH_SIZE, 2 * HIDDEN_DIM * mask_groups, IMAGE_SIZE, IMAGE_SIZE)
+
+        model = BottleNeck(HIDDEN_DIM * mask_groups, mask_groups=mask_groups)
+
+        y = model(x)
+
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, 2 * HIDDEN_DIM * mask_groups, IMAGE_SIZE, IMAGE_SIZE)
         )
 
 

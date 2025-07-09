@@ -13,6 +13,7 @@ class RowLSTM(nn.Module):
         input_channel: int,
         hidden_dim: int,
         kernel: int,
+        mask_groups: int = 1,
     ):
         """Row LSTM, a form of PixelRNN learned row by row
 
@@ -23,6 +24,7 @@ class RowLSTM(nn.Module):
         """
         super().__init__()
         self.hidden_dim = hidden_dim
+        self.mask_groups = mask_groups
 
         # is: input to state
         self.conv_is = MaskedConv2d(
@@ -31,6 +33,7 @@ class RowLSTM(nn.Module):
             kernel=(1, kernel),
             mask_type="B",
             padding=(0, kernel // 2),
+            mask_groups=mask_groups,
         )
         # ss: state to state
         self.conv_ss = nn.Conv2d(
@@ -81,10 +84,12 @@ class DiagonalLSTMCell(nn.Module):
         input_channel: int,
         hidden_dim: int,
         kernel: int,
+        mask_groups: int = 1,
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.kernel = kernel
+        self.mask_groups = mask_groups
 
         # is: input to state
         self.conv_is = MaskedConv2d(
@@ -92,6 +97,7 @@ class DiagonalLSTMCell(nn.Module):
             4 * hidden_dim,
             kernel=1,
             mask_type="B",
+            mask_groups=mask_groups,
         )
         # ss: state to state
         self.conv_ss = nn.Conv2d(
@@ -161,16 +167,28 @@ class DiagonalLSTM(nn.Module):
         hidden_dim: int,
         kernel: int,
         bidirectional: bool = False,
+        mask_groups: int = 1,
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.kernel = kernel
         self.bidirectional = bidirectional
         self.factor = 2 if self.bidirectional else 1
+        self.mask_groups = mask_groups
 
-        self.lstm_l = DiagonalLSTMCell(input_channel, hidden_dim, kernel)
+        self.lstm_l = DiagonalLSTMCell(
+            input_channel,
+            hidden_dim,
+            kernel,
+            mask_groups=mask_groups,
+        )
         if bidirectional:
-            self.lstm_r = DiagonalLSTMCell(input_channel, hidden_dim, kernel)
+            self.lstm_r = DiagonalLSTMCell(
+                input_channel,
+                hidden_dim,
+                kernel,
+                mask_groups=mask_groups,
+            )
 
     def forward(
         self,
@@ -207,17 +225,30 @@ class BottleNeck(nn.Sequential):
         kernel: int,
         type: Literal["row", "diag"],
         bidirectional: bool = False,
+        mask_groups: int = 1,
     ):
         super().__init__(
             (
-                RowLSTM(2 * hidden_dim, hidden_dim, kernel)
+                RowLSTM(
+                    2 * hidden_dim,
+                    hidden_dim,
+                    kernel,
+                    mask_groups=mask_groups,
+                )
                 if type == "row"
                 else DiagonalLSTM(
                     2 * hidden_dim,
                     hidden_dim,
                     kernel,
                     bidirectional=bidirectional,
+                    mask_groups=mask_groups,
                 )
             ),
-            MaskedConv2d(hidden_dim, 2 * hidden_dim, 1, mask_type="B"),
+            MaskedConv2d(
+                hidden_dim,
+                2 * hidden_dim,
+                1,
+                mask_type="B",
+                mask_groups=mask_groups,
+            ),
         )

@@ -24,39 +24,40 @@ class MaskedConv2d(nn.Conv2d):
         self.weight.register_hook(self._mask_gradients)
 
     def _build_mask(self):
-        k = self.kernel_size[0]
-        center = k // 2
+        k_y, k_x = self.kernel_size
+        center_y, center_x = k_y // 2, k_x // 2
         # up
-        self.mask[:, :, :center, :] = 1
+        self.mask[:, :, :center_y, :] = 1
 
-        h = self.in_channels // self.mask_groups
+        i_group_channels = self.in_channels // self.mask_groups
+        o_group_channels = self.out_channels // self.mask_groups
         if self.mask_type == "A":
             # left
-            self.mask[:, :, center, :center] = 1
+            self.mask[:, :, center_y, :center_x] = 1
             # present channel dependency
             for out_g in range(1, self.mask_groups):
                 for in_g in range(self.mask_groups - 1):
                     if out_g == in_g:
                         continue
                     self.mask[
-                        h * out_g : h * (out_g + 1),
-                        h * in_g : h * (in_g + 1),
-                        center,
-                        center,
+                        o_group_channels * out_g : o_group_channels * (out_g + 1),
+                        i_group_channels * in_g : i_group_channels * (in_g + 1),
+                        center_y,
+                        center_x,
                     ] = 1
         else:  # mask_type == 'B'
             # left include present pixel
-            self.mask[:, :, center, : center + 1] = 1
+            self.mask[:, :, center_y, : center_x + 1] = 1
             # present channel dependency
             for out_g in range(self.mask_groups):
                 for in_g in range(self.mask_groups):
                     if out_g >= in_g:
                         continue
                     self.mask[
-                        h * out_g : h * (out_g + 1),
-                        h * in_g : h * (in_g + 1),
-                        center,
-                        center,
+                        o_group_channels * out_g : o_group_channels * (out_g + 1),
+                        i_group_channels * in_g : i_group_channels * (in_g + 1),
+                        center_y,
+                        center_x,
                     ] = 0
 
     def _mask_gradients(self, grad: torch.Tensor) -> torch.Tensor:
@@ -64,12 +65,35 @@ class MaskedConv2d(nn.Conv2d):
 
 
 class BottleNeck(nn.Sequential):
-    def __init__(self, hidden_dim: int):
+    def __init__(
+        self,
+        hidden_dim: int,
+        mask_groups: int = 1,
+    ):
         super().__init__(
             nn.ReLU(),
-            MaskedConv2d(2 * hidden_dim, hidden_dim, 1, mask_type="B"),
+            MaskedConv2d(
+                2 * hidden_dim,
+                hidden_dim,
+                1,
+                mask_type="B",
+                mask_groups=mask_groups,
+            ),
             nn.ReLU(),
-            MaskedConv2d(hidden_dim, hidden_dim, 3, mask_type="B", padding=1),
+            MaskedConv2d(
+                hidden_dim,
+                hidden_dim,
+                3,
+                mask_type="B",
+                padding=1,
+                mask_groups=mask_groups,
+            ),
             nn.ReLU(),
-            MaskedConv2d(hidden_dim, 2 * hidden_dim, 1, mask_type="B"),
+            MaskedConv2d(
+                hidden_dim,
+                2 * hidden_dim,
+                1,
+                mask_type="B",
+                mask_groups=mask_groups,
+            ),
         )

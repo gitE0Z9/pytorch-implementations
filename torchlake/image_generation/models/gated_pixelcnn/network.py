@@ -1,3 +1,4 @@
+import math
 from typing import Sequence
 
 import torch
@@ -17,17 +18,23 @@ class DownwardConv2d(nn.Conv2d):
     ):
         # avoid conflict with kernel_size
         self._kernel = kernel
+        self._kh = math.ceil(kernel / 2)
         super().__init__(
             input_channel,
             output_channel,
-            (kernel // 2, kernel),
-            padding=(kernel // 4, kernel // 2),
+            (self._kh, kernel),
+            padding=(0, kernel // 2),
             **kwargs,
         )
 
-    def forward(self, x):
-        x = F.pad(x, (0, 0, self._kernel // 2, 0))[:, :, : -(self._kernel // 2), :]
-        return super().forward(x)
+    @staticmethod
+    def shift_downward(x: torch.Tensor, offset: int):
+        return F.pad(x, (0, 0, offset, 0))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.shift_downward(x, self._kh - 1)
+        y = super().forward(x)
+        return self.shift_downward(y, 1)
 
 
 class GatedLayer(nn.Module):
@@ -36,6 +43,7 @@ class GatedLayer(nn.Module):
         hidden_dim: int,
         kernel: int,
         conditional_shape: Sequence[int] | None = None,
+        mask_groups: int = 1,
     ):
         """The layer of Gated PixelCNN, including both of vertical and horizontal branches.
 
@@ -75,6 +83,7 @@ class GatedLayer(nn.Module):
             kernel=(1, kernel),
             padding=(0, kernel // 2),
             mask_type="B",
+            mask_groups=mask_groups,
         )
         self.conv_h_gate_f = MaskedConv2d(
             hidden_dim,
@@ -82,6 +91,7 @@ class GatedLayer(nn.Module):
             kernel,
             padding=kernel // 2,
             mask_type="B",
+            mask_groups=mask_groups,
         )
         self.conv_h_gate_g = MaskedConv2d(
             hidden_dim,
@@ -89,12 +99,14 @@ class GatedLayer(nn.Module):
             kernel,
             padding=kernel // 2,
             mask_type="B",
+            mask_groups=mask_groups,
         )
         self.conv_h_output = MaskedConv2d(
             hidden_dim,
             hidden_dim,
             1,
             mask_type="B",
+            mask_groups=mask_groups,
         )
 
         if conditional_shape is not None:

@@ -27,7 +27,7 @@ class TestNetwork:
         "conditional,conditional_shape",
         (
             (None, None),
-            (torch.rand((BATCH_SIZE, 10)), (10,)),
+            (torch.rand((BATCH_SIZE, 10, 1, 1)), (10,)),
             (
                 torch.rand((BATCH_SIZE, 10, IMAGE_SIZE, IMAGE_SIZE)),
                 (10, IMAGE_SIZE, IMAGE_SIZE),
