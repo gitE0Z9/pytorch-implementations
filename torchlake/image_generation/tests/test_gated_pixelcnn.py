@@ -3,7 +3,7 @@ import pytest
 import torch
 
 from ..models.gated_pixelcnn.model import GatedPixelCNN
-from ..models.gated_pixelcnn.network import DownwardConv2d, GatedLayer
+from ..models.gated_pixelcnn.network import GatedLayer
 
 BATCH_SIZE = 2
 IMAGE_SIZE = 32
@@ -12,17 +12,6 @@ OUTPUT_SIZE = 5
 
 
 class TestNetwork:
-    # kernel 5 is not supported, for 2 is hard to pad
-    @pytest.mark.parametrize("kernel", (3, 7))
-    def test_downward_conv_2d_forward_shape(self, kernel: int):
-        x = torch.rand(BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE)
-
-        model = DownwardConv2d(3, HIDDEN_DIM, kernel)
-
-        y = model(x)
-
-        assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE))
-
     @pytest.mark.parametrize(
         "conditional,conditional_shape",
         (

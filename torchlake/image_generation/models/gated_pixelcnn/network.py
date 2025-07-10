@@ -8,33 +8,16 @@ from torch import nn
 from ..pixelcnn.network import MaskedConv2d
 
 
-class DownwardConv2d(nn.Conv2d):
-    def __init__(
-        self,
-        input_channel: int,
-        output_channel: int,
-        kernel: int,
-        **kwargs,
-    ):
-        # avoid conflict with kernel_size
-        self._kernel = kernel
-        self._kh = math.ceil(kernel / 2)
-        super().__init__(
-            input_channel,
-            output_channel,
-            (self._kh, kernel),
-            padding=(0, kernel // 2),
-            **kwargs,
-        )
+def pad_on_top(x: torch.Tensor, offset: int):
+    return F.pad(x, (0, 0, offset, 0))
 
-    @staticmethod
-    def shift_downward(x: torch.Tensor, offset: int):
-        return F.pad(x, (0, 0, offset, 0))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.shift_downward(x, self._kh - 1)
-        y = super().forward(x)
-        return self.shift_downward(y, 1)
+def pad_on_left(x: torch.Tensor, offset: int):
+    return F.pad(x, (offset, 0, 0, 0))
+
+
+def shift_downward(x: torch.Tensor, offset: int):
+    return pad_on_top(x, offset)[:, :, :-offset, :]
 
 
 class GatedLayer(nn.Module):
@@ -54,24 +37,17 @@ class GatedLayer(nn.Module):
         """
         self.hidden_dim = hidden_dim
         self.conditional_shape = conditional_shape
+        self._k = math.ceil(kernel / 2)
         super().__init__()
 
         # vertical branch
-        self.conv_v = DownwardConv2d(
+        self.conv_v = nn.Conv2d(
             hidden_dim,
             2 * hidden_dim,
-            kernel,
+            (self._k, kernel),
+            padding=(0, kernel // 2),
         )
-        self.conv_v_gate_f = DownwardConv2d(
-            hidden_dim,
-            hidden_dim,
-            kernel,
-        )
-        self.conv_v_gate_g = DownwardConv2d(
-            hidden_dim,
-            hidden_dim,
-            kernel,
-        )
+        self.conv_v_gate = nn.Conv2d(2 * hidden_dim, 2 * hidden_dim, 1, groups=2)
 
         # neck
         self.conv_v_h = nn.Conv2d(2 * hidden_dim, 2 * hidden_dim, 1)
@@ -80,26 +56,17 @@ class GatedLayer(nn.Module):
         self.conv_h = MaskedConv2d(
             hidden_dim,
             2 * hidden_dim,
-            kernel=(1, kernel),
-            padding=(0, kernel // 2),
+            kernel=(1, self._k),
             mask_type="B",
             mask_groups=mask_groups,
         )
-        self.conv_h_gate_f = MaskedConv2d(
-            hidden_dim,
-            hidden_dim,
-            kernel,
-            padding=kernel // 2,
+        self.conv_h_gate = MaskedConv2d(
+            2 * hidden_dim,
+            2 * hidden_dim,
+            1,
             mask_type="B",
             mask_groups=mask_groups,
-        )
-        self.conv_h_gate_g = MaskedConv2d(
-            hidden_dim,
-            hidden_dim,
-            kernel,
-            padding=kernel // 2,
-            mask_type="B",
-            mask_groups=mask_groups,
+            groups=2,
         )
         self.conv_h_output = MaskedConv2d(
             hidden_dim,
@@ -134,13 +101,15 @@ class GatedLayer(nn.Module):
         """
         # z means latent representation
         # v means vertical, h means horizontal
-        zv = self.conv_v(v)
-        zh = self.conv_h(h) + self.conv_v_h(zv)
+        zv = self.conv_v(pad_on_top(v, self._k - 1))
+        zh = self.conv_h(pad_on_left(h, self._k - 1)) + self.conv_v_h(
+            shift_downward(zv, 1)
+        )
 
-        vf = self.conv_v_gate_f(zv[:, : self.hidden_dim, :, :])
-        vg = self.conv_v_gate_g(zv[:, -self.hidden_dim :, :, :])
-        hf = self.conv_h_gate_f(zh[:, : self.hidden_dim, :, :])
-        hg = self.conv_h_gate_g(zh[:, -self.hidden_dim :, :, :])
+        zv = self.conv_v_gate(zv)
+        vf, vg = zv[:, : self.hidden_dim, :, :], zv[:, self.hidden_dim :, :, :]
+        zh = self.conv_h_gate(zh)
+        hf, hg = zh[:, : self.hidden_dim, :, :], zh[:, self.hidden_dim :, :, :]
 
         if c is not None and self.conditional_shape is not None:
             vf = vf + self.cond_v_f(c)
