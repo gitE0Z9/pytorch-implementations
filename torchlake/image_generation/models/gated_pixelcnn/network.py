@@ -111,7 +111,10 @@ class GatedLayer(nn.Module):
         zh = self.conv_h_gate(zh)
         hf, hg = zh[:, : self.hidden_dim, :, :], zh[:, self.hidden_dim :, :, :]
 
-        if c is not None and self.conditional_shape is not None:
+        if c is not None:
+            assert (
+                self.conditional_shape is not None
+            ), "to process conditional feature map, conditional layers is a must."
             vf = vf + self.cond_v_f(c)
             vg = vg + self.cond_v_g(c)
             hf = hf + self.cond_h_f(c)
