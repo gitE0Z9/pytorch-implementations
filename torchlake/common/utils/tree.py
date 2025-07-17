@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections import deque
 import heapq
 
 
 class HuffmanNode:
+    __slot__ = ("value", "freq", "left", "right", "_size")
+
     def __init__(
         self,
         value,
@@ -14,6 +15,7 @@ class HuffmanNode:
         self.freq = freq
         self.left: HuffmanNode | None = None
         self.right: HuffmanNode | None = None
+        self._size = 0
 
     @property
     def is_leaf(self) -> bool:
@@ -26,46 +28,35 @@ class HuffmanNode:
         return f"{self.value},{self.freq}"
 
     def __len__(self):
-        count = 0
-        queue = deque([self])
-        while queue:
-            node = queue.popleft()
-            count += 1
+        if self._size > 0:
+            return self._size
 
-            if node.left is not None:
-                if node.left.is_leaf:
-                    count += 1
-                if not node.left.is_leaf:
-                    queue.append(node.left)
+        self._size = 1
+        if not self.is_leaf:
+            if self.left is not None:
+                self._size += len(self.left)
+            if self.right is not None:
+                self._size += len(self.right)
 
-            if node.right is not None:
-                if node.right.is_leaf:
-                    count += 1
-                if not node.right.is_leaf:
-                    queue.append(node.right)
+        return self._size
 
-        return count
+    def __str__(self, prefix: str = "", is_left: bool = False) -> str:
+        if self is None:
+            return
 
-    def show(self):
-        output = []
-        queue = deque([self])
-        while queue:
-            node = queue.popleft()
-            output.append(f"{node.value}:{node.freq}")
+        connector = "├── " if is_left else "└── "
+        lines = [prefix + connector + f"{self.value} ({self.freq})"]
 
-            if node.left is not None:
-                if node.left.is_leaf:
-                    output.append(f"{node.left.value}:{node.left.freq}")
-                if not node.left.is_leaf:
-                    queue.append(node.left)
+        if self.left:
+            lines.append(
+                self.left.__str__(prefix + ("│   " if is_left else "    "), True)
+            )
+        if self.right:
+            lines.append(
+                self.right.__str__(prefix + ("│   " if is_left else "    "), False)
+            )
 
-            if node.right is not None:
-                if node.right.is_leaf:
-                    output.append(f"{node.right.value}:{node.right.freq}")
-                if not node.right.is_leaf:
-                    queue.append(node.right)
-
-        return ",".join(output)
+        return "\n".join(lines)
 
 
 def build_huffman_tree(freqs: list[int | float]) -> HuffmanNode:
@@ -88,6 +79,7 @@ def build_huffman_tree(freqs: list[int | float]) -> HuffmanNode:
         combined_node = HuffmanNode(N + internal_index, left.freq + right.freq)
         combined_node.left = left
         combined_node.right = right
+        combined_node._size = len(left) + len(right) + 1
         internal_index += 1
         heapq.heappush(nodes, combined_node)
 
