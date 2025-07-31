@@ -50,12 +50,14 @@ class DiscretizedLogisticMixture(nn.Module):
             yhat[:, :, 1 : 1 + C],
             # B, K, C, H, W
             yhat[:, :, 1 + C : 1 + 2 * C],
+            # tanh is not in the paper
             # B, K, sum(C-1 + ... + 1), H, W
             yhat[:, :, 1 + 2 * C :].tanh(),
         )
+        # not in the paper, important !!!
         # https://github.com/openai/pixel-cnn/blob/bbc15688dd37934a12c2759cf2b34975e15901d9/pixel_cnn_pp/nn.py#L54
-        # log_sigma = log_sigma.maximum(torch.full_like(log_sigma, -7))
-        # sigma can up to 0.0009
+        # sigma can down to 0.0009
+        log_sigma = log_sigma.clamp(min=-7)
         precision = (-log_sigma).exp()
 
         ### prob
@@ -83,6 +85,7 @@ class DiscretizedLogisticMixture(nn.Module):
         rightside = precision * (x_tilde + (self.scale / 2))
         leftside = precision * (x_tilde - (self.scale / 2))
 
+        # softplus is not in the paper, important !!!
         # softplus(x) = ln(1+exp(x)) = -ln(1-σ(x))
         # ln(σ(x)) = x - softplus(x)
 
@@ -94,16 +97,21 @@ class DiscretizedLogisticMixture(nn.Module):
         # F.sigmoid(rightside)
         log_cdf_leftside = rightside - F.softplus(rightside)
 
-        # different from paper, (rightside - leftside) becomes extreme correction instead of cover whole domain
+        # integral approximation is not in the paper, important !!!
+        # for 0 < x < 1
         # torch.log(F.sigmoid(rightside) - F.sigmoid(leftside))
-        # log_pdf_mid = x_tilde - log_sigma - 2 * F.softplus(x_tilde * precision) - math.log(2/255)
-        log_cdf_mid = torch.log(rightside.sigmoid() - leftside.sigmoid())
+        # since bin is small, cdf between rightside and leftside is replaced with integral approximation with logistic_pdf(midpoint)
+        log_pdf_mid = (
+            x_tilde * precision
+            - 2 * F.softplus(x_tilde * precision)
+            + math.log(self.scale)
+        )
 
         # B, K, C, H, W
         log_probs = torch.where(
             x > (1 - self.epsilon),
             log_cdf_rightside,
-            torch.where(x < self.epsilon, log_cdf_leftside, log_cdf_mid),
+            torch.where(x < self.epsilon, log_cdf_leftside, log_pdf_mid),
         )
 
         # (B, K, C, H, W) + (B, K, 1, H, W) => (B, C, H, W)
