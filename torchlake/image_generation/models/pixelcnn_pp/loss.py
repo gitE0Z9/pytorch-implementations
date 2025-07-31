@@ -54,7 +54,7 @@ class DiscretizedLogisticMixture(nn.Module):
             yhat[:, :, 1 + 2 * C :].tanh(),
         )
         # https://github.com/openai/pixel-cnn/blob/bbc15688dd37934a12c2759cf2b34975e15901d9/pixel_cnn_pp/nn.py#L54
-        log_sigma = log_sigma.maximum(torch.full_like(log_sigma, -7))
+        # log_sigma = log_sigma.maximum(torch.full_like(log_sigma, -7))
         # sigma can up to 0.0009
         precision = (-log_sigma).exp()
 
@@ -62,17 +62,26 @@ class DiscretizedLogisticMixture(nn.Module):
 
         # B, C, H, W => B, 1, C, H, W
         x = x[:, None]
+        # B, K, 1, H, W => B, K, C, H, W
+        mu_cond = mu[:, :, 0:1, :, :]
         cursor = 0
         for i in range(1, C):
-            mu[:, :, i : i + 1] = mu[:, :, i : i + 1] + (
-                coef[:, :, cursor : cursor + i] * x[:, :, :i]
-            ).sum(2, keepdim=True)
+            mu_cond = torch.cat(
+                [
+                    mu_cond,
+                    mu[:, :, i : i + 1]
+                    + (coef[:, :, cursor : cursor + i] * x[:, :, :i]).sum(
+                        2, keepdim=True
+                    ),
+                ],
+                2,
+            )
             cursor += i
 
         # B, K, C, H, W
-        x_tilde = x - mu
-        rightside = precision * (x_tilde + (0.5 * self.scale))
-        leftside = precision * (x_tilde - (0.5 * self.scale))
+        x_tilde = x - mu_cond
+        rightside = precision * (x_tilde + (self.scale / 2))
+        leftside = precision * (x_tilde - (self.scale / 2))
 
         # softplus(x) = ln(1+exp(x)) = -ln(1-σ(x))
         # ln(σ(x)) = x - softplus(x)
@@ -88,12 +97,7 @@ class DiscretizedLogisticMixture(nn.Module):
         # different from paper, (rightside - leftside) becomes extreme correction instead of cover whole domain
         # torch.log(F.sigmoid(rightside) - F.sigmoid(leftside))
         # log_pdf_mid = x_tilde - log_sigma - 2 * F.softplus(x_tilde * precision) - math.log(2/255)
-        log_cdf_mid = torch.log(1 - (-precision).exp()) - torch.log(
-            (x_tilde * precision - precision / 2).exp()
-            + (-x_tilde * precision - precision / 2).exp()
-            + (-precision).exp()
-            + 1
-        )
+        log_cdf_mid = torch.log(rightside.sigmoid() - leftside.sigmoid())
 
         # B, K, C, H, W
         log_probs = torch.where(
@@ -104,7 +108,7 @@ class DiscretizedLogisticMixture(nn.Module):
 
         # (B, K, C, H, W) + (B, K, 1, H, W) => (B, C, H, W)
         # different from the original code, I add pi before sum instead of sum then add pi
-        nll = -(log_probs + F.log_softmax(pi, dim=1)).sum(1)
+        nll = -(log_probs + F.log_softmax(pi, dim=1)).logsumexp(1)
 
         if self.reduction == "sum":
             return nll.sum()
