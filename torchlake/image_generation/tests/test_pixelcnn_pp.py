@@ -150,17 +150,17 @@ class TestLoss:
 
         assert not torch.isnan(loss)
 
-    # @pytest.mark.parametrize("in_c", [1, 3])
-    # def test_backward(self, in_c: int):
-    #     num_component = 1 + 2 * in_c + sum(range(in_c))
-    #     x = torch.rand(BATCH_SIZE, in_c, IMAGE_SIZE, IMAGE_SIZE)
-    #     m = torch.nn.Conv2d(in_c, NUM_MIXTURE * num_component, 1)
-    #     m.requires_grad_()
-    #     yhat = m(x).unflatten(1, (NUM_MIXTURE, num_component))
+    @pytest.mark.parametrize("in_c", [1, 3])
+    def test_backward(self, in_c: int):
+        num_component = 1 + 2 * in_c + sum(range(in_c))
+        x = torch.rand(BATCH_SIZE, in_c, IMAGE_SIZE, IMAGE_SIZE)
+        m = torch.nn.Conv2d(in_c, NUM_MIXTURE * num_component, 1)
+        m.requires_grad_()
+        yhat = m(x).unflatten(1, (NUM_MIXTURE, num_component))
 
-    #     criterion = DiscretizedLogisticMixture(in_c)
-    #     loss = criterion(yhat, x)
-    #     loss.backward()
+        criterion = DiscretizedLogisticMixture(in_c)
+        loss = criterion(yhat, x)
+        loss.backward()
 
 
 class TestModel:
