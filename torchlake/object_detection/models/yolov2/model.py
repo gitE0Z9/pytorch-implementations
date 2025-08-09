@@ -13,10 +13,14 @@ class YOLOV2(ModelBase):
         self,
         backbone: ExtractorBase,
         context: DetectorContext,
-        backbone_feature_dims: tuple[int, int],
+        passthrough_feature_dim: int,
+        neck_feature_dim: int,
+        hidden_dim: int = 1024,
     ):
         self.context = context
-        self.passthrough_feature_dim, self.neck_feature_dim = backbone_feature_dims
+        self.passthrough_feature_dim = passthrough_feature_dim
+        self.neck_feature_dim = neck_feature_dim
+        self.hidden_dim = hidden_dim
         super().__init__(
             3,
             1,
@@ -45,14 +49,14 @@ class YOLOV2(ModelBase):
                 "neck": nn.Sequential(
                     Conv2dNormActivation(
                         self.neck_feature_dim,
-                        1024,
+                        self.hidden_dim,
                         3,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
                     ),
                     Conv2dNormActivation(
-                        1024,
-                        1024,
+                        self.hidden_dim,
+                        self.hidden_dim,
                         3,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
@@ -64,14 +68,14 @@ class YOLOV2(ModelBase):
     def build_head(self, _):
         self.head = nn.Sequential(
             Conv2dNormActivation(
-                1024 + self.passthrough_feature_dim // 2,
-                1024,
+                self.hidden_dim + self.passthrough_feature_dim // 2,
+                self.hidden_dim,
                 3,
                 activation_layer=lambda: nn.LeakyReLU(0.1),
                 inplace=None,
             ),
             nn.Conv2d(
-                1024,
+                self.hidden_dim,
                 self.context.num_anchors * (self.context.num_classes + 5),
                 1,
             ),
