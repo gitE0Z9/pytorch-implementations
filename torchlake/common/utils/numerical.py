@@ -74,18 +74,22 @@ def receptive_field(k: int, l: int) -> int:
 
 def generate_grid(
     *shapes: tuple[int],
+    is_center: bool = False,
+    normalized: bool = False,
     centered: bool = False,
     indexing: Literal["xy", "ij"] = "xy",
-) -> tuple[torch.Tensor]:
+) -> list[torch.Tensor]:
     """generate
 
     Args:
         shapes (tuple[int]): grid shape
+        is_center (bool, optional): add 0.5 to move to the center of grids. Defaults to False.
+        normalized (bool, optional): normalized by the grid shape. Defaults to False.
         centered (bool, optional): use manhattan distance to the center of the grid. Defaults to False.
         indexing (Literal["xy", "ij"], optional): xy will flip, ij will preserve the order. Defaults to "xy".
 
     Returns:
-        tuple[torch.Tensor]: grid
+        list[torch.Tensor]: grids
     """
     grids = torch.meshgrid(
         [torch.arange(shape) for shape in shapes],
@@ -95,14 +99,22 @@ def generate_grid(
         indexing=indexing,
     )
 
+    grids = list(grids)
+
+    if is_center:
+        grids = [grid + 0.5 for grid in grids]
+
     if centered:
-        grids = list(grids)
-        for i in range(len(shapes)):
-            mid = shapes[i] // 2
-            if shapes[i] % 2 == 0:
+        for i, shape in enumerate(shapes):
+            mid = shape // 2
+            if shape % 2 == 0:
                 mid = (2 * mid + 1) / 2
 
             grids[i] = grids[i] - mid
+
+    if normalized:
+        for i, shape in enumerate(shapes):
+            grids[i] = grids[i] / shape
 
     return grids
 

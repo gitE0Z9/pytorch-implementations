@@ -1,5 +1,7 @@
 import torch
 
+from torchlake.common.utils.numerical import generate_grid
+
 
 def collate_fn(batch) -> tuple[torch.Tensor, list[list[list[int]]]]:
     images = []
@@ -11,20 +13,21 @@ def collate_fn(batch) -> tuple[torch.Tensor, list[list[list[int]]]]:
     return torch.stack(images, 0), labels
 
 
-def generate_grid_train(grid_x: int, grid_y: int, center: bool = False) -> torch.Tensor:
+def generate_grid_train(
+    grid_x: int,
+    grid_y: int,
+    is_center: bool = False,
+) -> torch.Tensor:
     """recover x,y coord since we use x,y offset"""
-    x_offset, y_offset = torch.meshgrid(
-        torch.arange(grid_x) / grid_x,
-        torch.arange(grid_y) / grid_y,
-        indexing="xy",
+    x_offset, y_offset = generate_grid(
+        grid_x,
+        grid_y,
+        is_center=is_center,
+        normalized=True,
     )
-    if center:
-        y_offset, x_offset = (y_offset + 0.5 / grid_y), (x_offset + 0.5 / grid_x)
 
-    grid = torch.stack([x_offset, y_offset], 0)  # 2, 7, 7
-    grid = grid.view(1, 1, 2, grid_y, grid_x)  # 1, 1, 2, 7 ,7
-
-    return grid
+    # 2, 7, 7 => 1, 1, 2, 7, 7
+    return torch.stack([x_offset, y_offset])[None, None, ...]
 
 
 def xywh_to_xyxy(coord: torch.Tensor) -> torch.Tensor:
