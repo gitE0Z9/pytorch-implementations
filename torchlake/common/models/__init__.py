@@ -13,7 +13,7 @@ from .position_encoding import PositionEncoding1d
 from .residual import ResBlock
 from .resnet_feature_extractor import ResNetFeatureExtractor
 from .se import SqueezeExcitation2d
-from .topk_pool import KmaxPool1d
+from .topk_pool import TopKMaxPool1d
 from .vgg_feature_extractor import VGGFeatureExtractor
 from .efficientnet_feature_extractor import EfficientNetFeatureExtractor
 from .efficientnetv2_feature_extractor import EfficientNetV2FeatureExtractor
@@ -28,7 +28,7 @@ __all__ = [
     "HighwayBlock",
     "ChannelShuffle",
     "FlattenFeature",
-    "KmaxPool1d",
+    "TopKMaxPool1d",
     "ImageNetNormalization",
     "VGGFeatureExtractor",
     "ResNetFeatureExtractor",

@@ -2,10 +2,10 @@ import torch
 from torch import nn
 
 
-class KmaxPool1d(nn.Module):
+class TopKMaxPool1d(nn.Module):
 
     def __init__(self, topk: int):
-        super(KmaxPool1d, self).__init__()
+        super().__init__()
         self.topk = topk
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
