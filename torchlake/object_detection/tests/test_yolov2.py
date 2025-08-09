@@ -1,17 +1,17 @@
-from pathlib import Path
+import random
+
 import pytest
 import torch
-import random
 from torch.testing import assert_close
+
 from torchlake.common.models import ResNetFeatureExtractor
 from torchlake.image_classification.models.darknet19 import DarkNet19FeatureExtractor
-
 from torchlake.object_detection.utils.train import build_flatten_targets
 
 from ..constants.schema import DetectorContext
+from ..models.yolov2.anchor import PriorBox
+from ..models.yolov2.loss import YOLOV2Loss
 from ..models.yolov2.model import YOLOV2
-from ..models.yolov2.loss import YOLOV2Loss, YOLO9000Loss
-
 
 BATCH_SIZE = 2
 GRID_SIZE = 13
@@ -39,7 +39,8 @@ class TestYOLOV2:
         model = YOLOV2(
             backbone,
             CONTEXT,
-            backbone_feature_dims=backbone.feature_dims[-2:],
+            passthrough_feature_dim=backbone.feature_dims[-2],
+            neck_feature_dim=backbone.feature_dims[-1],
         )
         test_x = torch.rand(2, 3, 416, 416)
 
@@ -56,7 +57,8 @@ class TestYOLOV2ResNet:
         model = YOLOV2(
             backbone,
             CONTEXT,
-            backbone_feature_dims=backbone.feature_dims[-2:],
+            passthrough_feature_dim=backbone.feature_dims[-2],
+            neck_feature_dim=backbone.feature_dims[-1],
         )
         test_x = torch.rand(2, 3, 416, 416)
 
@@ -85,11 +87,12 @@ class TestYOLOv2Loss:
             ]
             for _ in range(BATCH_SIZE)
         ]
+        self.priorBox = PriorBox(CONTEXT)
 
     def test_iou_box(self):
         self.setUp()
 
-        criterion = YOLOV2Loss(CONTEXT, iou_threshold=0)
+        criterion = YOLOV2Loss(self.priorBox, CONTEXT, iou_threshold=0)
         y, span = build_flatten_targets(self.y, (GRID_SIZE, GRID_SIZE))
 
         targets = criterion.match(y, span, GRID_SIZE, GRID_SIZE)
@@ -102,7 +105,7 @@ class TestYOLOv2Loss:
     def test_forward(self):
         self.setUp()
 
-        criterion = YOLOV2Loss(CONTEXT)
+        criterion = YOLOV2Loss(self.priorBox, CONTEXT)
 
         loss = criterion(self.x, self.y)
         assert not torch.isnan(loss)
@@ -110,7 +113,7 @@ class TestYOLOv2Loss:
     def test_backward(self):
         self.setUp()
 
-        criterion = YOLOV2Loss(CONTEXT)
+        criterion = YOLOV2Loss(self.priorBox, CONTEXT)
 
         loss = criterion(self.x, self.y)
         loss.backward()

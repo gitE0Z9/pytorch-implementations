@@ -36,15 +36,20 @@ def avg_iou(x: torch.Tensor, group: torch.Tensor, center: torch.Tensor) -> float
 
 class PriorBox:
     def __init__(self, context: DetectorContext):
+        assert isinstance(
+            context.num_anchors, int
+        ), "number of anchors in context should be an integer"
+
         self.anchors_path = context.anchors_path
         self.num_anchors = context.num_anchors
+        self.context = context
 
         p = Path(self.anchors_path)
 
         if p.exists() and p.is_file():
-            self.anchors = self.load_anchors()
+            self.anchors = self.load_anchors().to(context.device)
         else:
-            print("Can't find anchor file to path %s" % (self.anchors_path))
+            print(f"Can't find anchor file to path {self.anchors_path}")
 
     def load_anchors(self) -> torch.Tensor:
         anchors = np.loadtxt(self.anchors_path, delimiter=",")

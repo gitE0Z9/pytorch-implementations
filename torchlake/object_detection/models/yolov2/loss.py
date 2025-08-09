@@ -13,6 +13,7 @@ from torchvision.ops import box_convert, box_iou
 class YOLOV2Loss(nn.Module):
     def __init__(
         self,
+        prior_box: PriorBox,
         context: DetectorContext,
         lambda_obj: float = 5,
         lambda_noobj: float = 1,
@@ -21,6 +22,10 @@ class YOLOV2Loss(nn.Module):
         iou_threshold: float = 0.6,
     ):
         super().__init__()
+        assert prior_box.anchors is not None, "prior box should contain anchors."
+        assert prior_box.anchors.device == torch.device(
+            context.device
+        ), "anchors should be on same device as criterion"
 
         self.num_anchors = context.num_anchors
         self.num_classes = context.num_classes
@@ -32,31 +37,31 @@ class YOLOV2Loss(nn.Module):
         self.iou_threshold = iou_threshold
         self.epsilon = 1e-5
 
-        self.anchors = PriorBox(context).anchors.to(context.device)
+        self.anchors = prior_box.anchors
 
     def encode(self, gt: torch.Tensor, anchors: torch.Tensor) -> torch.Tensor:
         """encode gt loc information
 
         Args:
-            gt (torch.Tensor): groundtruth coordinates in format of (cx, cy, w, h), shape is (?, 4)
-            anchors (torch.Tensor): anchors, shape is (?, 4)
+            gt (torch.Tensor): groundtruth coordinates in format of (dx, dy, w, h), shape is (?, 4)
+            anchors (torch.Tensor): anchors, shape is (num_boxes, 4)
 
         Returns:
-            torch.Tensor: target tensors, shape is (?, 4)
+            torch.Tensor: target tensors, shape is (num_boxes, 4)
         """
 
-        g_cxcy = gt[:, :2]
-        g_wh = gt[:, 4:6].log() - anchors[:, 2:].log()
+        g_dxdy = gt[:, :2]
+        g_wh = gt[:, 2:].log() - anchors[:, 2:].log()
 
-        # assert not torch.isnan(g_cxcy).any()
+        # assert not torch.isnan(g_dxdy).any()
         # assert not torch.isnan(g_wh).any()
 
-        return torch.cat([g_cxcy, g_wh], -1)
+        return torch.cat([g_dxdy, g_wh], -1)
 
     def match(
         self,
         gt_batch: torch.Tensor,
-        spans: torch.Tensor,
+        spans: list[int],
         grid_x: int,
         grid_y: int,
     ) -> torch.Tensor:
@@ -66,20 +71,19 @@ class YOLOV2Loss(nn.Module):
         3. update coord/obj/class loss for best box
 
         Args:
-            gt_batch (torch.Tensor): batched bboxes, in format(dx, dy, grid_x, grid_y, w, h, c) if delta coord is true
-            or in format of (cx, cy, w, h, c).
-            spans (torch.Tensor): number of detections of each image
-            grid_x (int): grid size of x dim
-            grid_y (int): grid size of y dim
+            gt_batch (torch.Tensor): batched bboxes, in shape of (?, 7), in format(dx, dy, grid_x, grid_y, w, h, c).
+            spans (list[int]): number of annotated boxes in each image
+            grid_x (int): grid size along x dim
+            grid_y (int): grid size along y dim
 
         Returns:
             torch.Tensor: in shape of (B, A, H, W, C=7), C is dx, dy, ln(w/a), ln(h/a), class, iou, positive_level
-            positive_level includes 0:negative 1:object exist 2:positive
+            positive_level is encoded as 0:negative 1:best 2:positive
         """
         # anchors could be precomputed for static grid_x, grid_y under single scale scenario
         # A*H*W, 2
         grids = (
-            generate_grid_train(grid_x, grid_y, center=True)
+            generate_grid_train(grid_x, grid_y, is_center=True)
             .repeat(1, self.num_anchors, 1, 1, 1)
             .permute(0, 1, 3, 4, 2)
             .reshape(-1, 2)
@@ -96,13 +100,10 @@ class YOLOV2Loss(nn.Module):
             -1,
         )
 
-        gts = torch.cat(
-            [
-                gt_batch[:, :2],
-                gt_batch[:, 4:6],
-            ],
-            1,
-        )
+        # gather dx, dy, w, h
+        # in shape of (?, 4)
+        gts = gt_batch[:, [0, 1, 4, 5]]
+        # convert (dx, dy) to (cx, cy)
         gts[:, 0] += gt_batch[:, 2] / grid_x
         gts[:, 1] += gt_batch[:, 3] / grid_y
         # ?, A*H*W
@@ -117,11 +118,11 @@ class YOLOV2Loss(nn.Module):
         for span in spans:
             # num_gt, A*H*W
             iou = ious[offset : offset + span]
-            # num_gt, 5
-            gt = gt_batch[offset : offset + span]
+            # num_gt, 7
+            gt = gt_batch[offset : offset + span, [0, 1, 4, 5, 6]]
 
             # A*H*W, 7
-            # C is cx, cy, w, h, class, conf, positive
+            # C is cx, cy, w, h, class, iou, positive
             placeholder = torch.zeros(num_boxes, 7).to(self.device)
 
             # shape is (A*H*W,), assign gt to acceptable anchor
@@ -130,14 +131,14 @@ class YOLOV2Loss(nn.Module):
             over_threshold = best_gt_overlap > self.iou_threshold
             # shape is (?,)
             gt_idx_of_acceptable_prior = best_gt_idx[over_threshold]
-            # ?,6
+            # ?, 7
             placeholder[over_threshold] = torch.cat(
                 [
                     self.encode(
-                        gt[gt_idx_of_acceptable_prior, :6],
+                        gt[gt_idx_of_acceptable_prior, :4],
                         anchors[over_threshold],
                     ),
-                    gt[gt_idx_of_acceptable_prior, 6:7],
+                    gt[gt_idx_of_acceptable_prior, 4:5],
                     iou[gt_idx_of_acceptable_prior, over_threshold, None],
                     torch.full((gt_idx_of_acceptable_prior.size(0), 1), 2).to(
                         self.device
@@ -149,11 +150,11 @@ class YOLOV2Loss(nn.Module):
             # shape is (num_gt,), assign best anchor to each gt
             best_prior_idx = iou.argmax(1)
 
-            # num_gt,6
+            # num_gt, 7
             placeholder[best_prior_idx] = torch.cat(
                 [
-                    self.encode(gt[:, :6], anchors[best_prior_idx]),
-                    gt[:, 6:7],
+                    self.encode(gt[:, :4], anchors[best_prior_idx]),
+                    gt[:, 4:5],
                     iou[torch.arange(span).to(self.device), best_prior_idx, None],
                     torch.ones(span, 1).to(self.device),
                 ],
@@ -166,6 +167,30 @@ class YOLOV2Loss(nn.Module):
 
         # B, A*H*W, 7
         return torch.stack(target, 0)
+
+    def calc_prior_loss(
+        self,
+        prediction: torch.Tensor,
+        seen: int,
+        batch_size: int,
+        grid_y: int,
+        grid_x: int,
+        positive_indicator: torch.Tensor,
+    ) -> torch.Tensor:
+        prior_loss = 0
+        if seen < 12800:
+            # N, 5, 4, 13, 13
+            box_pred = ~positive_indicator * prediction[:, :, 0:4, :, :]
+            anchors_truth = torch.zeros_like(box_pred).to(self.device)
+            anchors_truth[:, :, 0:1, :, :] = 0.5 / grid_x
+            anchors_truth[:, :, 1:2, :, :] = 0.5 / grid_y
+            anchors_truth[:, :, 2:4, :, :] = self.anchors.tile(
+                batch_size, 1, 1, grid_y, grid_x
+            )
+            anchors_truth = ~positive_indicator * anchors_truth
+            prior_loss = F.mse_loss(box_pred, anchors_truth, reduction="sum")
+
+        return prior_loss
 
     def forward(
         self,
@@ -183,9 +208,8 @@ class YOLOV2Loss(nn.Module):
         p.s. match with fixed anchor and no overlapping groundtruth(?
 
         Args:
-            prediction (torch.Tensor): prediction
-            groundtruth (list): groundtruth
-            anchors (torch.Tensor): anchors
+            pred (torch.Tensor): prediction, in format of (B, A*(4+1+C), H, W)
+            gt (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, c)
             seen (int): had seen how many images, 12800 is the threshold in the paper
 
         Returns:
@@ -195,22 +219,22 @@ class YOLOV2Loss(nn.Module):
         pred = pred.unflatten(1, (self.num_anchors, channel // self.num_anchors))
 
         # transform
-        pred[:, :, 0:2, :, :] = pred[:, :, 0:2, :, :].sigmoid()
+        pred[:, :, :2, :, :] = pred[:, :, :2, :, :].sigmoid()
         # pred[:, :, 2:4, :, :] = pred[:, :, 2:4, :, :].exp() * self.anchors
         pred[:, :, 4, :, :] = pred[:, :, 4, :, :].sigmoid()
         pred[:, :, 5:, :, :] = pred[:, :, 5:, :, :].softmax(2)
 
-        # shape is (B, 5), format is (cx, cy, w, h, p)
+        # shape is (B, 7), format is (dx, dy, grid_x, grid_y, w, h, c)
         gt, spans = build_flatten_targets(gt, (grid_y, grid_x), delta_coord=True)
         gt = gt.to(self.device)
 
         # shape is (B*A*H*W, C=7)
-        # C is dx, dy, w, h, class, conf, positive
+        # C is dx, dy, w, h, class, iou, positive
         target = self.match(gt, spans, grid_x, grid_y).reshape(-1, 7)
         # B*A*H*W, 5+C
         pred = pred.permute(0, 1, 3, 4, 2).reshape(-1, 5 + self.num_classes)
 
-        # B, A, H, W
+        # B*A*H*W
         negative_mask = target[:, 6].eq(0)
         # no object loss for lower than threshold
         noobj_loss = F.mse_loss(
@@ -263,30 +287,3 @@ class YOLOV2Loss(nn.Module):
         )
 
         return total_loss
-
-    def calc_prior_loss(
-        self,
-        prediction: torch.Tensor,
-        seen: int,
-        batch_size: int,
-        grid_y: int,
-        grid_x: int,
-        positive_indicator: torch.Tensor,
-    ) -> torch.Tensor:
-        prior_loss = 0
-        if seen < 12800:
-            # N, 5, 4, 13, 13
-            box_pred = ~positive_indicator * prediction[:, :, 0:4, :, :]
-            anchors_truth = torch.zeros_like(box_pred).to(self.device)
-            anchors_truth[:, :, 0:1, :, :] = 0.5 / grid_x
-            anchors_truth[:, :, 1:2, :, :] = 0.5 / grid_y
-            anchors_truth[:, :, 2:4, :, :] = self.anchors.tile(
-                batch_size, 1, 1, grid_y, grid_x
-            )
-            anchors_truth = ~positive_indicator * anchors_truth
-            prior_loss = F.mse_loss(box_pred, anchors_truth, reduction="sum")
-
-        return prior_loss
-
-
-class YOLO9000Loss(nn.Module): ...
