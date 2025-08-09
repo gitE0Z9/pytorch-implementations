@@ -15,10 +15,10 @@ class StackedPatch2d(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _, c, h, w = x.shape
-        k = (h // self.stride, w // self.stride)
+        patch_shape = (h // self.stride, w // self.stride)
         return (
-            F.unfold(x, k, stride=k)
-            .unflatten(1, (c, *k))
+            F.unfold(x, patch_shape, stride=patch_shape)
+            .unflatten(1, (c, *patch_shape))
             .permute(0, 1, 4, 2, 3)
             .flatten(1, 2)
         )
