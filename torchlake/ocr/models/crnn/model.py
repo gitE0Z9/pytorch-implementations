@@ -1,9 +1,10 @@
 import torch
 from torch import nn
+from torchvision.ops import Conv2dNormActivation
+
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
-from torchvision.ops import Conv2dNormActivation
 
 
 class CRNN(ModelBase):
