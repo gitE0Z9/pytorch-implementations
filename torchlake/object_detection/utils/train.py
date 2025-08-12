@@ -18,7 +18,16 @@ def generate_grid_train(
     grid_y: int,
     is_center: bool = False,
 ) -> torch.Tensor:
-    """recover x,y coord since we use x,y offset"""
+    """recover x,y coord since we use x,y offset
+
+    Args:
+        grid_x (int): grid size in x direction
+        grid_y (int): grid size in y direction
+        is_center (bool, optional): move to the center of cells. Defaults to False.
+
+    Returns:
+        torch.Tensor: grids, in shape of (1, 1, 2, grid_y, grid_x)
+    """
     x_offset, y_offset = generate_grid(
         grid_x,
         grid_y,
@@ -133,6 +142,9 @@ def build_flatten_targets(
         element2: number of detections of each image
     """
     if delta_coord:
+        assert (
+            grid_shape is not None
+        ), "must provide grid shape to calculate coordinate deltas"
         grid_y, grid_x = grid_shape
 
     batch, spans = [], []
