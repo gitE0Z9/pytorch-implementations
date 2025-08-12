@@ -99,7 +99,7 @@ class RNNDiscriminator(ModelBase):
 
         Args:
             x (torch.Tensor): input. shape is (batch_size, seq_len)
-            y (torch.Tensor): input. shape is (batch_size, seq_len, embed_dim)
+            y (torch.Tensor): embedded input. shape is (batch_size, seq_len, embed_dim)
             ht (torch.Tensor, optional): hidden state. shape is (bidirectional * num_layers, batch_size, hidden_dim). Defaults to None.
             *states (tuple[torch.Tensor]): other hidden states.
 
