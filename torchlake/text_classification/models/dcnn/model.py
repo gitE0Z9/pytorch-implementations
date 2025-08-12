@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import FlattenFeature, KmaxPool1d
+from torchlake.common.models import FlattenFeature, TopKMaxPool1d
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
@@ -75,7 +75,7 @@ class DCNN(ModelBase):
                 )
             ],
             Folding(),
-            KmaxPool1d(self.topk),
+            TopKMaxPool1d(self.topk),
         )
 
         self.blocks.insert(

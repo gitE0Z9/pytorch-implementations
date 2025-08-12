@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import FlattenFeature, KmaxPool1d
+from torchlake.common.models import FlattenFeature, TopKMaxPool1d
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
@@ -76,7 +76,7 @@ class VDCNN(ModelBase):
                 )
                 blocks.append(block)
 
-        blocks.append(KmaxPool1d(self.topk))
+        blocks.append(TopKMaxPool1d(self.topk))
 
         self.blocks = blocks
 

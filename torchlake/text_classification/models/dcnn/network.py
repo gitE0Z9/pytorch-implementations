@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import KmaxPool1d
+from torchlake.common.models import TopKMaxPool1d
 
 
 class WideConv1d(nn.Module):
@@ -23,7 +23,7 @@ class WideConv1d(nn.Module):
         return self.conv(x)
 
 
-class DynamicKmaxPool1d(KmaxPool1d):
+class DynamicKmaxPool1d(TopKMaxPool1d):
 
     def __init__(
         self,
