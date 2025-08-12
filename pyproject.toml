@@ -12,10 +12,10 @@ dependencies = [
   "opencv-python>=4.11.0.86",
   "pandas>=2.2.3",
   "pydantic>=2.11.4",
-  "torch>=2.7.0",
+  "tensorboardx>=2.6.4",
+  "torch==2.6.0",
   "torchmetrics>=1.7.1",
-  "torchtext>=0.15.1",
-  "torchvision>=0.22.0",
+  "torchvision>=0.21.0",
   "tqdm>=4.67.1",
 ]
 
@@ -50,6 +50,9 @@ torchvision = [
   { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
   { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
+torch-scatter = [
+  { index = "torch-scatter-cu126" },
+]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
@@ -59,6 +62,11 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cu126"
 url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "torch-scatter-cu126"
+url = "https://data.pyg.org/whl/torch-2.6.0+cu126.html"
 explicit = true
 
 [tool.setuptools.packages.find]
