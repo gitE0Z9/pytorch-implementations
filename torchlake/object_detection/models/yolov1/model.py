@@ -1,3 +1,4 @@
+from math import prod
 import torch
 import torch.nn as nn
 from torchlake.common.models.feature_extractor_base import ExtractorBase
@@ -25,12 +26,14 @@ class YOLOV1(ModelBase):
         """
         self.dropout_prob = dropout_prob
         self.context = context
-        self.output_size = context.num_anchors * 5 + context.num_classes
         super().__init__(
             3,
-            self.output_size * 7 * 7,
+            context.num_anchors * 5 + context.num_classes,
             foot_kwargs={
                 "backbone": backbone,
+            },
+            head_kwargs={
+                "output_shape": (7, 7),
             },
         )
         # self.init_weight()
@@ -90,17 +93,20 @@ class YOLOV1(ModelBase):
             nn.Dropout(self.dropout_prob),
         )
 
-    def build_head(self, output_size: int):
+    def build_head(self, output_size: int, **kwargs):
+        output_shape = kwargs.pop("output_shape")
+
         self.head = nn.Sequential(
             FlattenFeature(reduction=None),
-            nn.Linear(self.feature_dim, output_size),
+            nn.Linear(self.feature_dim, output_size * prod(output_shape)),
+            nn.Unflatten(-1, (output_size, *output_shape)),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x).pop()
         y = self.neck(y)
 
-        return self.head(y).view(-1, self.output_size, 7, 7)
+        return self.head(y)
 
 
 class YOLOV1Modified(ModelBase):
@@ -119,10 +125,9 @@ class YOLOV1Modified(ModelBase):
         """
         self.dropout_prob = dropout_prob
         self.context = context
-        self.output_size = context.num_anchors * 5 + context.num_classes
         super().__init__(
             3,
-            self.output_size,
+            context.num_anchors * 5 + context.num_classes,
             foot_kwargs={
                 "backbone": backbone,
             },
@@ -174,8 +179,8 @@ class YOLOV1Modified(ModelBase):
             nn.Dropout(self.dropout_prob),
         )
 
-    def build_head(self, _):
-        self.head = nn.Conv2d(256, self.output_size, 1)
+    def build_head(self, output_size: int):
+        self.head = nn.Conv2d(256, output_size, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x).pop()
