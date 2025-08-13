@@ -76,5 +76,5 @@ class CRNN(ModelBase):
         assert h == 1, "the height of conv must be 1"
 
         # b, w, c
-        y = y.squeeze(2).permute(0, 2, 1)
-        return self.head(y).permute(1, 0, 2)
+        y = y.squeeze(2).transpose(1, 2)
+        return self.head(y).transpose(0, 1)
