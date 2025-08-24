@@ -14,6 +14,7 @@ from ..models.yolov2.loss import YOLOV2Loss
 from ..models.yolov2.model import YOLOV2
 
 BATCH_SIZE = 2
+IMAGE_SIZE = 416
 GRID_SIZE = 13
 MAX_OBJECT_SIZE = 10
 NUM_CLASS = 20
@@ -31,8 +32,8 @@ CONTEXT = DetectorContext(
 OUTPUT_SIZE = (CONTEXT.num_classes + 5) * CONTEXT.num_anchors
 
 
-class TestYOLOV2:
-    def test_output_shape(self):
+class TestModel:
+    def test_yolov2_output_shape(self):
         backbone = DarkNet19FeatureExtractor("last_conv", trainable=False)
         backbone.fix_target_layers(["3_1", "4_1"])
 
@@ -42,15 +43,20 @@ class TestYOLOV2:
             passthrough_feature_dim=backbone.feature_dims[-2],
             neck_feature_dim=backbone.feature_dims[-1],
         )
-        test_x = torch.rand(2, 3, 416, 416)
+        x = torch.rand(BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE)
 
-        output: torch.Tensor = model(test_x)
-        assert_close(output.shape, torch.Size([2, OUTPUT_SIZE, 13, 13]))
+        output: torch.Tensor = model(x)
+        assert output.shape == torch.Size(
+            (
+                BATCH_SIZE,
+                OUTPUT_SIZE,
+                GRID_SIZE,
+                GRID_SIZE,
+            )
+        )
 
-
-class TestYOLOV2ResNet:
     @pytest.mark.parametrize("network_name", ["resnet18", "resnet34", "resnet50"])
-    def test_output_shape(self, network_name: str):
+    def test_yolov2_resnet_output_shape(self, network_name: str):
         backbone = ResNetFeatureExtractor(network_name, "block", False)
         backbone.fix_target_layers(["3_1", "4_1"])
 
@@ -60,20 +66,39 @@ class TestYOLOV2ResNet:
             passthrough_feature_dim=backbone.feature_dims[-2],
             neck_feature_dim=backbone.feature_dims[-1],
         )
-        test_x = torch.rand(2, 3, 416, 416)
+        x = torch.rand(BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE)
 
-        output: torch.Tensor = model(test_x)
-        assert_close(output.shape, torch.Size([2, OUTPUT_SIZE, 13, 13]))
+        output: torch.Tensor = model(x)
+        assert output.shape == torch.Size(
+            (
+                BATCH_SIZE,
+                OUTPUT_SIZE,
+                GRID_SIZE,
+                GRID_SIZE,
+            )
+        )
 
 
-class TestYOLOv2Loss:
+class TestLoss:
     def setUp(self):
-        self.x = torch.rand(
-            BATCH_SIZE,
-            OUTPUT_SIZE,
-            GRID_SIZE,
-            GRID_SIZE,
-        )  # .requires_grad_()
+        backbone = ResNetFeatureExtractor("resnet18", "block", False)
+        backbone.fix_target_layers(["3_1", "4_1"])
+
+        model = YOLOV2(
+            backbone,
+            CONTEXT,
+            passthrough_feature_dim=backbone.feature_dims[-2],
+            neck_feature_dim=backbone.feature_dims[-1],
+        )
+        model.requires_grad_()
+        self.yhat = model(
+            torch.rand(
+                BATCH_SIZE,
+                3,
+                IMAGE_SIZE,
+                IMAGE_SIZE,
+            )
+        )
         self.y = [
             [
                 [
@@ -87,33 +112,46 @@ class TestYOLOv2Loss:
             ]
             for _ in range(BATCH_SIZE)
         ]
-        self.priorBox = PriorBox(CONTEXT)
+        priorBox = PriorBox(CONTEXT)
+        self.anchors = priorBox.load_anchors()
 
     def test_iou_box(self):
         self.setUp()
 
-        criterion = YOLOV2Loss(self.priorBox, CONTEXT, iou_threshold=0)
+        criterion = YOLOV2Loss(self.anchors, CONTEXT, iou_threshold=0)
         y, span = build_flatten_targets(self.y, (GRID_SIZE, GRID_SIZE))
-
-        targets = criterion.match(y, span, GRID_SIZE, GRID_SIZE)
-        # assert (iou - labels[:, :, 4:5, :, :]).sum() < 1e-2, "iou is too far away"
-        assert_close(
-            targets.shape,
-            torch.Size([BATCH_SIZE, CONTEXT.num_anchors * GRID_SIZE * GRID_SIZE, 7]),
+        pred = torch.rand(
+            BATCH_SIZE,
+            CONTEXT.num_anchors,
+            5 + CONTEXT.num_classes,
+            GRID_SIZE,
+            GRID_SIZE,
         )
 
-    def test_forward(self):
+        target, positivity = criterion.match(
+            y, span, pred[:, :, :4], GRID_SIZE, GRID_SIZE
+        )
+        # assert (iou - labels[:, :, 4:5, :, :]).sum() < 1e-2, "iou is too far away"
+        assert len(target) == BATCH_SIZE
+        assert torch.cat(target).shape == torch.Size((sum(span), 7))
+        assert positivity.shape == torch.Size(
+            (BATCH_SIZE, CONTEXT.num_anchors * GRID_SIZE * GRID_SIZE)
+        )
+
+    @pytest.mark.parametrize("seen", [100, 20000])
+    def test_forward(self, seen: int):
         self.setUp()
 
-        criterion = YOLOV2Loss(self.priorBox, CONTEXT)
+        criterion = YOLOV2Loss(self.anchors, CONTEXT)
 
-        loss = criterion(self.x, self.y)
+        loss = criterion(self.yhat, self.y, seen=seen)
         assert not torch.isnan(loss)
 
-    def test_backward(self):
+    @pytest.mark.parametrize("seen", [100, 20000])
+    def test_backward(self, seen: int):
         self.setUp()
 
-        criterion = YOLOV2Loss(self.priorBox, CONTEXT)
+        criterion = YOLOV2Loss(self.anchors, CONTEXT)
 
-        loss = criterion(self.x, self.y)
+        loss = criterion(self.yhat, self.y, seen=seen)
         loss.backward()

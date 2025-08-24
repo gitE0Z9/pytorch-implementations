@@ -3,8 +3,8 @@ from typing import Iterable
 
 import numpy as np
 import torch
-from torchlake.common.models import KMeans
 
+from torchlake.common.models import KMeans
 from torchlake.object_detection.constants.schema import DetectorContext
 
 
@@ -40,22 +40,9 @@ class PriorBox:
             context.num_anchors, int
         ), "number of anchors in context should be an integer"
 
-        self.anchors_path = context.anchors_path
+        self.anchors_path = Path(context.anchors_path)
         self.num_anchors = context.num_anchors
         self.context = context
-
-        p = Path(self.anchors_path)
-
-        if p.exists() and p.is_file():
-            self.anchors = self.load_anchors().to(context.device)
-        else:
-            print(f"Can't find anchor file to path {self.anchors_path}")
-
-    def load_anchors(self) -> torch.Tensor:
-        anchors = np.loadtxt(self.anchors_path, delimiter=",")
-        anchors = torch.from_numpy(anchors).float().view(1, len(anchors), 2, 1, 1)
-
-        return anchors
 
     def build_anchors(
         self,
@@ -87,6 +74,14 @@ class PriorBox:
         )
 
         return anchors
+
+    def load_anchors(self) -> torch.Tensor:
+        if self.anchors_path.exists() and self.anchors_path.is_file():
+            anchors = np.loadtxt(self.anchors_path, delimiter=",")
+            anchors = torch.from_numpy(anchors).float().view(1, len(anchors), 2, 1, 1)
+            return anchors.to(self.context.device)
+        else:
+            print(f"Can't find anchor file to path {self.anchors_path}")
 
     def save_anchors(self, anchors: np.ndarray):
         with open(self.anchors_path, "w") as f:

@@ -153,10 +153,8 @@ def build_flatten_targets(
 
         # ?, 5
         boxes = torch.Tensor(boxes)
-
-        cx, cy = boxes[:, 0:1], boxes[:, 1:2]
-
         if delta_coord:
+            cx, cy = boxes[:, 0:1], boxes[:, 1:2]
             dx, dy = cx % (1 / grid_x), cy % (1 / grid_y)
 
             # cell position

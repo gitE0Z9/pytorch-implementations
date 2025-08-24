@@ -3,13 +3,12 @@ from torchlake.common.utils.numerical import generate_grid
 
 from ...constants.schema import DetectorContext
 from ...mixins.decode_yolo import YOLODecodeMixin
-from .anchor import PriorBox
 
 
 class Decoder(YOLODecodeMixin):
-    def __init__(self, context: DetectorContext):
+    def __init__(self, anchors: torch.Tensor, context: DetectorContext):
         self.context = context
-        self.anchors = PriorBox(context).anchors
+        self.anchors = anchors
 
     def decode(
         self,
@@ -41,39 +40,39 @@ class Decoder(YOLODecodeMixin):
             .sigmoid()
             .multiply(input_w)
             .add(grid_x * stride_x)
-            .reshape(batch_size, 1, -1)
+            .reshape(batch_size, -1, 1)
         )
         cy = (
             feature_map[:, :, 1, :, :]
             .sigmoid()
             .multiply(input_h)
             .add(grid_y * stride_y)
-            .reshape(batch_size, 1, -1)
+            .reshape(batch_size, -1, 1)
         )
         w = (
             feature_map[:, :, 2, :, :]
             .exp()
             .multiply(self.anchors[:, :, 0, :, :])
             .multiply(input_w)
-            .reshape(batch_size, 1, -1)
+            .reshape(batch_size, -1, 1)
         )
         h = (
             feature_map[:, :, 3, :, :]
             .exp()
             .multiply(self.anchors[:, :, 1, :, :])
             .multiply(input_h)
-            .reshape(batch_size, 1, -1)
+            .reshape(batch_size, -1, 1)
         )
-        conf = feature_map[:, :, 4, :, :].sigmoid().reshape(batch_size, 1, -1)
+        conf = feature_map[:, :, 4, :, :].sigmoid().reshape(batch_size, -1, 1)
         prob = (
             feature_map[:, :, 5:, :, :]
             .float()
             .softmax(2)
-            .transpose(1, 2)
-            .reshape(batch_size, num_classes, -1)
+            .permute(0, 1, 3, 4, 2)
+            .reshape(batch_size, -1, num_classes)
         )
         x = cx - w / 2
         y = cy - h / 2
 
         # batch_size, boxes * grid_y * grid_x, 5+C
-        return torch.cat([x, y, w, h, conf, prob], 1).transpose(1, 2)
+        return torch.cat([x, y, w, h, conf, prob], 2)
