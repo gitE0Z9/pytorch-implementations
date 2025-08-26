@@ -26,7 +26,7 @@ CONTEXT = DetectorContext(
     device="cpu",
     num_classes=NUM_CLASS,
     num_anchors=5,
-    anchors_path=__file__.replace("test_yolov2.py", "fake.anchors.txt"),
+    anchors_path=__file__.replace("test_yolov2.py", "fake.anchors.yolov2.txt"),
 )
 
 OUTPUT_SIZE = (CONTEXT.num_classes + 5) * CONTEXT.num_anchors
@@ -115,7 +115,7 @@ class TestLoss:
         priorBox = PriorBox(CONTEXT)
         self.anchors = priorBox.load_anchors()
 
-    def test_iou_box(self):
+    def test_match(self):
         self.setUp()
 
         criterion = YOLOV2Loss(self.anchors, CONTEXT, iou_threshold=0)
@@ -128,9 +128,8 @@ class TestLoss:
             GRID_SIZE,
         )
 
-        target, positivity = criterion.match(
-            y, span, pred[:, :, :4], GRID_SIZE, GRID_SIZE
-        )
+        with torch.no_grad():
+            target, positivity = criterion.match(y, span, pred, GRID_SIZE, GRID_SIZE)
         # assert (iou - labels[:, :, 4:5, :, :]).sum() < 1e-2, "iou is too far away"
         assert len(target) == BATCH_SIZE
         assert torch.cat(target).shape == torch.Size((sum(span), 7))
