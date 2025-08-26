@@ -14,6 +14,7 @@ class YOLOLoss(nn.Module):
         lambda_coord: float = 5,
         lambda_noobject: float = 0.5,
         iou_threshold: float = 0.5,
+        return_all_loss: bool = False,
     ):
         super().__init__()
 
@@ -24,6 +25,7 @@ class YOLOLoss(nn.Module):
         self.lambda_noobject = lambda_noobject
         self.epsilon = 1e-5
         self.iou_threshold = iou_threshold
+        self.return_all_loss = return_all_loss
 
     def match(
         self,
@@ -40,8 +42,7 @@ class YOLOLoss(nn.Module):
             tuple[torch.Tensor, torch.Tensor]: matched ious, responsible bbox, shape is (batch size, num anchor, 1, h, w)
         """
         # N, 2, 1, 7, 7
-        with torch.no_grad():
-            ious = IOU(pred[:, :, 0:4, :, :], gt[:, :, 0:4, :, :])
+        ious = IOU(pred[:, :, 0:4, :, :], gt[:, :, 0:4, :, :])
 
         # N, 1, 1, 7, 7
         best_box = ious.argmax(dim=1, keepdim=True)
@@ -77,7 +78,8 @@ class YOLOLoss(nn.Module):
         # iou indicator
         # left only 49 predictors
         # N, 2, 1, 7, 7 | N, 2, 1, 7, 7
-        ious, best_box = self.match(coord_pred, gt)
+        with torch.no_grad():
+            ious, best_box = self.match(coord_pred, gt)
 
         # obj indicator
         # N, 1, 1, 7, 7
@@ -136,4 +138,7 @@ class YOLOLoss(nn.Module):
             + self.lambda_coord * (xy_loss + wh_loss)
         )
 
-        return total_loss
+        if self.return_all_loss:
+            return total_loss, cls_loss, noobj_loss, obj_loss, xy_loss, wh_loss
+        else:
+            return total_loss
