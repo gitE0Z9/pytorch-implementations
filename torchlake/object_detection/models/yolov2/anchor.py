@@ -5,7 +5,9 @@ import numpy as np
 import torch
 
 from torchlake.common.models import KMeans
-from torchlake.object_detection.constants.schema import DetectorContext
+
+from ...constants.schema import DetectorContext
+from ...utils.config import load_anchors
 
 
 def iou_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
@@ -77,8 +79,8 @@ class PriorBox:
 
     def load_anchors(self) -> torch.Tensor:
         if self.anchors_path.exists() and self.anchors_path.is_file():
-            anchors = np.loadtxt(self.anchors_path, delimiter=",")
-            anchors = torch.from_numpy(anchors).float().view(1, len(anchors), 2, 1, 1)
+            anchors = load_anchors(self.anchors_path)
+            anchors = anchors.view(1, len(anchors), 2, 1, 1)
             return anchors.to(self.context.device)
         else:
             print(f"Can't find anchor file to path {self.anchors_path}")

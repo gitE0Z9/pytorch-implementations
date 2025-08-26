@@ -1,5 +1,3 @@
-from collections import defaultdict
-import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,7 +22,6 @@ class YOLOV2Loss(nn.Module):
         iou_threshold: float = 0.6,
         prior_loss_threshold: int = 12800,
         return_all_loss: bool = False,
-        # hard_objectness_ratio: float = 0.5,
     ):
         super().__init__()
         assert anchors.device == torch.device(
@@ -41,7 +38,6 @@ class YOLOV2Loss(nn.Module):
         self.lambda_coord = lambda_coord
         self.iou_threshold = iou_threshold
         self.prior_loss_threshold = prior_loss_threshold
-        # self.hard_objectness_ratio = hard_objectness_ratio
         self.return_all_loss = return_all_loss
 
     def encode(self, gt: torch.Tensor, anchors: torch.Tensor) -> torch.Tensor:
@@ -183,23 +179,22 @@ class YOLOV2Loss(nn.Module):
                 self.anchors[0, best_prior_idx, :, 0, 0],
             )
             placeholder[:, 4] = gt[:, 6]
-            # if random.random() < self.hard_objectness_ratio:
-            placeholder[:, 5] = 1
-            # else:
-            #     placeholder[:, 5] = pred_iou[
-            #         torch.arange(span).to(self.device),
-            #         best_box_idx,
-            #     ]
-
-            # dedup
-            # groups = defaultdict(list)
-            # for i, v in best_box_idx.tolist():
-            #     groups[v] = groups[v].append(i)
-
-            # for _, indices in groups.items():
-            #     indices[-1]
+            placeholder[:, 5] = pred_iou[
+                torch.arange(span).to(self.device),
+                best_box_idx,
+            ]
 
             placeholder[:, 6] = best_box_idx + i * num_boxes
+
+            # dedup
+            # if span > 1:
+            #     visited = set()
+            #     first_gt_indices = []
+            #     for i, v in enumerate(best_box_idx.tolist()):
+            #         if v not in visited:
+            #             first_gt_indices.append(i)
+
+            #     placeholder = placeholder[first_gt_indices]
 
             target.append(placeholder)
             positivities.append(positivity)
@@ -235,7 +230,7 @@ class YOLOV2Loss(nn.Module):
         self,
         pred: torch.Tensor,
         gt: list[list[list[int]]],
-        seen: int,
+        seen: int = 0,
     ) -> torch.Tensor:
         """forward function of YOLOv2Loss
         Some extra rules
@@ -249,7 +244,7 @@ class YOLOV2Loss(nn.Module):
         Args:
             pred (torch.Tensor): prediction, in format of (B, A*(4+1+C), H, W)
             gt (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, c)
-            seen (int): had seen how many images, 12800 is the threshold in the paper
+            seen (int, optional): had seen how many images, 12800 is the threshold in the paper, Default is 0.
 
         Returns:
             torch.Tensor: loss
@@ -269,7 +264,9 @@ class YOLOV2Loss(nn.Module):
         # target shape is (?, C=7)
         # C is dx, dy, w, h, class, iou, best_box_idx
         # positivity shape is B, A*H*W
-        target, positivity = self.match(gt, spans, pred, grid_x, grid_y)
+        with torch.no_grad():
+            target, positivity = self.match(gt, spans, pred, grid_x, grid_y)
+
         # ?
         target = torch.cat(target)
         # B*A*H*W
