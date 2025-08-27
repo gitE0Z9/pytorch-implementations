@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Sequence
 
 import albumentations as A
 import cv2
@@ -37,7 +38,7 @@ class Predictor:
 
     def postprocess(
         self,
-        output: torch.Tensor | tuple[torch.Tensor],
+        output: torch.Tensor | Sequence[torch.Tensor],
         img_size: tuple[int, int],
     ) -> list[torch.Tensor]:
         decoded = self.decoder.decode(output, img_size)
@@ -78,7 +79,7 @@ class Predictor:
         model.eval()
         with torch.no_grad():
             y = model(img)
-            if isinstance(y, tuple):
+            if isinstance(y, Sequence):
                 y = (ele.detach().cpu() for ele in y)
             else:
                 y = y.detach().cpu()
