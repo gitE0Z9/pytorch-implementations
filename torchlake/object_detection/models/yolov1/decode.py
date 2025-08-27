@@ -41,33 +41,25 @@ class Decoder(YOLODecodeMixin):
             feature_map_coord[:, :, 0, :, :]
             .multiply(input_w)
             .add(grid_x * stride_x)
-            .reshape(batch_size, 1, -1)
+            .view(batch_size, 1, -1)
         )
         cy = (
             feature_map_coord[:, :, 1, :, :]
             .multiply(input_h)
             .add(grid_y * stride_y)
-            .reshape(batch_size, 1, -1)
+            .view(batch_size, 1, -1)
         )
-        w = (
-            feature_map_coord[:, :, 2, :, :]
-            .multiply(input_w)
-            .reshape(batch_size, 1, -1)
-        )
-        h = (
-            feature_map_coord[:, :, 3, :, :]
-            .multiply(input_h)
-            .reshape(batch_size, 1, -1)
-        )
+        w = feature_map_coord[:, :, 2, :, :].multiply(input_w).view(batch_size, 1, -1)
+        h = feature_map_coord[:, :, 3, :, :].multiply(input_h).view(batch_size, 1, -1)
         x = cx - w / 2
         y = cy - h / 2
 
-        conf = feature_map_coord[:, :, 4, :, :].reshape(batch_size, 1, -1)
+        conf = feature_map_coord[:, :, 4, :, :].view(batch_size, 1, -1)
         prob = (
             pred[:, 5 * num_anchors :, :, :]
             .unsqueeze(2)
             .repeat(1, 1, num_anchors, 1, 1)
-            .reshape(batch_size, num_classes, -1)
+            .view(batch_size, num_classes, -1)
         )
 
         # batch_size, boxes * grid_y * grid_x, 5+C

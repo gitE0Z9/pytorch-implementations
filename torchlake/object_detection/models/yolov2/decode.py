@@ -40,36 +40,37 @@ class Decoder(YOLODecodeMixin):
             .sigmoid()
             .multiply(input_w)
             .add(grid_x * stride_x)
-            .reshape(batch_size, -1, 1)
+            .view(batch_size, -1, 1)
         )
         cy = (
             feature_map[:, :, 1, :, :]
             .sigmoid()
             .multiply(input_h)
             .add(grid_y * stride_y)
-            .reshape(batch_size, -1, 1)
+            .view(batch_size, -1, 1)
         )
         w = (
             feature_map[:, :, 2, :, :]
             .exp()
             .multiply(self.anchors[:, :, 0, :, :])
             .multiply(input_w)
-            .reshape(batch_size, -1, 1)
+            .view(batch_size, -1, 1)
         )
         h = (
             feature_map[:, :, 3, :, :]
             .exp()
             .multiply(self.anchors[:, :, 1, :, :])
             .multiply(input_h)
-            .reshape(batch_size, -1, 1)
+            .view(batch_size, -1, 1)
         )
-        conf = feature_map[:, :, 4, :, :].sigmoid().reshape(batch_size, -1, 1)
+        conf = feature_map[:, :, 4, :, :].sigmoid().view(batch_size, -1, 1)
         prob = (
             feature_map[:, :, 5:, :, :]
             .float()
             .softmax(2)
             .permute(0, 1, 3, 4, 2)
-            .reshape(batch_size, -1, num_classes)
+            .contiguous()
+            .view(batch_size, -1, num_classes)
         )
         x = cx - w / 2
         y = cy - h / 2
