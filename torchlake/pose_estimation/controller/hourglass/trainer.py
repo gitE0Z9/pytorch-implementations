@@ -12,6 +12,7 @@ class StackedHourglassTrainer(RegressionTrainer):
         sigma: float = 1,
         effective_range: int = 3,
         amplitude: float = 1,
+        visible_only: bool = False,
         *args,
         **kwargs,
     ):
@@ -19,6 +20,7 @@ class StackedHourglassTrainer(RegressionTrainer):
         self.sigma = sigma
         self.effective_range = effective_range
         self.amplitude = amplitude
+        self.visible_only = visible_only
 
     def _calc_loss(
         self,
@@ -29,7 +31,8 @@ class StackedHourglassTrainer(RegressionTrainer):
         x, y = row
         y: torch.Tensor = y.to(self.device)
 
-        coords, masks = y[..., :-1], y[..., -1, None]
+        # B, C, 2
+        coords = y[:, :, :-1]
 
         # shift coordinates of y to match grids of indexing 'ij'
         coords = coords.flip(-1)
@@ -42,7 +45,7 @@ class StackedHourglassTrainer(RegressionTrainer):
 
         # y_hat shape: batch, stack, channel, ...spatial
         # not support multi instance, shape: batch, instance, stack, channel, ...spatial
-        coords = build_gaussian_heatmap(
+        heatmaps = build_gaussian_heatmap(
             coords,
             spatial_shape=y_hat.shape[3:],
             sigma=self.sigma,
@@ -50,6 +53,14 @@ class StackedHourglassTrainer(RegressionTrainer):
             normalized=False,
             amplitude=self.amplitude,
         ).exp()
-        coords = coords.unsqueeze(1).expand_as(y_hat)
+        # B, C, H, W => B, 1, C, H, W => B, A, C, H, W
+        heatmaps = heatmaps.unsqueeze(1).expand_as(y_hat)
 
-        return criterion(y_hat, coords.float())
+        if self.visible_only:
+            # B, 1, C, 1, 1
+            masks = y[:, None, :, -1, None, None]
+            # remove invisible from loss
+            visible = 1 - masks
+            return criterion(y_hat * visible, heatmaps.float() * visible)
+        else:
+            return criterion(y_hat, heatmaps.float())
