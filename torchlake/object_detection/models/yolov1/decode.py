@@ -54,7 +54,7 @@ class Decoder(YOLODecodeMixin):
         x = cx - w / 2
         y = cy - h / 2
 
-        conf = feature_map_coord[:, :, 4, :, :].view(batch_size, 1, -1)
+        conf = feature_map_coord[:, :, 4, :, :].contiguous().view(batch_size, 1, -1)
         prob = (
             pred[:, 5 * num_anchors :, :, :]
             .unsqueeze(2)

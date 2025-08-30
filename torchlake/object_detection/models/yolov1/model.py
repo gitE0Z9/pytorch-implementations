@@ -114,14 +114,14 @@ class YOLOV1Modified(ModelBase):
         self,
         backbone: ExtractorBase,
         context: DetectorContext,
-        dropout_prob: float = 0.5,
+        dropout_prob: float = 0,
     ):
         """Accept any backbone and lighter convolution head
 
         Args:
             backbone (ExtractorBase): _description_
             context (DetectorContext): _description_
-            dropout_prob (float, optional): _description_. Defaults to 0.5.
+            dropout_prob (float, optional): _description_. Defaults to 0.
         """
         self.dropout_prob = dropout_prob
         self.context = context
