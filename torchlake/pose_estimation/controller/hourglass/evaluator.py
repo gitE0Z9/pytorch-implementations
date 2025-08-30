@@ -20,7 +20,7 @@ class PoseEstimationEvaluator(ClassificationEvaluator):
         output = F.interpolate(output, size=x.shape[-2:]).cpu().numpy()
         keypoints = np.column_stack(
             np.unravel_index(
-                output.view(B * C, -1).argmax(-1),
+                output.reshape(B * C, -1).argmax(-1),
                 output.shape[-2:],
             )
         )
