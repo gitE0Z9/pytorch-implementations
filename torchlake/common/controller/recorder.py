@@ -26,6 +26,7 @@ class TrainRecorder:
         self.num_loss = num_loss
         self.is_data_size_static = is_data_size_static
 
+        self.current_data_size = 0
         self.data_size = 0
         self.reset_running_loss()
         self.reset_training_loss()
@@ -42,8 +43,14 @@ class TrainRecorder:
     def reset_data_size(self):
         self.data_size = 0
 
+    def reset_current_data_size(self):
+        self.current_data_size = 0
+
     def increment_data_size(self, size: int):
         self.data_size += size
+
+    def increment_current_data_size(self, size: int):
+        self.current_data_size += size
 
     def calc_row_size(self, row: tuple) -> int:
         # get x

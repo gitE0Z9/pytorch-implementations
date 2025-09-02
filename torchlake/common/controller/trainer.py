@@ -69,6 +69,8 @@ class TrainerBase(PredictFunctionMixin, ABC):
         recorder: TrainRecorder | None = None,
         validate_func: Callable[[nn.Module], None] | None = None,
         checkpoint_func: Callable[[nn.Module, Optimizer], None] | None = None,
+        at_epoch_end_hook: Callable | None = None,
+        is_early_stoppable_func: Callable[[], bool] | None = None,
         *args,
         **kwargs,
     ) -> list[float]:
@@ -99,8 +101,9 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 recorder.reset_data_size()
 
             for batch_idx, row in enumerate(tqdm(data)):
+                row_size = recorder.calc_row_size(row)
                 if not recorder.is_data_size_static:
-                    recorder.increment_data_size(recorder.calc_row_size(row))
+                    recorder.increment_data_size(row_size)
 
                 with torch.autocast(
                     device_type=self.device.type,
@@ -138,6 +141,13 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 recorder.increment_running_loss(
                     *(loss.item() / recorder.data_size for loss in losses)
                 )
+
+            if is_early_stoppable_func is not None and is_early_stoppable_func():
+                print(f"early stopped at epoch {e+1}")
+                break
+
+            if at_epoch_end_hook is not None:
+                at_epoch_end_hook()
 
             recorder.enqueue_training_loss()
 
@@ -230,6 +240,32 @@ class MultiOutputClassificationTrainer(ClassificationTrainer):
         y: torch.Tensor = y.to(self.device)
 
         return criterion(*y_hat, y.long())
+
+
+class ShareInputOutputClassificationTrainer(ClassificationTrainer):
+    def _calc_loss(
+        self,
+        y_hat: torch.Tensor,
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        x, _ = row
+        x: torch.Tensor = x.to(self.device)
+
+        return criterion(y_hat, x.long())
+
+
+class ShareInputOutputRegressionTrainer(RegressionTrainer):
+    def _calc_loss(
+        self,
+        y_hat: torch.Tensor,
+        row: tuple[Iterable],
+        criterion: nn.Module,
+    ) -> torch.Tensor:
+        x, _ = row
+        x: torch.Tensor = x.to(self.device)
+
+        return criterion(y_hat, x.float())
 
 
 class SingleInputMultiOutputClassificationTrainer(ClassificationTrainer):
