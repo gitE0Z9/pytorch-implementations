@@ -18,11 +18,13 @@ class NeuralStyleTransferLoss(nn.Module):
         content_layer_idx: int,
         content_weight: float,
         style_weight: float,
+        return_all_loss: bool = False,
     ):
         super().__init__()
         self.content_layer_idx = content_layer_idx
         self.content_weight = content_weight
         self.style_weight = style_weight
+        self.return_all_loss = return_all_loss
 
     def calc_style_loss(
         self,
@@ -52,4 +54,7 @@ class NeuralStyleTransferLoss(nn.Module):
 
         total_loss = self.content_weight * content_loss + self.style_weight * style_loss
 
-        return total_loss, content_loss, style_loss
+        if self.return_all_loss:
+            return total_loss, content_loss, style_loss
+        else:
+            return total_loss

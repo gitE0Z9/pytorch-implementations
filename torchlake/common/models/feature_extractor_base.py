@@ -7,17 +7,27 @@ from torchvision.models._api import Weights
 
 
 class ExtractorBase(nn.Module, ABC):
-    def __init__(self, network_name: str, layer_type: str, trainable: bool = True):
+    def __init__(
+        self,
+        network_name: str,
+        layer_type: str,
+        trainable: bool = True,
+        drop_fc: bool = True,
+        drop_head: bool = True,
+    ):
         """feature extractor of image classifier, fully conncted layer will be deleted
 
         Args:
             network_name (str): name of network
             layer_type (str): which type of layer to focus on
             trainable (bool, optional): is extractor trainable. Defaults to True.
+            enable_normalization (bool, optional):
         """
         super().__init__()
         self.layer_type = layer_type
         self.trainable = trainable
+        self.drop_fc = drop_fc
+        self.drop_head = drop_head
 
         self.network_name = network_name
         self.weights: Weights = self.get_weight(network_name)
@@ -67,12 +77,14 @@ class ExtractorBase(nn.Module, ABC):
         self,
         img: torch.Tensor,
         target_layer_names: list[str],
+        normalization: bool = True,
     ) -> list[torch.Tensor]:
         """compute feature maps
 
         Args:
             img (torch.Tensor): image tensor
             target_layer_names (list[str]): which layers to extract
+            normalization (bool, optional): normalize with imagenet statistics before feature extraction. Default to True.
 
         Returns:
             list[torch.Tensor]: extracted feature maps

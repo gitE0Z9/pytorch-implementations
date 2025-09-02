@@ -5,6 +5,8 @@ import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.normal import Normal
 
+from ..constants import IMAGENET_MEAN, IMAGENET_STD
+
 
 def safe_negative_factorial(
     x: torch.Tensor,
@@ -209,3 +211,17 @@ def build_gaussian_heatmap(
         hm += math.log(amplitude)
 
     return hm.view(*keypoint_shape, *spatial_shape)
+
+
+def imagenet_denormalization(x: torch.Tensor):
+    num_dims = len(x.shape)
+    if num_dims > 4 or 3 > num_dims:
+        raise NotImplementedError
+    elif num_dims == 4:
+        std = torch.Tensor(IMAGENET_STD)[None, :, None, None]
+        mean = torch.Tensor(IMAGENET_MEAN)[None, :, None, None]
+    elif num_dims == 3:
+        std = torch.Tensor(IMAGENET_STD)[:, None, None]
+        mean = torch.Tensor(IMAGENET_MEAN)[:, None, None]
+
+    return x * std + mean

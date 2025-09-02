@@ -1,5 +1,4 @@
 from typing import Literal
-from torchvision.ops import Conv2dNormActivation
 
 import torch
 import torchvision
@@ -30,7 +29,7 @@ class VGGFeatureExtractor(ExtractorBase):
             layer_type (Literal["conv", "relu", "maxpool"]): extract which type of layer
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
-        super(VGGFeatureExtractor, self).__init__(network_name, layer_type, trainable)
+        super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
     @property
@@ -59,15 +58,12 @@ class VGGFeatureExtractor(ExtractorBase):
         self,
         img: torch.Tensor,
         target_layer_names: list[str],
+        normalization: bool = True,
     ) -> list[torch.Tensor]:
         if self.layer_type == "conv":
-            check_function = lambda layer: isinstance(layer, nn.Conv2d) or isinstance(
-                layer, Conv2dNormActivation
-            )
+            check_function = lambda layer: isinstance(layer, nn.Conv2d)
         elif self.layer_type == "relu":
-            check_function = lambda layer: isinstance(layer, nn.ReLU) or isinstance(
-                layer, Conv2dNormActivation
-            )
+            check_function = lambda layer: isinstance(layer, nn.ReLU)
         elif self.layer_type == "maxpool":
             check_function = lambda layer: isinstance(layer, nn.MaxPool2d)
         else:
@@ -75,7 +71,8 @@ class VGGFeatureExtractor(ExtractorBase):
 
         features = []
 
-        img = self.normalization(img)
+        if normalization:
+            img = self.normalization(img)
 
         y = img
         stage_count = 1

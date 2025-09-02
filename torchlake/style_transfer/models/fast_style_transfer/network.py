@@ -15,7 +15,7 @@ class ConvBlock(nn.Module):
         enable_relu: bool = True,
         enable_deconv: bool = False,
     ):
-        super(ConvBlock, self).__init__()
+        super().__init__()
         self.enable_in = enable_in
         self.enable_relu = enable_relu
         self.enable_deconv = enable_deconv
@@ -29,6 +29,7 @@ class ConvBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.enable_deconv:
             x = F.interpolate(x, scale_factor=2)
+
         y = self.reflection_pad(x)
         y = self.conv(y)
         if self.enable_in:
@@ -40,7 +41,7 @@ class ConvBlock(nn.Module):
 
 class ResidualBlock(nn.Module):
     def __init__(self, channel: int):
-        super(ResidualBlock, self).__init__()
+        super().__init__()
         self.conv1 = ConvBlock(channel, channel, 3)
         self.conv2 = ConvBlock(channel, channel, 3, enable_relu=False)
 

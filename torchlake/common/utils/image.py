@@ -52,7 +52,7 @@ def save_img_array(array: np.ndarray, file_path: str):
     Raises:
         NotImplementedError: if array type is not float32 or uint8
     """
-    if array.dtype == np.float32:
+    if array.dtype in (np.float32, np.float64):
         array = (array.clip(0, 1) * 255).clip(0, 255).astype(np.uint8)
     elif array.dtype == np.uint8:
         array = array.clip(0, 255)
