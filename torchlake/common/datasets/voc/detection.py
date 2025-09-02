@@ -236,24 +236,16 @@ class VOCDetectionFromLMDB(Dataset):
         if idx >= self.data_size:
             raise IndexError(f"invalid index {idx}")
 
-        img = self._get_img(idx)
-        label = self._get_label(idx)
+        ori_img = self._get_img(idx)
+        ori_label = self._get_label(idx)
 
         if self.transform:
-            is_bbox = self.transform.to_dict()["transform"]["bbox_params"]
+            for _ in range(5):
+                new_img, new_label = self._transform(ori_img, ori_label)
+                if len(new_label) > 0:
+                    break
 
-            kwargs = dict(image=img)
-
-            if is_bbox:
-                kwargs["bboxes"] = label
-
-            transformed = self.transform(**kwargs)
-            img = transformed["image"]
-
-            if is_bbox:
-                label = transformed["bboxes"]
-
-        return img, label
+        return new_img, new_label
 
     def _get_img(self, idx: int) -> np.ndarray:
         with self.env.begin() as tx:
@@ -264,8 +256,28 @@ class VOCDetectionFromLMDB(Dataset):
 
         return img
 
-    def _get_label(self, idx: int) -> tuple[list, str]:
+    def _get_label(self, idx: int) -> list[list[int]]:
         with self.env.begin() as tx:
             label = json.loads(tx.get(f"{idx}_label".encode("utf-8")))
 
         return label
+
+    def _transform(
+        self,
+        img: np.ndarray,
+        label: list[list[int]],
+    ) -> tuple[np.ndarray, list[list[int]]]:
+        is_bbox = self.transform.to_dict()["transform"]["bbox_params"]
+
+        kwargs = dict(image=img)
+
+        if is_bbox:
+            kwargs["bboxes"] = label
+
+        transformed = self.transform(**kwargs)
+        img = transformed["image"]
+
+        if is_bbox:
+            label = transformed["bboxes"]
+
+        return img, label
