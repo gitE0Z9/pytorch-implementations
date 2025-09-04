@@ -6,15 +6,14 @@ from ..models.fast_style_transfer.network import ConvBlock, ResidualBlock
 
 
 class TestConvBlock:
-    @pytest.mark.parametrize("scale,enable_deconv", [[32, False], [64, True]])
-    def test_forward_shape(self, scale: int, enable_deconv: bool):
+    def test_forward_shape(self):
         x = torch.rand((1, 3, 32, 32))
 
-        model = ConvBlock(3, 8, 3, enable_deconv=enable_deconv)
+        model = ConvBlock(3, 8, 3)
 
         y = model(x)
 
-        assert y.shape == torch.Size((1, 8, scale, scale))
+        assert y.shape == torch.Size((1, 8, 32, 32))
 
 
 class TestResidualBlock:

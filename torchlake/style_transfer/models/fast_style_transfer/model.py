@@ -1,4 +1,5 @@
 from torch import nn
+
 from torchlake.common.models.imagenet_normalization import ImageNetNormalization
 from torchlake.common.models.model_base import ModelBase
 
@@ -31,18 +32,10 @@ class FastStyleTransfer(ModelBase):
 
     def build_head(self, output_size, **kwargs):
         self.head = nn.Sequential(
-            ConvBlock(
-                self.hidden_dim * 4,
-                self.hidden_dim * 2,
-                3,
-                enable_deconv=True,
-            ),
-            ConvBlock(
-                self.hidden_dim * 2,
-                self.hidden_dim,
-                3,
-                enable_deconv=True,
-            ),
+            nn.Upsample(scale_factor=2),
+            ConvBlock(self.hidden_dim * 4, self.hidden_dim * 2, 3),
+            nn.Upsample(scale_factor=2),
+            ConvBlock(self.hidden_dim * 2, self.hidden_dim, 3),
             ConvBlock(
                 self.hidden_dim,
                 output_size,
