@@ -34,19 +34,15 @@ class CharCNN(ModelBase):
         # input dim = l_6 * frame_size
         return int((self.context.max_seq_len - 96) / 27 * 256)
 
-    def build_foot(self, char_size: int):
-        self.foot = nn.ModuleDict(
-            {
-                "quantization": CharQuantization(char_size, self.context),
-                "conv": nn.Sequential(
-                    ConvBnRelu(char_size, 256, 7, enable_bn=False, dimension="1d"),
-                    nn.MaxPool1d(3, 3),
-                ),
-            }
+    def build_foot(self, input_channel: int):
+        self.foot = nn.Sequential(
+            CharQuantization(input_channel, self.context),
         )
 
     def build_blocks(self):
         self.blocks = nn.Sequential(
+            ConvBnRelu(self.input_channel, 256, 7, enable_bn=False, dimension="1d"),
+            nn.MaxPool1d(3, 3),
             ConvBnRelu(256, 256, 7, enable_bn=False, dimension="1d"),
             nn.MaxPool1d(3, 3),
             ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
@@ -67,11 +63,9 @@ class CharCNN(ModelBase):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # b, h, s
-        y = self.foot["quantization"](x).transpose(-1, -2).float()
-        # b, h, s
-        y = self.foot["conv"](y)
-        # b*s, h
-        y = self.blocks(y).transpose(-1, -2).reshape(-1, self.feature_dim)
+        y = self.foot(x).transpose(-1, -2).float()
+        #  b, h, s -> b*s, h
+        y = self.blocks(y).transpose(-1, -2).contiguous().view(-1, self.feature_dim)
 
         # b*s, o
         return self.head(y)
