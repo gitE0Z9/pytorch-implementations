@@ -1,11 +1,12 @@
 from .channel_shuffle import ChannelShuffle
-from .conv import ConvBnRelu
+from .conv import ConvBnRelu, ConvInReLU
 from .ds_conv import DepthwiseSeparableConv2d
 from .flatten import FlattenFeature
 from .highway import HighwayBlock
 from .imagenet_normalization import ImageNetNormalization
 from .kernel_pca import KernelPCA
-from .kmeans import KMeans
+
+# from .kmeans import KMeans
 from .l2_norm import L2Norm
 from .mobilenet_feature_extractor import MobileNetFeatureExtractor
 from .multikernel_conv import MultiKernelConvModule
@@ -37,8 +38,9 @@ __all__ = [
     "EfficientNetV2FeatureExtractor",
     "ViTFeatureExtractor",
     "ConvBnRelu",
+    "ConvInReLU",
     "KernelPCA",
-    "KMeans",
+    # "KMeans",
     "MultiKernelConvModule",
     "L2Norm",
     "PositionEncoding1d",
