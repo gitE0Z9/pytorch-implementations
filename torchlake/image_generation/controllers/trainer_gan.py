@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Callable, Generator, Iterable
 import torch
 from tqdm import tqdm
@@ -8,7 +7,7 @@ from torch import nn
 from torchlake.common.controller.recorder import TrainRecorder
 
 
-class GANTrainer(ABC):
+class GANTrainer:
     def __init__(
         self,
         epoches: int = 10,
@@ -18,7 +17,7 @@ class GANTrainer(ABC):
         validate_interval: int = 10,
         checkpoint_interval: int = 10,
     ):
-        """Base class of trainer
+        """Trainer of GAN
 
         Args:
             epoches (int, optional): how many epoch to run, if no recorder then use this number as total epoch of this run. Defaults to 10.
@@ -35,12 +34,10 @@ class GANTrainer(ABC):
         self.validate_interval = validate_interval
         self.checkpoint_interval = checkpoint_interval
         self.recorder = TrainRecorder(total_epoch=self.epoches)
+        self.discriminator_cycle = 1
 
-    def get_batch_size(self, row: list[Iterable]) -> int:
-        if isinstance(row, list):
-            return len(row[0])
-
-        return len(row)
+    def set_discriminator_cycle(self, value: int):
+        self.discriminator_cycle = value
 
     def train_discriminator(
         self,
@@ -54,9 +51,10 @@ class GANTrainer(ABC):
         img, _ = row
         img = img.to(self.device)
 
-        gen_img = generator(noise)
+        with torch.no_grad():
+            gen_img = generator(noise)
         real_loss = criterion(discriminator(img), valid)
-        fake_loss = criterion(discriminator(gen_img.detach()), 1 - valid)
+        fake_loss = criterion(discriminator(gen_img), 1 - valid)
         return (real_loss + fake_loss) / 2
 
     def train_generator(
@@ -78,7 +76,8 @@ class GANTrainer(ABC):
         discriminator: nn.Module,
         optimizer_g: Optimizer,
         optimizer_d: Optimizer,
-        criterion: nn.Module,
+        criterion_g: nn.Module,
+        criterion_d: nn.Module,
         scheduler_g=None,
         scheduler_d=None,
         scaler=None,
@@ -94,31 +93,33 @@ class GANTrainer(ABC):
         torch.set_autocast_enabled(scaler is not None)
         print(f"Enable AMP: {torch.is_autocast_enabled()}")
 
-        # TODO: overhead
         if recorder is None:
-            print("Calculating dataset size...")
-            self.recorder.calc_dataset_size(data)
+            recorder = self.recorder
+            if recorder.is_static_dataset and recorder.data_size <= 0:
+                print("Calculating dataset size...")
+                recorder.calc_dataset_size(data)
 
-        for e in range(self.recorder.current_epoch, self.recorder.total_epoch):
-            for row in tqdm(data):
-                batch_size = self.get_batch_size(row)
+        for e in range(recorder.current_epoch, recorder.total_epoch):
+            for batch in tqdm(data):
+                batch_size = recorder.calc_batch_size(batch)
                 valid = torch.ones(batch_size, 1).to(self.device)
 
-                optimizer_d.zero_grad()
-                optimizer_g.zero_grad()
-                discriminator.train()
-                generator.eval()
-                d_loss = self.train_discriminator(
-                    row,
-                    next(noise_generator(batch_size)),
-                    valid,
-                    generator,
-                    discriminator,
-                    criterion,
-                )
-                assert not torch.isnan(d_loss), "Loss is singular"
-                d_loss.backward()
-                optimizer_d.step()
+                for _ in range(self.discriminator_cycle):
+                    optimizer_d.zero_grad()
+                    optimizer_g.zero_grad()
+                    discriminator.train()
+                    generator.eval()
+                    d_loss = self.train_discriminator(
+                        batch,
+                        next(noise_generator(batch_size)),
+                        valid,
+                        generator,
+                        discriminator,
+                        criterion_d,
+                    )
+                    assert not torch.isnan(d_loss), "Loss is singular"
+                    d_loss.backward()
+                    optimizer_d.step()
 
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
@@ -129,23 +130,19 @@ class GANTrainer(ABC):
                     valid,
                     generator,
                     discriminator,
-                    criterion,
+                    criterion_g,
                 )
                 assert not torch.isnan(g_loss), "Loss is singular"
                 g_loss.backward()
                 optimizer_g.step()
 
                 recorder.increment_running_loss(
-                    *(loss.item() / recorder.data_size for loss in [d_loss, g_loss])
+                    *(loss.item() / recorder.data_size for loss in (d_loss, g_loss))
                 )
 
             recorder.enqueue_training_loss()
 
-            print(
-                f"epoch {e+1}: "
-                f"D: {recorder.training_losses[0][-1]} "
-                f"G: {recorder.training_losses[1][-1]}"
-            )
+            recorder.display_epoch_result()
             recorder.increment_epoch()
 
             if validate_func is not None and (e + 1) % self.validate_interval == 0:
