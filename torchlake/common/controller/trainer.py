@@ -84,7 +84,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
 
         if recorder is None:
             recorder = self.recorder
-            if recorder.is_data_size_static and recorder.data_size <= 0:
+            if recorder.is_static_dataset and recorder.data_size <= 0:
                 print("Calculating dataset size...")
                 recorder.calc_dataset_size(data)
 
@@ -97,12 +97,12 @@ class TrainerBase(PredictFunctionMixin, ABC):
         for e in range(recorder.current_epoch, recorder.total_epoch):
             optimizer.zero_grad()
             recorder.reset_running_loss()
-            if not recorder.is_data_size_static:
+            if not recorder.is_static_dataset:
                 recorder.reset_data_size()
 
             for batch_idx, row in enumerate(tqdm(data)):
-                row_size = recorder.calc_row_size(row)
-                if not recorder.is_data_size_static:
+                row_size = recorder.calc_batch_size(row)
+                if not recorder.is_static_dataset:
                     recorder.increment_data_size(row_size)
 
                 with torch.autocast(
@@ -142,10 +142,6 @@ class TrainerBase(PredictFunctionMixin, ABC):
                     *(loss.item() / recorder.data_size for loss in losses)
                 )
 
-            if is_early_stoppable_func is not None and is_early_stoppable_func():
-                print(f"early stopped at epoch {e+1}")
-                break
-
             if at_epoch_end_hook is not None:
                 at_epoch_end_hook()
 
@@ -165,6 +161,10 @@ class TrainerBase(PredictFunctionMixin, ABC):
             if checkpoint_func is not None and (e + 1) % self.checkpoint_interval == 0:
                 print("Checkpoint...")
                 checkpoint_func(model, optimizer)
+
+            if is_early_stoppable_func is not None and is_early_stoppable_func():
+                print(f"early stopped at epoch {e+1}")
+                break
 
         return recorder.training_losses[0]
 

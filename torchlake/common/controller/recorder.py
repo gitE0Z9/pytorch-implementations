@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Sequence
 
 import torch
 from tqdm import tqdm
@@ -11,6 +11,7 @@ class TrainRecorder:
         total_epoch: int = 1,
         num_loss: int = 1,
         is_data_size_static: bool = True,
+        loss_names: Sequence[str] = ["total"],
     ):
         """_summary_
 
@@ -23,8 +24,13 @@ class TrainRecorder:
         self.current_epoch = current_epoch
         self.total_epoch = total_epoch
 
+        if len(loss_names) != num_loss:
+            loss_names = [*loss_names[:num_loss]]
+            for i in range(num_loss - len(loss_names)):
+                loss_names.append(f"subloss {i+1}")
         self.num_loss = num_loss
-        self.is_data_size_static = is_data_size_static
+        self.loss_names = loss_names
+        self.is_static_dataset = is_data_size_static
 
         self.current_data_size = 0
         self.data_size = 0
@@ -52,7 +58,7 @@ class TrainRecorder:
     def increment_current_data_size(self, size: int):
         self.current_data_size += size
 
-    def calc_row_size(self, row: tuple) -> int:
+    def calc_batch_size(self, row: tuple) -> int:
         # get x
         # case 1: row is a list, e.g. features and labels
         # case 2: row is not a list, e.g. features only or features also serve as labels
@@ -77,7 +83,7 @@ class TrainRecorder:
         self.reset_data_size()
 
         for row in tqdm(dataset):
-            count = self.calc_row_size(row)
+            count = self.calc_batch_size(row)
             self.increment_data_size(count)
 
         return self.data_size
@@ -112,10 +118,10 @@ class TrainRecorder:
         print("------------------------------------")
         print(f"Epoch {self.current_epoch+1}")
         print("------------------------------------")
-        for training_loss, last_improvement in zip(
-            self.training_losses, self.get_last_improvement()
+        for loss_name, training_loss, last_improvement in zip(
+            self.loss_names, self.training_losses, self.get_last_improvement()
         ):
-            print(f"{training_loss[-1]} ({last_improvement}%)")
+            print(f"{loss_name}: {training_loss[-1]:.4e} ({last_improvement:.2f}%)")
 
 
 class EvalRecorder: ...
