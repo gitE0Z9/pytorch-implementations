@@ -4,7 +4,7 @@ from typing import Iterable
 import numpy as np
 import torch
 
-from torchlake.common.models import KMeans
+from torchlake.common.models.kmeans import KMeans
 
 from ...constants.schema import DetectorContext
 from ...utils.config import load_anchors

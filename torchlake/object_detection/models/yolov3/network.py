@@ -22,8 +22,8 @@ class RegHead(nn.Module):
             coord_dims (int, optional): number of coordinate dimension. Defaults to 4.
         """
         self.num_anchors = num_anchors
-        self.coord_dims = coord_dims
         self.num_classes = num_classes
+        self.coord_dims = coord_dims
         self.input_channel = input_channel
         self.output_size = num_anchors * (num_classes + coord_dims + 1)
 

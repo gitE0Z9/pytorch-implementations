@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import torch
 
 from ..configs.schema import InferenceCfg
@@ -21,13 +23,13 @@ class Decoder:
     def decode(
         self,
         pred: torch.Tensor,
-        image_size: tuple[int, int],
+        image_size: Sequence[int],
     ) -> torch.Tensor:
         """decode output to detections
 
         Args:
             pred (torch.Tensor): pred, in shape of (batch size, #num_anchor * #num_grid_y * #num_grid_x, 4 + 1 + num_class)
-            image_size (tuple[int, int]): image height, image width
+            image_size (Sequence[int]): image height, image width
 
         Returns:
             torch.Tensor: decoded output, in shape of (batch size, #num_anchor * #num_grid_y * #num_grid_x, 4+num_class+1)
@@ -37,10 +39,10 @@ class Decoder:
 
         # cxcy: yhat * anchors + anchors
         # wh: yhat.exp() * anchors
-        loc_pred[:, :, 2:] = loc_pred[:, :, 2:].exp() * self.anchors[:, 2:4]
         loc_pred[:, :, :2] = (
             loc_pred[:, :, :2] * self.anchors[:, 2:4] + self.anchors[:, :2]
         )
+        loc_pred[:, :, 2:] = loc_pred[:, :, 2:].exp() * self.anchors[:, 2:4]
         loc_pred[:, :, 0] *= input_w
         loc_pred[:, :, 1] *= input_h
         loc_pred[:, :, 2] *= input_w
@@ -75,9 +77,9 @@ class Decoder:
         for batch_idx in range(batch_size):
             detection_result = []
             # plus 1 to skip background class
-            for class_index in range(self.context.num_classes):
+            for class_index in range(1, self.context.num_classes + 1):
                 is_this_class_candidate: torch.Tensor = cls_indices[batch_idx].eq(
-                    class_index + 1
+                    class_index
                 )
                 if not is_this_class_candidate.any():
                     continue
@@ -89,6 +91,11 @@ class Decoder:
                     postprocess_config,
                 )
                 detection_result.append(this_class_detection[best_index])
-            processed_result.append(torch.cat(detection_result, 0))
+
+            # for broken detector
+            if len(detection_result) == 0:
+                processed_result.append([])
+            else:
+                processed_result.append(torch.cat(detection_result, 0))
 
         return processed_result
