@@ -100,45 +100,45 @@ class GANTrainer:
                 recorder.calc_dataset_size(data)
 
         for e in range(recorder.current_epoch, recorder.total_epoch):
-            for batch in tqdm(data):
+            for batch_idx, batch in enumerate(tqdm(data)):
                 batch_size = recorder.calc_batch_size(batch)
                 valid = torch.ones(batch_size, 1).to(self.device)
 
-                for _ in range(self.discriminator_cycle):
-                    optimizer_d.zero_grad()
-                    optimizer_g.zero_grad()
-                    discriminator.train()
-                    generator.eval()
-                    d_loss = self.train_discriminator(
-                        batch,
-                        next(noise_generator(batch_size)),
-                        valid,
-                        generator,
-                        discriminator,
-                        criterion_d,
-                    )
-                    assert not torch.isnan(d_loss), "Loss is singular"
-                    d_loss.backward()
-                    optimizer_d.step()
-
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
-                generator.train()
-                discriminator.eval()
-                g_loss = self.train_generator(
+                discriminator.train()
+                generator.eval()
+                d_loss = self.train_discriminator(
+                    batch,
                     next(noise_generator(batch_size)),
                     valid,
                     generator,
                     discriminator,
-                    criterion_g,
+                    criterion_d,
                 )
-                assert not torch.isnan(g_loss), "Loss is singular"
-                g_loss.backward()
-                optimizer_g.step()
+                assert not torch.isnan(d_loss), "Loss is singular"
+                d_loss.backward()
+                optimizer_d.step()
 
-                recorder.increment_running_loss(
-                    *(loss.item() / recorder.data_size for loss in (d_loss, g_loss))
-                )
+                if (batch_idx + 1) % self.discriminator_cycle == 0:
+                    optimizer_d.zero_grad()
+                    optimizer_g.zero_grad()
+                    generator.train()
+                    discriminator.eval()
+                    g_loss = self.train_generator(
+                        next(noise_generator(batch_size)),
+                        valid,
+                        generator,
+                        discriminator,
+                        criterion_g,
+                    )
+                    assert not torch.isnan(g_loss), "Loss is singular"
+                    g_loss.backward()
+                    optimizer_g.step()
+
+                    recorder.increment_running_loss(
+                        *(loss.item() / recorder.data_size for loss in (d_loss, g_loss))
+                    )
 
             recorder.enqueue_training_loss()
 

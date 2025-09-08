@@ -107,8 +107,11 @@ class TrainRecorder:
         for training_loss in self.training_losses:
             ratio = 0
             if len(training_loss) > 1:
-                ratio = training_loss[-1] / training_loss[-2] - 1
-                ratio = round(10**decimal * ratio)
+                try:
+                    ratio = training_loss[-1] / training_loss[-2] - 1
+                    ratio = round(10**decimal * ratio)
+                except ZeroDivisionError:
+                    ratio = 0
 
             ratios.append(ratio)
 
