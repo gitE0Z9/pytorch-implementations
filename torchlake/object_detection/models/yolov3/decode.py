@@ -76,7 +76,7 @@ class Decoder(YOLODecodeMixin):
             prob = (
                 feature_map[:, :, 5:, :, :]
                 .float()
-                .softmax(2)
+                .sigmoid()
                 .permute(0, 1, 3, 4, 2)
                 .contiguous()
                 .view(batch_size, -1, num_classes)

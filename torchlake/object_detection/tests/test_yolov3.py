@@ -193,10 +193,12 @@ class TestLoss:
         )
 
         with torch.no_grad():
+            best_prior_indices = criterion.match_anchor(self.y)
             target, positivity = criterion.match(
                 y,
                 span,
                 pred,
+                best_prior_indices,
                 self.grid_size,
                 self.grid_size,
                 tuple(range(num_anchors)),

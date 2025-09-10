@@ -1,4 +1,5 @@
 import torch
+from torchvision.ops import box_iou
 
 from torchlake.common.utils.numerical import generate_grid
 
@@ -87,6 +88,34 @@ def IOU(pred_box: torch.Tensor, gt_box: torch.Tensor) -> torch.Tensor:
     intersection[intersection.gt(0)] /= total_area[intersection.gt(0)]
 
     return intersection
+
+
+def wh_iou(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """IOU with wh tensor
+
+    Args:
+        x (torch.Tensor): width, height tensor. in shape of (M, 2)
+        y (torch.Tensor): width, height tensor. in shape of (N, 2)
+
+    Returns:
+        torch.Tensor: IOU, in shape of (M, N)
+    """
+    x_xyxy = torch.cat(
+        (
+            -x[:, 0:2] / 2,
+            x[:, 0:2] / 2,
+        ),
+        1,
+    )
+    y_xyxy = torch.cat(
+        (
+            -y[:, 0:2] / 2,
+            y[:, 0:2] / 2,
+        ),
+        1,
+    )
+
+    return box_iou(x_xyxy, y_xyxy)
 
 
 def build_grid_targets(

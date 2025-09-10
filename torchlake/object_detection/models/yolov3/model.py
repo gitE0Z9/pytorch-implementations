@@ -237,5 +237,8 @@ class YOLOV3(ModelBase):
             # B, A*C, H, W
             outputs.append(head(y))
 
+        # from 8x to 32x
+        reversed(outputs)
+
         # 3 x (B, A*C, H, W)
         return outputs
