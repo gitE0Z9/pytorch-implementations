@@ -17,10 +17,16 @@ class MeanAveragePrecision:
 
     def update(self, detections: list[torch.Tensor], labels: list[torch.Tensor]):
         for labels_per_image, detections_per_image in zip(labels, detections):
-            cls_prediction = detections_per_image[:, 5:].argmax(1)
+            if "yolo" in self.context.detector_name:
+                cls_prediction = detections_per_image[:, 5:].argmax(1)
+            else:
+                cls_prediction = detections_per_image[:, 4:].argmax(1)
 
             ap_table_per_image = None
             for class_index, class_name in enumerate(self.class_names):
+                if "yolo" not in self.context.detector_name:
+                    class_index += 1
+
                 this_class_detection = detections_per_image[
                     cls_prediction.eq(class_index)
                 ]
@@ -37,7 +43,10 @@ class MeanAveragePrecision:
 
                 # if detected
                 if has_this_class_detection:
-                    this_class_prob = this_class_detection[:, 5 + class_index]
+                    if "yolo" in self.context.detector_name:
+                        this_class_prob = this_class_detection[:, 5 + class_index]
+                    else:
+                        this_class_prob = this_class_detection[:, 4 + class_index]
 
                     # has gt and det
                     if has_this_class_groundtruth:
