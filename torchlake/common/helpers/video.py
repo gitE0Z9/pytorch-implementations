@@ -39,7 +39,7 @@ class VideoWriter:
     def __init__(
         self,
         path: str,
-        decode_format: str,
+        encode_format: str,
         fps: float,
         shape: tuple[int, int],
     ):
@@ -47,11 +47,11 @@ class VideoWriter:
 
         Args:
             path (str): output path
-            encode_format (str): video encoded format, XVID for avi, MJPG for mp4
+            encode_format (str): video encoded format, (avi: XVID, mp4: MJPG, H264)
             fps (float): frame per second
-            shape (tuple[int, int]): video shape, (width, height)
+            shape (tuple[int, int]): video shape, in format of (width, height)
         """
-        fourcc = cv2.VideoWriter_fourcc(*decode_format)
+        fourcc = cv2.VideoWriter_fourcc(*encode_format)
         self.fps = fps
         self.shape = shape
         self.handle = cv2.VideoWriter(path, fourcc, fps, shape)

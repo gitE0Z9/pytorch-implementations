@@ -13,6 +13,7 @@ from torchlake.common.utils.image import load_image
 from ..configs.schema import InferenceCfg
 from ..constants.schema import DetectorContext
 from ..utils.plot import draw_pred
+from torchlake.common.helpers.video import VideoReader, VideoWriter
 
 
 class Predictor:
@@ -99,6 +100,7 @@ class Predictor:
         class_colors: dict[str, list[int]] = {},
         transform=None,
         show: bool = False,
+        verbose: bool = True,
         save_dir: str = None,
     ):
         assert isinstance(image_paths, list), "image should be a list."
@@ -114,6 +116,7 @@ class Predictor:
                 class_names=class_names,
                 class_show=True,
                 class_colors=class_colors,
+                verbose=verbose,
             )
 
             print(image_path, len(detections))
@@ -135,10 +138,11 @@ class Predictor:
         class_colors: dict[str, list[int]] = {},
         transform=None,
         show: bool = False,
+        verbose: bool = True,
         save_dir: str | None = None,
     ):
         """Press Q to quit"""
-        vid = cv2.VideoCapture(video_path)
+        reader = VideoReader(video_path)
 
         # writing video
         if save_dir:
@@ -151,14 +155,12 @@ class Predictor:
                 encoder = cv2.VideoWriter_fourcc(*"H264")
             else:
                 raise NotImplementedError
-            writer = cv2.VideoWriter(
+
+            writer = VideoWriter(
                 dst.as_posix(),
                 encoder,
-                vid.get(cv2.CAP_PROP_FPS),
-                (
-                    int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                    int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                ),
+                reader.fps,
+                reader.shape[::-1],
             )
 
         # show window
@@ -166,32 +168,33 @@ class Predictor:
             cv2.namedWindow("video", cv2.WINDOW_AUTOSIZE)
 
         while 1:
-            returned, original_image = vid.read()
+            returned, ori_img = reader.read()
             if not returned:
                 print("Video end")
                 break
 
-            detections = self.detect_image(model, original_image, transform)
-            copied_image = original_image.copy()
+            detections = self.detect_image(model, ori_img, transform)
+            copied_image = ori_img.copy()
             draw_pred(
                 copied_image,
                 detections,
                 class_names=class_names,
                 class_show=True,
                 class_colors=class_colors,
+                verbose=verbose,
             )
 
             if show:
                 cv2.imshow("video", copied_image)
                 if cv2.waitKey(10) & 0xFF == ord("q"):
-                    vid.release()
+                    reader.release()
                     cv2.destroyAllWindows()
                     break
 
             if save_dir:
                 writer.write(copied_image)
 
-        vid.release()
+        reader.release()
         cv2.destroyAllWindows()
 
         if save_dir:
