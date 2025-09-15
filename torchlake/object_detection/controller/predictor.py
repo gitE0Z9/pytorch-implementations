@@ -149,11 +149,11 @@ class Predictor:
             filename = Path(video_path).name
             dst = Path(save_dir).joinpath(filename)
             ext = Path(video_path).suffix.replace(".", "")
-            if ext == "avi":
-                encoder = cv2.VideoWriter_fourcc(*"XVID")
-            elif ext == "mp4":
-                encoder = cv2.VideoWriter_fourcc(*"H264")
-            else:
+            encoder = {
+                "avi": "XVID",
+                "mp4": "H264",
+            }.get(ext, None)
+            if encoder is None:
                 raise NotImplementedError
 
             writer = VideoWriter(

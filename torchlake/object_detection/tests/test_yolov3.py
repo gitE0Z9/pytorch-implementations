@@ -183,7 +183,11 @@ class TestLoss:
         num_anchors = CONTEXT.num_anchors[0]
 
         criterion = YOLOV3Loss(self.anchors, CONTEXT, iou_threshold=0)
-        y, span = build_flatten_targets(self.y, (self.grid_size, self.grid_size))
+        y, span = build_flatten_targets(
+            self.y,
+            (self.grid_size, self.grid_size),
+            delta_coord=True,
+        )
         pred = torch.rand(
             BATCH_SIZE,
             num_anchors,
@@ -208,18 +212,32 @@ class TestLoss:
         assert torch.cat(target).shape == torch.Size((sum(span), 7))
         assert positivity.shape == torch.Size((BATCH_SIZE, NUM_BOXES[0]))
 
-    def test_forward(self):
+    @pytest.mark.parametrize("cls_loss_type", ["sigmoid", "softmax"])
+    @pytest.mark.parametrize("loc_loss_type", ["mse", "diou", "ciou", "giou"])
+    def test_forward(self, cls_loss_type: str, loc_loss_type: str):
         self.setUp()
 
-        criterion = YOLOV3Loss(self.anchors, CONTEXT)
+        criterion = YOLOV3Loss(
+            self.anchors,
+            CONTEXT,
+            cls_loss_type=cls_loss_type,
+            loc_loss_type=loc_loss_type,
+        )
 
         loss = criterion(self.yhat, self.y)
         assert not torch.isnan(loss)
 
-    def test_backward(self):
+    @pytest.mark.parametrize("cls_loss_type", ["sigmoid", "softmax"])
+    @pytest.mark.parametrize("loc_loss_type", ["mse", "diou", "ciou", "giou"])
+    def test_backward(self, cls_loss_type: str, loc_loss_type: str):
         self.setUp()
 
-        criterion = YOLOV3Loss(self.anchors, CONTEXT)
+        criterion = YOLOV3Loss(
+            self.anchors,
+            CONTEXT,
+            cls_loss_type=cls_loss_type,
+            loc_loss_type=loc_loss_type,
+        )
 
         loss = criterion(self.yhat, self.y)
         loss.backward()

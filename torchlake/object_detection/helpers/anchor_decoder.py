@@ -61,7 +61,7 @@ class Decoder:
         decoded: torch.Tensor,
         postprocess_config: InferenceCfg,
     ) -> list[torch.Tensor]:
-        """post process yolo decoded output
+        """post process decoded output
 
         Args:
             decoded (torch.Tensor): shape (#batch, #anchor * #grid, 5 + #class)
@@ -70,24 +70,39 @@ class Decoder:
         Returns:
             list[torch.Tensor]: #batch * (#selected, 5 + #class)
         """
+        C = self.context.num_classes
         batch_size, _, _ = decoded.shape
         cls_indices = decoded[:, :, 4:].argmax(-1)
+
+        # B, A, # B, A
+        sorted_cls_indices, sorted_cls_indices_indices = cls_indices.sort(-1)
+        # B, C+1
+        cls_indices_offset = torch.searchsorted(
+            sorted_cls_indices,
+            torch.arange(C + 1).expand(batch_size, C + 1).contiguous(),
+            side="right",
+        )
+        # B, C
+        cls_counts = cls_indices_offset.diff(n=1, dim=-1)
 
         processed_result = []
         for batch_idx in range(batch_size):
             detection_result = []
-            # plus 1 to skip background class
-            for class_index in range(1, self.context.num_classes + 1):
-                is_this_class_candidate: torch.Tensor = cls_indices[batch_idx].eq(
-                    class_index
-                )
-                if not is_this_class_candidate.any():
+            for class_index in range(C):
+                if cls_counts[batch_idx, class_index] <= 0:
                     continue
 
-                this_class_detection = decoded[batch_idx, is_this_class_candidate]
+                this_class_indices = sorted_cls_indices_indices[
+                    batch_idx,
+                    cls_indices_offset[batch_idx, class_index] : cls_indices_offset[
+                        batch_idx, class_index + 1
+                    ],
+                ]
+
+                this_class_detection = decoded[batch_idx, this_class_indices]
                 best_index = select_best_index(
                     this_class_detection[:, :4],
-                    this_class_detection[:, 4 + class_index],
+                    this_class_detection[:, 5 + class_index],
                     postprocess_config,
                 )
                 detection_result.append(this_class_detection[best_index])
@@ -98,4 +113,5 @@ class Decoder:
             else:
                 processed_result.append(torch.cat(detection_result, 0))
 
+        # B x (?, 4+C)
         return processed_result

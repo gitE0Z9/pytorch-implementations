@@ -119,7 +119,11 @@ class TestLoss:
         self.setUp()
 
         criterion = YOLOV2Loss(self.anchors, CONTEXT, iou_threshold=0)
-        y, span = build_flatten_targets(self.y, (GRID_SIZE, GRID_SIZE))
+        y, span = build_flatten_targets(
+            self.y,
+            (GRID_SIZE, GRID_SIZE),
+            delta_coord=True,
+        )
         pred = torch.rand(
             BATCH_SIZE,
             CONTEXT.num_anchors,

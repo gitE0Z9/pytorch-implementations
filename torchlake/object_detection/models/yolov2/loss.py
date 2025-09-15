@@ -7,6 +7,7 @@ from torchlake.object_detection.constants.schema import DetectorContext
 from torchlake.object_detection.utils.train import (
     build_flatten_targets,
     generate_grid_train,
+    wh_iou,
 )
 
 
@@ -85,40 +86,10 @@ class YOLOV2Loss(nn.Module):
             torch.Tensor: in shape of (B, A, H, W, C=7), C is dx, dy, ln(w/a), ln(h/a), class, iou, positive_level
             positive_level is encoded as 0:negative 1:best 2:positive
         """
-        # anchors could be precomputed for static grid_x, grid_y under single-scale scenario
-        # here we computed anchors dynamically for multi-scale traini
-
-        # 1. convert gt into cxcywh
-        #  and get anchor iou
-
-        # gather dx, dy, w, h
-        # in shape of (?, 4)
-        # convert (dx, dy) to (cx, cy)
-        gts = torch.cat(
-            (
-                gt_batch[:, 0:1] + gt_batch[:, 2:3] / grid_x,
-                gt_batch[:, 1:2] + gt_batch[:, 3:4] / grid_y,
-                gt_batch[:, 4:6],
-            ),
-            1,
-        )
-
-        # A, 4
-        anchors_for_anchor_ious = torch.cat(
-            (
-                torch.zeros_like(self.anchors),
-                self.anchors,
-            ),
-            2,
-        ).view(self.num_anchors, 4)
-        gts_for_anchor_ious = gts.clone()
-        gts_for_anchor_ious[:, :2] = 0
+        # 1. get anchor iou
 
         # ?, A
-        anchor_ious = box_iou(
-            box_convert(gts_for_anchor_ious, "cxcywh", "xyxy"),
-            box_convert(anchors_for_anchor_ious, "cxcywh", "xyxy"),
-        )
+        anchor_ious = wh_iou(gt_batch[:, 4:6], self.anchors[0, :, :, 0, 0])
         # shape is ?, assign best anchor to each gt
         best_prior_indices = anchor_ious.argmax(1)
         best_box_indices = (
@@ -128,6 +99,20 @@ class YOLOV2Loss(nn.Module):
         ).long()
 
         # 2. convert prediction to xyxy
+
+        # gather dx, dy, w, h
+        # in shape of (?, 4)
+        # convert (dx, dy) to (cx, cy)
+        # convert gt into cxcywh
+        gts = torch.cat(
+            (
+                gt_batch[:, 0:1] + gt_batch[:, 2:3] / grid_x,
+                gt_batch[:, 1:2] + gt_batch[:, 3:4] / grid_y,
+                gt_batch[:, 4:6],
+            ),
+            1,
+        )
+        gts = box_convert(gts, "cxcywh", "xyxy")
 
         preds = torch.cat(
             (
@@ -139,8 +124,6 @@ class YOLOV2Loss(nn.Module):
         )
         # B*A*H*W, 4
         preds = preds.permute(0, 1, 3, 4, 2).reshape(-1, 4)
-
-        gts = box_convert(gts, "cxcywh", "xyxy")
         preds = box_convert(preds, "cxcywh", "xyxy")
 
         num_boxes = grid_x * grid_y * self.num_anchors

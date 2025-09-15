@@ -1,14 +1,21 @@
-from typing import Sequence
+from typing import Literal, Sequence
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.ops import box_convert, box_iou
+from torchvision.ops import (
+    box_convert,
+    box_iou,
+    generalized_box_iou_loss,
+    distance_box_iou_loss,
+    complete_box_iou_loss,
+)
 
 from torchlake.object_detection.constants.schema import DetectorContext
 from torchlake.object_detection.utils.train import (
     build_flatten_targets,
     generate_grid_train,
     wh_iou,
+    iou_loss,
 )
 
 
@@ -21,6 +28,9 @@ class YOLOV3Loss(nn.Module):
         lambda_noobj: float = 1,
         lambda_coord: float = 0.75,
         iou_threshold: float = 0.7,
+        loc_loss_type: Literal["mse", "diou", "ciou", "giou"] = "mse",
+        cls_loss_type: Literal["softmax", "sigmoid"] = "sigmoid",
+        label_smoothing: float = 0,
         return_all_loss: bool = False,
     ):
         super().__init__()
@@ -28,6 +38,7 @@ class YOLOV3Loss(nn.Module):
             context.device
         ), "anchors should be on same device as criterion"
         self.anchors = anchors
+        assert 0 <= label_smoothing <= 1, "label smoothing should fall in [0, 1]"
 
         self.num_anchors = context.num_anchors
         self.num_classes = context.num_classes
@@ -36,6 +47,9 @@ class YOLOV3Loss(nn.Module):
         self.lambda_noobj = lambda_noobj
         self.lambda_coord = lambda_coord
         self.iou_threshold = iou_threshold
+        self.loc_loss_type = loc_loss_type
+        self.cls_loss_type = cls_loss_type
+        self.label_smoothing = label_smoothing
         self.return_all_loss = return_all_loss
 
     def encode(self, gt: torch.Tensor, anchors: torch.Tensor) -> torch.Tensor:
@@ -101,13 +115,12 @@ class YOLOV3Loss(nn.Module):
             torch.Tensor: in shape of (B, A, H, W, C=7), C is dx, dy, ln(w/a), ln(h/a), class, iou, positive_level
             positive_level is encoded as 0:negative 1:best 2:positive
         """
-        # 1. convert gt into cxcywh
+        is_iou_loss_on = self.loc_loss_type.endswith("iou")
 
+        # 1. convert gt into cxcywh
         # gather dx, dy, w, h
         # in shape of (?, 4)
         # convert (dx, dy) to (cx, cy)
-
-        # 2. convert prediction to xyxy
         gts = torch.cat(
             (
                 gt_batch[:, 0:1] + gt_batch[:, 2:3] / grid_x,
@@ -118,17 +131,21 @@ class YOLOV3Loss(nn.Module):
         )
         gts = box_convert(gts, "cxcywh", "xyxy")
 
-        preds = torch.cat(
-            (
-                pred_batch[:, :, :2]
-                + generate_grid_train(grid_x, grid_y, is_center=False).to(self.device),
-                self.anchors[:, anchor_indices] * pred_batch[:, :, 2:4].exp(),
-            ),
-            2,
-        )
-        # B*A*H*W, 4
-        preds = preds.permute(0, 1, 3, 4, 2).contiguous().view(-1, 4)
-        preds = box_convert(preds, "cxcywh", "xyxy")
+        # 2. convert prediction to xyxy
+        with torch.set_grad_enabled(is_iou_loss_on):
+            preds = torch.cat(
+                (
+                    pred_batch[:, :, :2]
+                    + generate_grid_train(grid_x, grid_y, is_center=False).to(
+                        self.device
+                    ),
+                    self.anchors[:, anchor_indices] * pred_batch[:, :, 2:4].exp(),
+                ),
+                2,
+            )
+            # B*A*H*W, 4
+            preds = preds.permute(0, 1, 3, 4, 2).contiguous().view(-1, 4)
+            preds = box_convert(preds, "cxcywh", "xyxy")
 
         num_boxes = grid_x * grid_y * len(anchor_indices)
         target = []
@@ -136,45 +153,62 @@ class YOLOV3Loss(nn.Module):
         # match gt and pred image by image
         offset = 0
         for i, span in enumerate(spans):
-            # num_gt, A*H*W
-            pred_iou = box_iou(
-                gts[offset : offset + span],
-                preds[num_boxes * i : num_boxes * (i + 1)],
-            )
+            with torch.no_grad():
+                # num_gt, A*H*W
+                pred_iou = box_iou(
+                    gts[offset : offset + span],
+                    preds[num_boxes * i : num_boxes * (i + 1)],
+                )
 
-            # A*H*W
-            positivity = torch.zeros(num_boxes).to(self.device)
+                # A*H*W
+                positivity = torch.zeros(num_boxes).to(self.device)
 
-            # shape is (A*H*W,), assign gt to acceptable anchor
-            best_gt_overlap, _ = pred_iou.max(0)
-            # shape is (A*H*W,), only ? is true
-            over_threshold = best_gt_overlap > self.iou_threshold
-            # shape is (?,)
-            positivity[over_threshold] = 2
+                # shape is (A*H*W,), assign gt to acceptable anchor
+                best_gt_overlap, _ = pred_iou.max(0)
+                # shape is (A*H*W,), only ? is true
+                over_threshold = best_gt_overlap > self.iou_threshold
+                # shape is (?,)
+                positivity[over_threshold] = 2
 
-            # num_gt, 7
-            gt = gt_batch[offset : offset + span]
-            best_prior_idx = best_prior_indices[offset : offset + span]
-            mask = torch.logical_and(
-                min(anchor_indices) <= best_prior_idx,
-                best_prior_idx <= max(anchor_indices),
-            )
-            best_box_idx = (
-                best_prior_idx * grid_x * grid_y + gt[:, 3] * grid_x + gt[:, 2]
-            ).long()[mask]
-            positivity[best_box_idx] = 1
+                # num_gt, 7
+                gt = gt_batch[offset : offset + span]
+                best_prior_idx = best_prior_indices[offset : offset + span]
+                mask = torch.logical_and(
+                    min(anchor_indices) <= best_prior_idx,
+                    best_prior_idx <= max(anchor_indices),
+                )
+                num_positive = mask.sum()
+                if num_positive > 0:
+                    best_box_idx = (
+                        best_prior_idx * grid_x * grid_y + gt[:, 3] * grid_x + gt[:, 2]
+                    ).long()[mask]
+                    positivity[best_box_idx] = 1
 
             # ?, 7
-            # C is dx, dy, w, h, class, coef, best_box_idx
-            placeholder = torch.zeros(mask.sum(), 7).to(self.device)
-            if mask.sum() > 0:
+            # C is dx, dy, w, h, class, coef/iou_loss, best_box_idx
+            placeholder = torch.zeros(num_positive, 7).to(self.device)
+            if num_positive > 0:
                 gt = gt[mask]
                 placeholder[:, :4] = self.encode(
                     gt[:, [0, 1, 4, 5]],
                     self.anchors[0, best_prior_idx, :, 0, 0],
                 )
                 placeholder[:, 4] = gt[:, 6]
-                placeholder[:, 5] = 2 - gt[:, 4:6].prod(1)
+                if is_iou_loss_on:
+                    with torch.set_grad_enabled(True):
+                        iou_method = {
+                            "iou": iou_loss,
+                            "diou": distance_box_iou_loss,
+                            "ciou": complete_box_iou_loss,
+                            "giou": generalized_box_iou_loss,
+                        }[self.loc_loss_type]
+                        placeholder[:, 5] = iou_method(
+                            preds[best_box_idx + i * num_boxes],
+                            gts[offset : offset + span][mask],
+                            reduction="sum",
+                        )
+                else:
+                    placeholder[:, 5] = 2 - gt[:, 4:6].prod(1)
                 placeholder[:, 6] = best_box_idx.float() + i * num_boxes
 
             target.append(placeholder)
@@ -217,32 +251,38 @@ class YOLOV3Loss(nn.Module):
 
             # transform
             pred[:, :, :2] = pred[:, :, :2].sigmoid()
-            pred[:, :, 4:] = pred[:, :, 4:].sigmoid()
+            pred[:, :, 4] = pred[:, :, 4].sigmoid()
 
-            with torch.no_grad():
-                # shape is (B, 7), format is (dx, dy, grid_x, grid_y, w, h, c)
-                flattened_gt, spans = build_flatten_targets(
-                    gt, (grid_y, grid_x), delta_coord=True
-                )
-                flattened_gt = flattened_gt.to(self.device)
+            if self.cls_loss_type == "softmax":
+                pred[:, :, 5:] = pred[:, :, 5:].softmax(2)
+            else:
+                pred[:, :, 5:] = pred[:, :, 5:].sigmoid()
 
-                # target shape is (?, C=7)
-                # C is dx, dy, w, h, class, coef, best_box_idx
-                # positivity shape is B, A*H*W
-                target, positivity = self.match(
-                    flattened_gt,
-                    spans,
-                    pred[:, :, :4],
-                    best_prior_indices,
-                    grid_x,
-                    grid_y,
-                    tuple(range(anchor_offset, anchor_offset + num_anchor)),
-                )
-                # ?, 7
-                target = torch.cat(target)
-                target[:, 6] += num_boxes_offset
-                # B*A*H*W
-                positivity = positivity.view(-1)
+            # shape is (?, 7), format is (dx, dy, grid_x, grid_y, w, h, c)
+            flattened_gt, spans = build_flatten_targets(
+                gt,
+                (grid_y, grid_x),
+                delta_coord=True,
+            )
+            flattened_gt = flattened_gt.to(self.device)
+
+            # target shape is (?, C=7)
+            # C is dx, dy, w, h, class, area normalizer, best box idx
+            # positivity shape is B, A*H*W
+            target, positivity = self.match(
+                flattened_gt,
+                spans,
+                pred[:, :, :4],
+                best_prior_indices,
+                grid_x,
+                grid_y,
+                tuple(range(anchor_offset, anchor_offset + num_anchor)),
+            )
+            # ?, 7
+            target = torch.cat(target)
+            target[:, 6] += num_boxes_offset
+            # B*A*H*W
+            positivity = positivity.view(-1)
 
             # B*A*H*W, 5+C
             pred = (
@@ -276,22 +316,33 @@ class YOLOV3Loss(nn.Module):
         mask = target_all[:, 6].ne(0)
         target_all = target_all[mask]
         best_indices = target_all[:, 6].long()
-        coord_loss = (
-            target_all[:, 5:6]  # area normalizer
-            * F.mse_loss(
-                pred_all[best_indices, :4],
-                target_all[:, :4],
-                reduction="none",
-            )
-        ).sum()
+
+        if self.loc_loss_type == "mse":
+            coord_loss = (
+                target_all[:, 5:6]  # area normalizer
+                * F.mse_loss(
+                    pred_all[best_indices, :4],
+                    target_all[:, :4],
+                    reduction="none",
+                )
+            ).sum()
+        elif self.loc_loss_type.endswith("iou"):
+            # iou loss
+            coord_loss = target_all[:, 5].sum()
+
         obj_loss = F.mse_loss(
             pred_all[best_indices, 4],
             torch.ones_like(best_indices).float(),
             reduction="sum",
         )
+
+        cls_target = F.one_hot(target_all[:, 4].long(), self.num_classes).float()
+        if self.label_smoothing > 0:
+            cls_target[cls_target == 1] = 1 - self.label_smoothing
+            cls_target[cls_target == 0] = self.label_smoothing / (self.num_classes - 1)
         cls_loss = F.mse_loss(
             pred_all[best_indices, 5:],
-            F.one_hot(target_all[:, 4].long(), self.num_classes).float(),
+            cls_target,
             reduction="sum",
         )
 

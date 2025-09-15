@@ -23,14 +23,12 @@ class YOLOV3(ModelBase):
         self.hidden_dim_8x = hidden_dim_8x
         self.hidden_dim_16x = hidden_dim_16x
         self.hidden_dim_32x = hidden_dim_32x
+        self.enable_spp = enable_spp
         super().__init__(
             3,
             1,
             foot_kwargs={
                 "backbone": backbone,
-            },
-            blocks_kwargs={
-                "enable_spp": enable_spp,
             },
         )
 
@@ -105,8 +103,7 @@ class YOLOV3(ModelBase):
             ]
         )
 
-        enable_spp: bool = kwargs.pop("enable_spp")
-        if enable_spp:
+        if self.enable_spp:
             self.blocks[0].insert(3, SPP())
             self.blocks[0].insert(
                 4,

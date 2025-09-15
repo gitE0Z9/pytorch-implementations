@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Literal, Sequence
 
 import torch
 
@@ -9,9 +9,15 @@ from ...mixins.decode_yolo import YOLODecodeMixin
 
 
 class Decoder(YOLODecodeMixin):
-    def __init__(self, anchors: torch.Tensor, context: DetectorContext):
+    def __init__(
+        self,
+        anchors: torch.Tensor,
+        context: DetectorContext,
+        cls_loss_type: Literal["softmax", "sigmoid"] = "sigmoid",
+    ):
         self.context = context
         self.anchors = anchors
+        self.cls_loss_type = cls_loss_type
 
     def decode(
         self,
@@ -76,11 +82,14 @@ class Decoder(YOLODecodeMixin):
             prob = (
                 feature_map[:, :, 5:, :, :]
                 .float()
-                .sigmoid()
                 .permute(0, 1, 3, 4, 2)
                 .contiguous()
                 .view(batch_size, -1, num_classes)
             )
+            if self.cls_loss_type == "softmax":
+                prob = prob.softmax(-1)
+            else:
+                prob = prob.sigmoid()
             x = cx - w / 2
             y = cy - h / 2
 

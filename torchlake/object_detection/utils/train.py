@@ -1,7 +1,10 @@
+from typing import Literal
+
 import torch
 from torchvision.ops import box_iou
 
 from torchlake.common.utils.numerical import generate_grid
+from torchvision.ops._utils import _loss_inter_union
 
 
 def collate_fn(batch) -> tuple[torch.Tensor, list[list[list[int]]]]:
@@ -118,6 +121,30 @@ def wh_iou(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return box_iou(x_xyxy, y_xyxy)
 
 
+# copied from torchvision.ops.diou_loss.py
+def iou_loss(
+    boxes1: torch.Tensor,
+    boxes2: torch.Tensor,
+    eps: float = 1e-7,
+    reduction: Literal["none", "sum", "mean"] = "mean",
+) -> torch.Tensor:
+    intsct, union = _loss_inter_union(boxes1, boxes2)
+    iou = intsct / (union + eps)
+
+    loss = 1 - iou
+    if reduction == "none":
+        pass
+    elif reduction == "mean":
+        loss = loss.mean() if loss.numel() > 0 else 0.0 * loss.sum()
+    elif reduction == "sum":
+        loss = loss.sum()
+    else:
+        raise ValueError(
+            f"Invalid Value for arg 'reduction': '{reduction} \n Supported reduction modes: 'none', 'mean', 'sum'"
+        )
+    return loss
+
+
 def build_grid_targets(
     gt_batch: list[list[list[int]]],
     target_shape: tuple[int],
@@ -155,14 +182,14 @@ def build_grid_targets(
 def build_flatten_targets(
     gt_batch: list[list[list[int]]],
     grid_shape: tuple[int] = None,
-    delta_coord: bool = True,
+    delta_coord: bool = False,
 ) -> tuple[torch.Tensor, list[int]]:
     """build flatten targets
 
     Args:
         gt_batch (list[list[list[int]]]): batch of groundtruth, in format of (cx, cy, w, h, c)
         grid_shape (tuple[int], optional): grid shape e.g. (grid_y, grid_x). Defaults to None.
-        delta_coord (bool, optional): represent center coord in translation delta and grid index. Defaults to True.
+        delta_coord (bool, optional): represent center coord in translation delta and grid index. Defaults to False.
 
     Returns:
         tuple[torch.Tensor, list[int]]:
