@@ -1,4 +1,5 @@
 from math import prod
+from typing import Sequence
 
 from torch import nn
 from torchlake.common.models.model_base import ModelBase
@@ -9,16 +10,17 @@ class GANGenerator(ModelBase):
         self,
         input_channel: int,
         hidden_dim: int,
-        image_shape: tuple[int],
+        image_shape: Sequence[int],
     ):
         """Generator of GAN
 
         Args:
             input_channel (int): input channel size
             hidden_dim (int): dimension of hidden layer
-            image_shape (tuple[int]): shape of original image
+            image_shape (Sequence[int]): shape of original image
         """
         self.hidden_dim = hidden_dim
+        assert len(image_shape) == 3, "image size must be (channel, height, width)"
         self.image_shape = image_shape
         super().__init__(input_channel, prod(image_shape))
 
