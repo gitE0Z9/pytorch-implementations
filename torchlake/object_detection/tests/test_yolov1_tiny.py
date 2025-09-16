@@ -18,7 +18,7 @@ CONTEXT = DetectorContext(
 )
 
 
-class TestYOLOV1Tiny:
+class TestModel:
     def test_forward_shape(self):
         x = torch.rand((BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE))
 
@@ -26,14 +26,11 @@ class TestYOLOV1Tiny:
 
         y = model(x)
 
-        assert_close(
-            y.shape,
-            torch.Size(
-                (
-                    BATCH_SIZE,
-                    CONTEXT.num_anchors * (4 + 1) + CONTEXT.num_classes,
-                    GRID_SIZE,
-                    GRID_SIZE,
-                )
-            ),
+        assert y.shape == torch.Size(
+            (
+                BATCH_SIZE,
+                CONTEXT.num_anchors * (4 + 1) + CONTEXT.num_classes,
+                GRID_SIZE,
+                GRID_SIZE,
+            )
         )

@@ -1,4 +1,5 @@
 from itertools import pairwise
+from math import prod
 from typing import Literal
 import torch.nn as nn
 from torchlake.common.models.flatten import FlattenFeature
@@ -26,10 +27,16 @@ class YOLOV1Tiny(ModelBase):
         self.dropout_prob = dropout_prob
         self.head_type = head_type
         self.context = context
-        self.output_size = context.num_anchors * 5 + context.num_classes
         super().__init__(
             3,
-            self.output_size * 7 * 7 if head_type == "detection" else output_size,
+            (
+                context.num_anchors * 5 + context.num_classes
+                if head_type == "detection"
+                else output_size
+            ),
+            head_kwargs={
+                "output_shape": (7, 7),
+            },
         )
 
     @property
@@ -66,21 +73,24 @@ class YOLOV1Tiny(ModelBase):
                 )
             )
 
-            if i < len(self.config) - 3:
+            if i <= len(self.config) - 4:
                 blocks.append(nn.MaxPool2d(2, 2))
 
         self.blocks = nn.Sequential(*blocks)
 
     def build_neck(self):
-        self.neck = nn.Dropout(self.dropout_prob)
+        if self.head_type == "classification":
+            self.neck = nn.Dropout(self.dropout_prob)
 
-    def build_head(self, output_size: int):
+    def build_head(self, output_size: int, **kwargs):
+        output_shape = kwargs.pop("output_shape")
+
         self.head = nn.Sequential(
             FlattenFeature(reduction=None),
-            nn.Linear(self.feature_dim, output_size),
+            nn.Linear(self.feature_dim, output_size * prod(output_shape)),
         )
 
         if self.head_type == "detection":
             self.head.append(
-                nn.Unflatten(-1, (self.output_size, 7, 7)),
+                nn.Unflatten(-1, (output_size, *output_shape)),
             )

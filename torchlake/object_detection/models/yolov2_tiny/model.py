@@ -15,7 +15,7 @@ class YOLOV2Tiny(ModelBase):
         dropout_prob: float = 0.5,
         head_type: Literal["classification", "detection"] = "detection",
     ):
-        """tiny YOLOV1
+        """tiny YOLOV2
 
         Args:
             context (DetectorContext): detector context
@@ -27,7 +27,7 @@ class YOLOV2Tiny(ModelBase):
         super().__init__(
             3,
             (
-                context.num_anchors * 5 + context.num_classes
+                context.num_anchors * (5 + context.num_classes)
                 if head_type == "detection"
                 else context.num_classes
             ),
@@ -39,6 +39,7 @@ class YOLOV2Tiny(ModelBase):
 
     @property
     def config(self) -> list[int]:
+        # the only difference from tiny yolov1 is the last dimension
         return [16, 32, 64, 128, 256, 512, 1024, 512]
 
     def build_foot(self, input_channel):
@@ -67,13 +68,14 @@ class YOLOV2Tiny(ModelBase):
                 )
             )
 
-            if i < len(self.config) - 3:
+            if i <= len(self.config) - 4:
                 blocks.append(nn.MaxPool2d(2, 2))
 
         self.blocks = nn.Sequential(*blocks)
 
     def build_neck(self):
-        self.neck = nn.Dropout(self.dropout_prob)
+        if self.head_type == "classification":
+            self.neck = nn.Dropout(self.dropout_prob)
 
     def build_head(self, output_size: int):
         if self.head_type == "classification":
