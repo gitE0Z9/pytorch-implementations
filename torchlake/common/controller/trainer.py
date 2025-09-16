@@ -69,6 +69,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
         recorder: TrainRecorder | None = None,
         validate_func: Callable[[nn.Module], None] | None = None,
         checkpoint_func: Callable[[nn.Module, Optimizer], None] | None = None,
+        at_batch_end_hook: Callable[[int], None] | None = None,
         at_epoch_end_hook: Callable | None = None,
         is_early_stoppable_func: Callable[[], bool] | None = None,
         *args,
@@ -141,6 +142,9 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 recorder.increment_running_loss(
                     *(loss.item() / recorder.data_size for loss in losses)
                 )
+
+                if at_batch_end_hook is not None:
+                    at_batch_end_hook(batch_idx)
 
             if at_epoch_end_hook is not None:
                 at_epoch_end_hook()
