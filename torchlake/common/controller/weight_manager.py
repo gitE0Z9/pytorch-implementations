@@ -39,4 +39,7 @@ class WeightManager:
         strict: bool = True,
         assign: bool = False,
     ):
-        dest.load_state_dict(torch.load(filename), strict, assign)
+        if isinstance(dest, torch.nn.Module):
+            dest.load_state_dict(torch.load(filename), strict, assign)
+        else:
+            dest.load_state_dict(torch.load(filename))

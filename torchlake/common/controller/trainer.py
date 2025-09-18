@@ -68,7 +68,9 @@ class TrainerBase(PredictFunctionMixin, ABC):
         scaler: GradScaler | None = None,
         recorder: TrainRecorder | None = None,
         validate_func: Callable[[nn.Module], None] | None = None,
-        checkpoint_func: Callable[[nn.Module, Optimizer], None] | None = None,
+        checkpoint_func: (
+            Callable[[nn.Module, Optimizer, LRScheduler | None], None] | None
+        ) = None,
         at_batch_end_hook: Callable[[int], None] | None = None,
         at_epoch_end_hook: Callable | None = None,
         is_early_stoppable_func: Callable[[], bool] | None = None,
@@ -164,7 +166,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
 
             if checkpoint_func is not None and (e + 1) % self.checkpoint_interval == 0:
                 print("Checkpoint...")
-                checkpoint_func(model, optimizer)
+                checkpoint_func(model, optimizer, scheduler)
 
             if is_early_stoppable_func is not None and is_early_stoppable_func():
                 print(f"early stopped at epoch {e+1}")
