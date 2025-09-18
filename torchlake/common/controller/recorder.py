@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import Iterable, Sequence
 
 import torch
@@ -13,7 +15,7 @@ class TrainRecorder:
         is_data_size_static: bool = True,
         loss_names: Sequence[str] = ["total"],
     ):
-        """_summary_
+        """recorder of training progress
 
         Args:
             current_epoch (int, optional): current epoch. Defaults to 0.
@@ -125,6 +127,32 @@ class TrainRecorder:
             self.loss_names, self.training_losses, self.get_last_improvement()
         ):
             print(f"{loss_name}: {training_loss[-1]:.4e} ({last_improvement:.2f}%)")
+
+    def to_state_dict(self, path: str | Path):
+        path = Path(path)
+        state = {
+            "current_epoch": self.current_epoch,
+            "total_epoch": self.total_epoch,
+            "current_data_size": self.current_data_size,
+            "data_size": self.data_size,
+            "num_loss": self.num_loss,
+            "loss_names": self.loss_names,
+            "running_losses": self.running_losses,
+            "training_losses": self.training_losses,
+        }
+        path.write_text(json.dumps(state))
+
+    def load_state_dict(self, path: str | Path):
+        path = Path(path)
+        state = json.loads(path.read_text())
+        self.current_epoch = state["current_epoch"]
+        self.total_epoch = state["total_epoch"]
+        self.current_data_size = state["current_data_size"]
+        self.data_size = state["data_size"]
+        self.num_loss = state["num_loss"]
+        self.loss_names = state["loss_names"]
+        self.running_losses = state["running_losses"]
+        self.training_losses = state["training_losses"]
 
 
 class EvalRecorder: ...
