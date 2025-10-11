@@ -1,8 +1,9 @@
 import math
-from typing import OrderedDict, Sequence
+from operator import itemgetter
+from typing import Sequence
+
 import torch
 from torch import nn
-from operator import itemgetter
 from torch_scatter import scatter_add
 
 
@@ -26,9 +27,11 @@ class PermutohedralLattice(nn.Module):
         self.neighbors = None
         # barycentric weights => N, D+1
         self.barycentric_weights = None
+        # norms => N, 1
+        self.norms = None
 
-    def get_canonical_basis(self, d: int) -> torch.Tensor:
-        """canonical basis
+    def canonical_simplex(self, d: int) -> torch.Tensor:
+        """canonical simplex
 
         Args:
             d (int): dimension of position vectors, denoted as D
@@ -36,9 +39,42 @@ class PermutohedralLattice(nn.Module):
         Returns:
             torch.Tensor: in shape of (D+1, D+1)
         """
-        return torch.Tensor(
-            [[*([i] * (d + 1 - i)), *([-(d + 1 - i)] * i)] for i in range(d + 1)]
-        ).T
+        return (
+            torch.Tensor(
+                [[*([i] * (d + 1 - i)), *([-(d + 1 - i)] * i)] for i in range(d + 1)]
+            )
+            .long()
+            .T
+        )
+
+    def lattice_basis(self, d: int) -> torch.Tensor:
+        """lattice basis
+
+        Args:
+            d (int): dimension of position vectors, denoted as D
+
+        Returns:
+            torch.Tensor: in shape of (D+1, D+1)
+        """
+        ED = d + 1
+        return ED * torch.eye(ED) - torch.ones(ED, ED)
+
+    def projection_matrix(self, d: int) -> torch.Tensor:
+        """projection matrix
+
+        Args:
+            d (int): dimension of position vectors, denoted as D
+
+        Returns:
+            torch.Tensor: in shape of (D+1, D)
+        """
+        # a: d+1 x d * b: d x d => e: d+1 x d
+        a = torch.ones(d, d).triu_(1) - torch.arange(d).add(1).diag()
+        a = torch.cat((torch.ones(1, d), a), 0)
+        b = (1 / (torch.arange(d).add(1) * torch.arange(d).add(2)).sqrt()).diag()
+        e = a @ b
+
+        return e
 
     def fit(self, x: torch.Tensor):
         """
@@ -62,15 +98,9 @@ class PermutohedralLattice(nn.Module):
         blur_std = math.sqrt(2 / 3) * ED
         scaled_x = scaled_x / blur_std
 
-        ## step 2: build basis
-        # a: d+1 x d * b: d x d => e: d+1 x d
-        a = torch.ones(D, D).triu_(1) - torch.arange(D).add(1).diag()
-        a = torch.cat((torch.ones(1, D), a), 0)
-        b = (1 / (torch.arange(D).add(1) * torch.arange(D).add(2)).sqrt()).diag()
-        e = (a @ b).to(device)
-
-        ## step 3: embed x onto e
-        p = (e @ scaled_x.T).T
+        ## step 2: embed x onto e
+        e = self.projection_matrix(D).to(device)
+        p = scaled_x @ e.T
 
         ## embed => recurrence version
         # p = torch.cat((scaled_x.clone(), torch.empty(B, 1)), 1)
@@ -84,7 +114,7 @@ class PermutohedralLattice(nn.Module):
         #     alpha_i = alpha_j
         # p[:, 0] = p[:, 0] / alpha_i + p[:, 1]
 
-        ## step 4: find the nearest remainder-0 lattice point
+        ## step 3: find the nearest remainder-0 lattice point
         # rounding
         higher_l0 = (p // ED).ceil() * ED
         lower_l0 = (p // ED).floor() * ED
@@ -112,7 +142,7 @@ class PermutohedralLattice(nn.Module):
         # check permutation property
         # assert (values[:, 0] - values[:, -1]).lt(ED).all()
 
-        ## step 5: barycentric weights in shape of (N, D+1)
+        ## step 4: barycentric weights in shape of (N, D+1)
         residual = (p - l0) / ED
         b = residual.gather(1, ranks.argsort(dim=1, descending=True)).diff(1, dim=1)
         b = torch.cat((1 - b.sum(1, keepdim=True), b), 1)
@@ -120,10 +150,9 @@ class PermutohedralLattice(nn.Module):
         assert b.sum(1).sub(1).lt(1e-5).all()
         self.barycentric_weights = b
 
-        ## step 6: register vertices of simplices
-        # retrieve canonical simplex
+        ## step 5: register vertices of simplices
         # D+1, D+1
-        canonical_simplex = self.get_canonical_basis(D).to(device)
+        canonical_simplex = self.canonical_simplex(D).to(device)
         # N, D+1, D+1
         simplices = l0.unsqueeze(1) + canonical_simplex[None, ...].expand(
             N, ED, ED
@@ -147,17 +176,16 @@ class PermutohedralLattice(nn.Module):
             .to(device)
         )
 
-        ## step 7: find neighbors
+        ## step 6: find neighbors
         # M, 1, D+1
         points = torch.Tensor(tuple(registry.keys())).view(M, 1, ED).to(device)
         # 1, D+1, D+1
-        offset = ED * torch.eye(ED)[None, ...] - torch.ones(1, ED, ED)
-        offset = offset.to(device)
+        offset = self.lattice_basis(D)[None, ...].to(device)
         # M, 2, D+1, D+1 => number of unique points, neighbors of each point, dimension
         neighbors = torch.stack((points + offset, points - offset), 1)
         # store neighbors in shape of (M, 2, D+1), as indices in the registry
         # if not in the registry, reset to -1
-        # they will be plus one when splat
+        # they will be ignored during filtering
         self.neighbors = (
             torch.Tensor(
                 [
@@ -172,7 +200,19 @@ class PermutohedralLattice(nn.Module):
         # check if at least one neighbor in the registry
         assert self.neighbors.ne(-1).any()
 
+        ## step 7: get norm, important
+        self.norms = (
+            1 / (self._predict(torch.ones(N, 1).to(device)) + 1e-20).sqrt()
+        ).to(device)
+
     def predict(self, y: torch.Tensor) -> torch.Tensor:
+        y = y * self.norms
+        y = self._predict(y)
+        y = y * self.norms
+
+        return y
+
+    def _predict(self, y: torch.Tensor) -> torch.Tensor:
         """
         Apply Gaussian filtering using permutohedral lattice.
 
@@ -192,13 +232,15 @@ class PermutohedralLattice(nn.Module):
         # step 1: splat
         # separate value onto each lattice points of canonical simplex
 
-        ## N, C => N, D+1, C
+        # N, C => N, D+1, C
         y = torch.einsum("bi, bj -> bij", self.barycentric_weights, y)
 
-        ## N, D+1, C => M, C
+        # N, D+1, C => M, C
         y = scatter_add(y.view(-1, C), self.simplices.view(-1), dim=0)
+
         ## add a slot for outbound neighbors
-        ## M+1, C
+
+        # M+1, C
         y = torch.cat((torch.zeros(1, C).to(device), y), 0)
 
         # step 2: blur
@@ -214,7 +256,7 @@ class PermutohedralLattice(nn.Module):
         ## transform back by barycentric weights
 
         # M, C => N, D+1, C
-        y = y[self.simplices.view(-1, ED) + 1].view(N, ED, C)
+        y = y[self.simplices.view(-1) + 1].view(N, ED, C)
 
         # (N, D+1, C) x (N, D+1) => N, C
         y = torch.einsum("bij, bi -> bj", y, self.barycentric_weights)

@@ -1,11 +1,8 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
-from torchlake.common.utils.numerical import generate_grid
 
-from torchlake.semantic_segmentation.models.densecrf.network import (
-    PermutohedralLattice,
-)
+from torchlake.common.utils.numerical import generate_grid
+from torchlake.semantic_segmentation.models.densecrf.network import PermutohedralLattice
 
 
 class DenseCRF(nn.Module):
@@ -46,6 +43,9 @@ class DenseCRF(nn.Module):
             )
         )
 
+        if not potts_model:
+            raise NotImplementedError
+
         # build incompatibility
         mu = self.build_incompatibilty(num_class, potts_model)
         if not potts_model:
@@ -68,7 +68,7 @@ class DenseCRF(nn.Module):
             torch.Tensor: incompatibility matrix
         """
         if potts_model:
-            return torch.ones(num_class) - torch.eye(num_class)
+            return -torch.ones(num_class, num_class) + torch.eye(num_class)
         else:
             return torch.rand(num_class, num_class)
 
@@ -101,14 +101,14 @@ class DenseCRF(nn.Module):
         # convergenece criterion can also be threshold?
         for _ in range(self.iters):
             # apperance kernel
-            # N
+            # N, C
             appearance_kernel = self.bilateral_lattice.predict(output.T)
 
             # smoothness kernel
-            # N
+            # N, C
             smoothness_kernel = self.smoothness_lattice.predict(output.T)
 
-            # N
+            # N, C
             pairwise_potential = (
                 self.appearance_weight * appearance_kernel
                 + self.smoothness_weight * smoothness_kernel
