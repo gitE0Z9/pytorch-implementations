@@ -6,8 +6,8 @@ from ..models.densecrf.model import DenseCRF
 from ..models.densecrf.network import PermutohedralLattice
 
 B = 4
-H = 256
-W = 256
+H = 300
+W = 150
 N = H * W
 C = 20
 

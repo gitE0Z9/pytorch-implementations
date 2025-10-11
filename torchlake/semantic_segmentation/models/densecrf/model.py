@@ -86,7 +86,7 @@ class DenseCRF(nn.Module):
         C, _, _ = yhat.shape
 
         # 2, h, w
-        pos = torch.stack(generate_grid(H, W)).to(x.device)
+        pos = torch.stack(generate_grid(W, H)).to(x.device)
 
         # N, 5
         self.bilateral_lattice.fit(torch.cat((pos, x), 0).view(5, -1).T)
