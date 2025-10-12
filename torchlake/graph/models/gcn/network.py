@@ -1,11 +1,12 @@
 import torch
 from torch import nn
+
 from torchlake.common.utils.sparse import eye_matrix
 
 
-class GcnLayer(nn.Module):
+class GCNLayer(nn.Module):
     def __init__(self, in_dim: int, out_dim: int):
-        super(GcnLayer, self).__init__()
+        super().__init__()
         self.linear = nn.Linear(in_dim, out_dim)
 
     def get_topology_transform(self, a: torch.Tensor) -> torch.Tensor:
@@ -36,10 +37,10 @@ class GcnLayer(nn.Module):
         return torch.mm(H, self.linear(x))
 
 
-class GcnResBlock(nn.Module):
+class GCNResBlock(nn.Module):
     def __init__(self, in_dim: int, out_dim: int):
-        super(GcnResBlock, self).__init__()
-        self.layer = GcnLayer(in_dim, out_dim)
+        super().__init__()
+        self.layer = GCNLayer(in_dim, out_dim)
 
     def forward(self, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
         y = self.layer(x, a)

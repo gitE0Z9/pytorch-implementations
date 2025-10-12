@@ -1,9 +1,11 @@
 import torch
 from torch import nn
-from .network import GatLayer, GatLayerV2
+import torch.nn.functional as F
+
+from .network import GATLayer, GATLayerV2
 
 
-class Gat(nn.Module):
+class GAT(nn.Module):
     """GRAPH ATTENTION NETWORKS, Cambridge"""
 
     def __init__(
@@ -25,17 +27,14 @@ class Gat(nn.Module):
             num_layer (int, optional): number of layers. Defaults to 4.
             version (int, optional): use v1 or v2. Defaults to 1.
         """
-        super(Gat, self).__init__()
-        mapping = {
-            1: GatLayer,
-            2: GatLayerV2,
-        }
-        layer_class = mapping.get(version)
+        super().__init__()
+        layer_class = {
+            1: GATLayer,
+            2: GATLayerV2,
+        }.get(version)
         assert layer_class, "Layer version not supported."
 
         self.dropout = nn.Dropout(p=0.6)
-        self.activation = nn.ELU()
-
         self.layers = nn.ModuleList(
             [
                 layer_class(
@@ -57,10 +56,10 @@ class Gat(nn.Module):
         Returns:
             torch.Tensor: output tensor, shape is (#node, out_dim)
         """
-        for i in range(len(self.layers) - 1):
-            layer = self.layers[i]
-            x = self.dropout(x)
-            x = layer(x, edges, predict=False)
-            x = self.activation(x)
+        y = x
+        for layer in self.layers[:-1]:
+            y = self.dropout(y)
+            y = layer(y, edges, predict=False)
+            y = F.elu(y, 1)
 
-        return self.layers[-1](x, edges, predict=True)
+        return self.layers[-1](y, edges, predict=True)

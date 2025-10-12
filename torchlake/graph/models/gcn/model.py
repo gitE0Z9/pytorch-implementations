@@ -1,43 +1,46 @@
 import torch
-from torch import nn
-from .network import GcnLayer, GcnResBlock
 import torch.nn.functional as F
+from torch import nn
+
+from .network import GCNLayer, GCNResBlock
 
 
-class Gcn(nn.Module):
+class GCN(nn.Module):
     def __init__(self, in_dim: int, hidden_dim: int, out_dim: int):
-        super(Gcn, self).__init__()
-
-        self.layer1 = GcnLayer(in_dim, hidden_dim)
-        self.layer2 = GcnLayer(hidden_dim, out_dim)
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [
+                GCNLayer(in_dim, hidden_dim),
+                GCNLayer(hidden_dim, out_dim),
+            ]
+        )
 
     def forward(self, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
-        y = self.layer1(x, a)
-        y = F.relu(y, True)
-        y = self.layer2(y, a)
+        y = self.layers[0](x, a)
+        for layer in self.layers[1:]:
+            y = F.relu(y, True)
+            y = layer(y, a)
 
         return y
 
 
-class GcnResidual(nn.Module):
+class GCNResidual(nn.Module):
     def __init__(self, in_dim: int, hidden_dim: int, out_dim: int):
-        super(GcnResidual, self).__init__()
-
-        self.layer1 = GcnLayer(in_dim, hidden_dim)
-        self.layer2 = GcnResBlock(hidden_dim, hidden_dim)
-        self.layer3 = GcnResBlock(hidden_dim, hidden_dim)
-        self.layer4 = GcnResBlock(hidden_dim, hidden_dim)
-        self.layer5 = GcnLayer(hidden_dim, out_dim)
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [
+                GCNLayer(in_dim, hidden_dim),
+                GCNResBlock(hidden_dim, hidden_dim),
+                GCNResBlock(hidden_dim, hidden_dim),
+                GCNResBlock(hidden_dim, hidden_dim),
+                GCNLayer(hidden_dim, out_dim),
+            ]
+        )
 
     def forward(self, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
-        y = self.layer1(x, a)
-        y = F.relu(y, True)
-        y = self.layer2(y, a)
-        y = F.relu(y, True)
-        y = self.layer3(y, a)
-        y = F.relu(y, True)
-        y = self.layer4(y, a)
-        y = F.relu(y, True)
-        y = self.layer5(y, a)
+        y = self.layers[0](x, a)
+        for layer in self.layers[1:]:
+            y = F.relu(y, True)
+            y = layer(y, a)
 
         return y

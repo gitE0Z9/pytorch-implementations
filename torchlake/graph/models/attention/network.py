@@ -4,11 +4,11 @@ import torch.nn.functional as F
 from torch_scatter import scatter_add, scatter_softmax
 
 
-class GatLayer(nn.Module):
+class GATLayer(nn.Module):
     """ICLR 2018, GRAPH ATTENTION NETWORKS, Cambridge"""
 
     def __init__(self, in_dim: int, latent_dim: int, num_heads: int = 3):
-        super(GatLayer, self).__init__()
+        super().__init__()
         self.input_layer = nn.Parameter(torch.rand((num_heads, in_dim, latent_dim)))
         self.attention_vector = nn.Parameter(torch.rand((num_heads, 2 * latent_dim)))
 
@@ -103,11 +103,11 @@ class GatLayer(nn.Module):
         return self.get_output(h, predict)
 
 
-class GatLayerV2(GatLayer):
+class GATLayerV2(GATLayer):
     """ICLR 2022, HOW ATTENTIVE ARE GRAPH ATTENTION NETWORKS, Technion, Cambridge"""
 
     def __init__(self, in_dim: int, latent_dim: int, num_heads: int = 3):
-        super(GatLayerV2, self).__init__(in_dim, latent_dim, num_heads)
+        super().__init__(in_dim, latent_dim, num_heads)
 
     def get_attention_weight(
         self,
