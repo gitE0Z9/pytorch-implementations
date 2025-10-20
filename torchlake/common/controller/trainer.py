@@ -154,7 +154,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
             recorder.enqueue_training_loss()
 
             last_loss = recorder.training_losses[0][-1]
-            if scheduler:
+            if scheduler is not None:
                 scheduler.step(last_loss)
 
             recorder.display_epoch_result()
