@@ -239,13 +239,15 @@ class VOCDetectionFromLMDB(Dataset):
         ori_img = self._get_img(idx)
         ori_label = self._get_label(idx)
 
-        if self.transform:
-            for _ in range(5):
-                new_img, new_label = self._transform(ori_img, ori_label)
-                if len(new_label) > 0:
-                    break
+        if self.transform is None:
+            return ori_img, ori_label
 
-        return new_img, new_label
+        for _ in range(5):
+            new_img, new_label = self._transform(ori_img, ori_label)
+            if len(new_label) > 0:
+                return new_img, new_label
+
+        raise ValueError
 
     def _get_img(self, idx: int) -> np.ndarray:
         with self.env.begin() as tx:
