@@ -11,10 +11,14 @@ def ones_tensor(indices: torch.Tensor, size: torch.Size | None = None) -> torch.
     assert indices.size(0) == 2, "indices shape is (2, edge)"
     assert indices.size(1) > 0, "indices shape is (2, edge)"
 
+    kwargs = {}
+    if size is not None:
+        kwargs["size"] = size
+
     return torch.sparse_coo_tensor(
         indices,
         torch.ones(indices.size(1)).to(indices.device),
-        size=size,
+        **kwargs,
     )
 
 
