@@ -2,6 +2,7 @@ from typing import Sequence
 from torch import nn
 import torch
 from torchlake.common.models.model_base import ModelBase
+from torchlake.image_generation.models.pixelcnn.network import split_mask_groups
 
 from .network import GatedLayer, MaskedConv2d
 
@@ -99,13 +100,12 @@ class GatedPixelCNN(ModelBase):
             cond = cond[:, :, None, None]
 
         y = self.foot(x)
-
-        v, h = self.blocks[0](
-            y[:, : self._h],
-            y[:, -self._h :],
-            cond,
+        v, h = split_mask_groups(
+            y,
+            self.mask_groups,
+            (self.hidden_dim, self.hidden_dim),
         )
-        for block in self.blocks[1:]:
+        for block in self.blocks:
             v, h = block(v, h, cond)
 
         y = self.neck(h)

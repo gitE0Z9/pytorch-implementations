@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ..pixelcnn.network import MaskedConv2d
+from ..pixelcnn.network import MaskedConv2d, split_mask_groups
 
 
 def pad_on_top(x: torch.Tensor, offset: int):
@@ -36,6 +36,7 @@ class GatedLayer(nn.Module):
             conditional_shape (Sequence[int] | None, optional): the shape of the conditional representation. Default is None.
         """
         self.hidden_dim = hidden_dim
+        self.mask_groups = mask_groups
         self.conditional_shape = conditional_shape
         self._k = math.ceil(kernel / 2)
         super().__init__()
@@ -66,7 +67,6 @@ class GatedLayer(nn.Module):
             1,
             mask_type="B",
             mask_groups=mask_groups,
-            groups=2,
         )
         self.conv_h_output = MaskedConv2d(
             hidden_dim,
@@ -109,7 +109,14 @@ class GatedLayer(nn.Module):
         zv = self.conv_v_gate(zv)
         vf, vg = zv[:, : self.hidden_dim, :, :], zv[:, self.hidden_dim :, :, :]
         zh = self.conv_h_gate(zh)
-        hf, hg = zh[:, : self.hidden_dim, :, :], zh[:, self.hidden_dim :, :, :]
+        hf, hg = split_mask_groups(
+            zh,
+            self.mask_groups,
+            (
+                self.hidden_dim // self.mask_groups,
+                self.hidden_dim // self.mask_groups,
+            ),
+        )
 
         if c is not None:
             assert (

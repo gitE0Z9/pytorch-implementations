@@ -1,7 +1,24 @@
-from typing import Literal
+from typing import Literal, Sequence
 
 import torch
 from torch import nn
+
+
+def split_mask_groups(
+    x: torch.Tensor,
+    mask_groups: int,
+    splits: Sequence[int],
+) -> list[torch.Tensor]:
+    B, _, H, W = x.shape
+    x = x.view(B, mask_groups, -1, H, W)
+
+    output = []
+    offset = 0
+    for split in splits:
+        output.append(x[:, :, offset : offset + split].reshape(B, -1, H, W))
+        offset += split
+
+    return output
 
 
 class MaskedConv2d(nn.Conv2d):
