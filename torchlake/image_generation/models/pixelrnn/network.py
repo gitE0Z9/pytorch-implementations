@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ..pixelcnn.network import MaskedConv2d
+from ..pixelcnn.network import MaskedConv2d, split_mask_groups
 
 
 class RowLSTM(nn.Module):
@@ -70,8 +70,16 @@ class RowLSTM(nn.Module):
         for i in range(H):
             # use conv to get row level representation
             z = z_is[:, :, i : i + 1, :] + self.conv_ss(h)
-            i, f, o = z[:, : 3 * self.hidden_dim, :, :].sigmoid().chunk(3, 1)
-            g = z[:, -self.hidden_dim :, :, :].tanh()
+            sigmoid_states, tanh_state = split_mask_groups(
+                z,
+                self.mask_groups,
+                (
+                    3 * self.hidden_dim // self.mask_groups,
+                    self.hidden_dim // self.mask_groups,
+                ),
+            )
+            i, f, o = sigmoid_states.sigmoid().chunk(3, 1)
+            g = tanh_state.tanh()
             c = f * c + i * g
             h = o * c.tanh()
             outputs.append(h)
@@ -149,8 +157,16 @@ class DiagonalLSTMCell(nn.Module):
                 F.pad(h, (0, 0, self.kernel - 1, 0))
             )
             # lstm
-            i, f, o = z[:, : 3 * self.hidden_dim, :, :].sigmoid().chunk(3, 1)
-            g = z[:, -self.hidden_dim :, :, :].tanh()
+            sigmoid_states, tanh_state = split_mask_groups(
+                z,
+                self.mask_groups,
+                (
+                    3 * self.hidden_dim // self.mask_groups,
+                    self.hidden_dim // self.mask_groups,
+                ),
+            )
+            i, f, o = sigmoid_states.sigmoid().chunk(3, 1)
+            g = tanh_state.tanh()
             c = f * c + i * g
             h = o * c.tanh()
             outputs.append(h)
