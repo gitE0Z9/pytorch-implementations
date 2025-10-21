@@ -14,7 +14,7 @@ class RetinaNet(ModelBase):
         # 1 is background
         super().__init__(
             3,
-            context.num_classes + 1,
+            context.num_anchors * (context.num_classes + 1 + 4),
             foot_kwargs={
                 "backbone": backbone,
             },
@@ -27,37 +27,35 @@ class RetinaNet(ModelBase):
             {
                 "backbone": backbone,
                 "P6": nn.Conv2d(last_dim, last_dim, 3, stride=2, padding=1),
-                "P7": nn.ReLU(),
+                "P7": nn.Sequential(
+                    nn.ReLU(),
+                    nn.Conv2d(last_dim, last_dim, 3, stride=2, padding=1),
+                ),
             }
         )
 
     def build_blocks(self):
         # P3 ~ P7
         self.blocks = nn.ModuleList(
-            [
+            (
                 nn.Conv2d(d, 256, 1)
-                for d in [
+                for d in (
                     *self.foot["backbone"].feature_dims[-3:],
                     self.foot["backbone"].feature_dims[-1],
                     self.foot["backbone"].feature_dims[-1],
-                ]
-            ]
+                )
+            )
         )
 
     def build_neck(self):
-        self.neck = [
-            lambda x, _: x,
-            lambda x, shape: F.interpolate(x, shape),
-            lambda x, shape: F.interpolate(x, shape),
-            lambda x, shape: F.interpolate(x, shape),
-        ]
+        self.neck = lambda x, shape: F.interpolate(x, shape)
 
-    def build_head(self, output_size):
+    def build_head(self, _):
         # share head
         self.head = RegHead(
             256,
-            num_priors=self.context.num_anchors,
-            num_classes=output_size,
+            num_anchors=self.context.num_anchors,
+            num_classes=self.context.num_classes,
         )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -72,18 +70,23 @@ class RetinaNet(ModelBase):
 
         # P6~P3
         shapes = [feature.shape[2:] for feature in features[::-1]]
-        for shape, block, neck in zip(shapes, self.blocks[:-1][::-1], self.neck):
-            y = block(features.pop()) + neck(y, shape)
+        for shape, block in zip(shapes, self.blocks[:-1][::-1]):
+            y = block(features.pop()) + self.neck(y, shape)
             preds.append(self.head(y))
 
+        # batch size, num anchor * num cell, 5+class across scales
         batch_size = x.size(0)
-        preds = [
+        preds = tuple(
             pred.view(
-                batch_size, self.context.num_anchors, 5 + self.context.num_classes, -1
+                batch_size,
+                self.context.num_anchors,
+                4 + self.context.num_classes,
+                -1,
             )
             .permute(0, 1, 3, 2)
             .flatten(1, 2)
             for pred in preds
-        ]
+        )
 
+        # B, A*H*W, 5+C
         return torch.cat(preds, 1)
