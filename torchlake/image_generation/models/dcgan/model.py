@@ -31,6 +31,7 @@ class DCGANGenerator(ModelBase):
             nn.Linear(input_channel, self.hidden_dim * prod(self.init_shape)),
             nn.Unflatten(-1, (self.hidden_dim, *self.init_shape)),
             nn.BatchNorm2d(self.hidden_dim),
+            # nn.ReLU(),
         )
         nn.init.normal_(self.foot[2].weight, 1, 0.02)
         nn.init.constant_(self.foot[2].bias, 0)
@@ -38,28 +39,22 @@ class DCGANGenerator(ModelBase):
     def build_blocks(self):
         blocks = []
         for i in range(self.num_block):
-            blocks.append(
-                ConvBNReLU(
-                    self.hidden_dim // (2**i),
-                    self.hidden_dim // (2 ** (i + 1)),
-                    4,
-                    padding=1,
-                    stride=2,
-                    activation=nn.ReLU(),
-                    deconvolution=True,
-                ),
+            block = ConvBNReLU(
+                self.hidden_dim // (2**i),
+                self.hidden_dim // (2 ** (i + 1)),
+                4,
+                padding=1,
+                stride=2,
+                activation=nn.ReLU(),
+                deconvolution=True,
             )
+            nn.init.normal_(block.conv.weight, 0, 0.02)
+            # block.bn.momentum = 0.8
+            nn.init.normal_(block.bn.weight, 1, 0.02)
+            nn.init.constant_(block.bn.bias, 0)
+            blocks.append(block)
 
         self.blocks = nn.Sequential(*blocks)
-
-        nn.init.normal_(self.blocks[1].conv.weight, 0, 0.02)
-        self.blocks[1].bn.momentum = 0.8
-        nn.init.normal_(self.blocks[1].bn.weight, 1, 0.02)
-        nn.init.constant_(self.blocks[1].bn.bias, 0)
-        nn.init.normal_(self.blocks[3].conv.weight, 0, 0.02)
-        self.blocks[3].bn.momentum = 0.8
-        nn.init.normal_(self.blocks[3].bn.weight, 1, 0.02)
-        nn.init.constant_(self.blocks[3].bn.bias, 0)
 
     def build_head(self, output_size: int):
         self.head = nn.Sequential(

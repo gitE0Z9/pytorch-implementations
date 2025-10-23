@@ -107,7 +107,7 @@ class GANTrainer:
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
                 discriminator.train()
-                generator.eval()
+                # generator.eval()
                 d_loss = self.train_discriminator(
                     batch,
                     next(noise_generator(batch_size)),
@@ -124,7 +124,7 @@ class GANTrainer:
                     optimizer_d.zero_grad()
                     optimizer_g.zero_grad()
                     generator.train()
-                    discriminator.eval()
+                    # discriminator.eval()
                     g_loss = self.train_generator(
                         next(noise_generator(batch_size)),
                         valid,
