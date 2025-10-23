@@ -38,7 +38,6 @@ class PointNet(ModelBase):
             {
                 "transform": TransformModule(64),
                 "block": nn.Sequential(
-                    TransformModule(64),
                     ConvBnRelu(64, 64, 1, dimension="1d"),
                     ConvBnRelu(64, 128, 1, dimension="1d"),
                     ConvBnRelu(128, 1024, 1, dimension="1d"),
