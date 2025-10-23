@@ -63,18 +63,15 @@ class DCGANGenerator(ModelBase):
 
     def build_head(self, output_size: int):
         self.head = nn.Sequential(
-            # compare to conv2d + tanh, still has reflection pad
-            ConvBNReLU(
+            nn.Conv2d(
                 self.hidden_dim // (2**self.num_block),
                 output_size,
                 3,
                 padding=1,
-                enable_bn=True,
-                activation=nn.Tanh(),
-                deconvolution=True,
             ),
+            nn.Tanh(),
         )
-        nn.init.normal_(self.head[0].conv.weight, 0, 0.02)
+        nn.init.normal_(self.head[0].weight, 0, 0.02)
 
 
 class DCGANDiscriminator(ModelBase):
