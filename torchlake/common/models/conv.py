@@ -41,12 +41,14 @@ class ConvBNReLU(nn.Module):
         self.conv_last = conv_last
 
         if deconvolution:
+            # O = (I-1) * S - 2P + D(K-1) + OP + 1
             conv_cls = {
                 "1d": nn.ConvTranspose1d,
                 "2d": nn.ConvTranspose2d,
                 "3d": nn.ConvTranspose3d,
             }[dimension]
         else:
+            # O = ceil(I - K + 1 + 2P / S)
             conv_cls = {
                 "1d": nn.Conv1d,
                 "2d": nn.Conv2d,

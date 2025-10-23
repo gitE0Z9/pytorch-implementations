@@ -32,50 +32,49 @@ class DCGANGenerator(ModelBase):
             nn.Unflatten(-1, (self.hidden_dim, *self.init_shape)),
             nn.BatchNorm2d(self.hidden_dim),
         )
-        # nn.init.normal_(self.foot[2].weight, 1, 0.02)
-        # nn.init.constant_(self.foot[2].bias, 0)
+        nn.init.normal_(self.foot[2].weight, 1, 0.02)
+        nn.init.constant_(self.foot[2].bias, 0)
 
     def build_blocks(self):
         blocks = []
         for i in range(self.num_block):
             blocks.append(
-                nn.Upsample(scale_factor=2),
-            )
-            blocks.append(
                 ConvBNReLU(
                     self.hidden_dim // (2**i),
                     self.hidden_dim // (2 ** (i + 1)),
-                    3,
+                    4,
                     padding=1,
-                    activation=nn.LeakyReLU(0.2),
+                    stride=2,
+                    activation=nn.ReLU(),
+                    deconvolution=True,
                 ),
             )
 
         self.blocks = nn.Sequential(*blocks)
 
-        # nn.init.normal_(self.blocks[1].conv.weight, 0, 0.02)
-        # self.blocks[1].bn.momentum = 0.8
-        # nn.init.normal_(self.blocks[1].bn.weight, 1, 0.02)
-        # nn.init.constant_(self.blocks[1].bn.bias, 0)
-        # nn.init.normal_(self.blocks[3].conv.weight, 0, 0.02)
-        # self.blocks[3].bn.momentum = 0.8
-        # nn.init.normal_(self.blocks[3].bn.weight, 1, 0.02)
-        # nn.init.constant_(self.blocks[3].bn.bias, 0)
+        nn.init.normal_(self.blocks[1].conv.weight, 0, 0.02)
+        self.blocks[1].bn.momentum = 0.8
+        nn.init.normal_(self.blocks[1].bn.weight, 1, 0.02)
+        nn.init.constant_(self.blocks[1].bn.bias, 0)
+        nn.init.normal_(self.blocks[3].conv.weight, 0, 0.02)
+        self.blocks[3].bn.momentum = 0.8
+        nn.init.normal_(self.blocks[3].bn.weight, 1, 0.02)
+        nn.init.constant_(self.blocks[3].bn.bias, 0)
 
     def build_head(self, output_size: int):
         self.head = nn.Sequential(
             # compare to conv2d + tanh, still has reflection pad
             ConvBNReLU(
                 self.hidden_dim // (2**self.num_block),
-                # 64,
                 output_size,
                 3,
                 padding=1,
-                enable_bn=False,
+                enable_bn=True,
                 activation=nn.Tanh(),
+                deconvolution=True,
             ),
         )
-        # nn.init.normal_(self.head[0].conv.weight, 0, 0.02)
+        nn.init.normal_(self.head[0].conv.weight, 0, 0.02)
 
 
 class DCGANDiscriminator(ModelBase):
@@ -117,7 +116,6 @@ class DCGANDiscriminator(ModelBase):
                 activation_layer=lambda: nn.LeakyReLU(0.2),
                 inplace=None,
             ),
-            nn.Dropout2d(p=0.25),
         )
 
         # self.foot[0][1].momentum = 0.8
