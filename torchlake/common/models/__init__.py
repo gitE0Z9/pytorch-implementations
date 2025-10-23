@@ -1,5 +1,5 @@
 from .channel_shuffle import ChannelShuffle
-from .conv import ConvBnRelu, ConvInReLU
+from .conv import ConvBNReLU, ConvInReLU
 from .ds_conv import DepthwiseSeparableConv2d
 from .flatten import FlattenFeature
 from .highway import HighwayBlock
@@ -37,7 +37,7 @@ __all__ = [
     "EfficientNetFeatureExtractor",
     "EfficientNetV2FeatureExtractor",
     "ViTFeatureExtractor",
-    "ConvBnRelu",
+    "ConvBNReLU",
     "ConvInReLU",
     "KernelPCA",
     # "KMeans",

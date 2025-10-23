@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from .conv import ConvBnRelu
+from .conv import ConvBNReLU
 
 
 class DepthwiseSeparableConv2d(nn.Module):
@@ -31,7 +31,7 @@ class DepthwiseSeparableConv2d(nn.Module):
             activations (tuple[nn.Module  |  None], optional): activation of both layers. Defaults to (nn.ReLU(True), nn.ReLU(True)).
         """
         super().__init__()
-        self.depthwise_layer = ConvBnRelu(
+        self.depthwise_layer = ConvBNReLU(
             input_channel,
             input_channel,
             kernel,
@@ -42,7 +42,7 @@ class DepthwiseSeparableConv2d(nn.Module):
             enable_bn=enable_bn[0],
             activation=activations[0],
         )
-        self.pointwise_layer = ConvBnRelu(
+        self.pointwise_layer = ConvBNReLU(
             input_channel,
             output_channel,
             1,

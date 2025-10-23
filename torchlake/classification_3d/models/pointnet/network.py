@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from torchlake.common.models.conv import ConvBnRelu
+from torchlake.common.models.conv import ConvBNReLU
 
 
 class TNet(nn.Module):
@@ -10,12 +10,12 @@ class TNet(nn.Module):
         super().__init__()
 
         self.blocks = nn.Sequential(
-            ConvBnRelu(base_channel, 64, 1, dimension="1d"),
-            ConvBnRelu(64, 128, 1, dimension="1d"),
-            ConvBnRelu(128, 1024, 1, dimension="1d"),
+            ConvBNReLU(base_channel, 64, 1, dimension="1d"),
+            ConvBNReLU(64, 128, 1, dimension="1d"),
+            ConvBNReLU(128, 1024, 1, dimension="1d"),
             nn.AdaptiveMaxPool1d((1)),
-            ConvBnRelu(1024, 512, 1, dimension="1d"),
-            ConvBnRelu(512, 256, 1, dimension="1d"),
+            ConvBNReLU(1024, 512, 1, dimension="1d"),
+            ConvBNReLU(512, 256, 1, dimension="1d"),
             nn.Flatten(),
             nn.Linear(256, base_channel * base_channel),
             nn.Unflatten(-1, (base_channel, base_channel)),

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import ConvBnRelu
+from torchlake.common.models import ConvBNReLU
 
 from ..resnext.network import BottleNeck as XBottleNeck
 
@@ -15,14 +15,14 @@ class SelectiveKernel2d(nn.Module):
     ):
         super(SelectiveKernel2d, self).__init__()
         hidden_dim = max(32, output_channel // reduction_ratio)
-        self.conv1 = ConvBnRelu(
+        self.conv1 = ConvBNReLU(
             input_channel,
             output_channel,
             3,
             padding=1,
             group=32,
         )
-        self.conv2 = ConvBnRelu(
+        self.conv2 = ConvBNReLU(
             input_channel,
             output_channel,
             3,

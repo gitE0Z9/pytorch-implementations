@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 
-from torchlake.common.models import ConvBnRelu
+from torchlake.common.models import ConvBNReLU
+
 from ..resnet.network import ConvBlock
 
 
@@ -57,21 +58,21 @@ class BottleNeck(nn.Module):
         super(BottleNeck, self).__init__()
         _block_base_channel = int(widening_factor * block_base_channel)
         self.block = nn.Sequential(
-            ConvBnRelu(
+            ConvBNReLU(
                 input_channel,
                 _block_base_channel,
                 1,
                 stride=stride,
                 conv_last=pre_activation,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 _block_base_channel,
                 _block_base_channel,
                 3,
                 padding=1,
                 conv_last=pre_activation,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 _block_base_channel,
                 block_base_channel * 4,
                 1,

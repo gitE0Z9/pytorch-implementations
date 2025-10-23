@@ -1,10 +1,10 @@
 import torch
 import pytest
 
-from ...models import ConvBnRelu, ConvInReLU
+from ...models import ConvBNReLU, ConvInReLU
 
 
-class TestConvBnRelu:
+class TestConvBNReLU:
     @pytest.mark.parametrize(
         "input_shape,output_shape,dimension",
         [
@@ -21,7 +21,7 @@ class TestConvBnRelu:
     ):
         x = torch.randn(*input_shape)
 
-        model = ConvBnRelu(16, 32, 3, padding=1, dimension=dimension)
+        model = ConvBNReLU(16, 32, 3, padding=1, dimension=dimension)
 
         y = model(x)
 

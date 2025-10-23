@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 
-class ConvBnRelu(nn.Module):
+class ConvBNReLU(nn.Module):
     def __init__(
         self,
         input_channel: int,
@@ -17,7 +17,10 @@ class ConvBnRelu(nn.Module):
         enable_bn: bool = True,
         activation: nn.Module | None = nn.ReLU(True),
         conv_last: bool = False,
-        dimension: Literal["1d"] | Literal["2d"] | Literal["3d"] = "2d",
+        dimension: Literal["1d", "2d", "3d"] = "2d",
+        padding_mode: Literal["zeros", "reflect", "replicate", "circular"] = "zeros",
+        deconvolution: bool = False,
+        output_padding: int = 0,
     ):
         """Custom Conv-BN-ReLU block
 
@@ -37,11 +40,18 @@ class ConvBnRelu(nn.Module):
         super().__init__()
         self.conv_last = conv_last
 
-        conv_cls = {
-            "1d": nn.Conv1d,
-            "2d": nn.Conv2d,
-            "3d": nn.Conv3d,
-        }[dimension]
+        if deconvolution:
+            conv_cls = {
+                "1d": nn.ConvTranspose1d,
+                "2d": nn.ConvTranspose2d,
+                "3d": nn.ConvTranspose3d,
+            }[dimension]
+        else:
+            conv_cls = {
+                "1d": nn.Conv1d,
+                "2d": nn.Conv2d,
+                "3d": nn.Conv3d,
+            }[dimension]
 
         bn_cls = {
             "1d": nn.BatchNorm1d,
@@ -49,16 +59,22 @@ class ConvBnRelu(nn.Module):
             "3d": nn.BatchNorm3d,
         }[dimension]
 
-        self.conv = conv_cls(
-            input_channel,
-            output_channel,
-            kernel,
-            stride,
-            padding,
-            dilation,
-            group,
-            bias=not enable_bn,
-        )
+        kwargs = {
+            "in_channels": input_channel,
+            "out_channels": output_channel,
+            "kernel_size": kernel,
+            "stride": stride,
+            "padding": padding,
+            "dilation": dilation,
+            "groups": group,
+            "bias": not enable_bn,
+        }
+        if deconvolution:
+            kwargs["output_padding"] = output_padding
+        else:
+            kwargs["padding_mode"] = padding_mode
+
+        self.conv = conv_cls(**kwargs)
         self.bn = (
             bn_cls(output_channel if not conv_last else input_channel)
             if enable_bn
@@ -143,7 +159,7 @@ class ConvInReLU(nn.Module):
             groups=group,
             bias=not enable_in,
         )
-        self.norm = norm_cls(output_channel) if enable_in else enable_in
+        self.norm = norm_cls(output_channel, affine=True) if enable_in else enable_in
         self.activation = activation
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

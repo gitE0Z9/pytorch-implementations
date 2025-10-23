@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import ConvBnRelu
+from torchlake.common.models import ConvBNReLU
 
 
 class ConvBlock(nn.Module):
@@ -23,7 +23,7 @@ class ConvBlock(nn.Module):
         """
         super(ConvBlock, self).__init__()
         self.block = nn.Sequential(
-            ConvBnRelu(
+            ConvBNReLU(
                 input_channel,
                 block_base_channel,
                 3,
@@ -31,7 +31,7 @@ class ConvBlock(nn.Module):
                 stride=stride,
                 conv_last=pre_activation,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 block_base_channel,
                 block_base_channel,
                 3,
@@ -65,21 +65,21 @@ class BottleNeck(nn.Module):
         """
         super(BottleNeck, self).__init__()
         self.block = nn.Sequential(
-            ConvBnRelu(
+            ConvBNReLU(
                 input_channel,
                 block_base_channel,
                 1,
                 stride=stride,
                 conv_last=pre_activation,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 block_base_channel,
                 block_base_channel,
                 3,
                 padding=1,
                 conv_last=pre_activation,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 block_base_channel,
                 block_base_channel * 4,
                 1,
@@ -176,7 +176,7 @@ class ResBlock(nn.Module):
             return nn.Identity()
 
         layer = nn.Sequential(
-            ConvBnRelu(
+            ConvBNReLU(
                 input_channel,
                 output_channel,
                 1,

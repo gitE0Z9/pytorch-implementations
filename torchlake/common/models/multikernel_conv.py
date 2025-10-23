@@ -1,7 +1,7 @@
 from typing import Literal
 import torch
 from torch import nn
-from .conv import ConvBnRelu
+from .conv import ConvBNReLU
 from .flatten import FlattenFeature
 
 
@@ -33,7 +33,7 @@ class MultiKernelConvModule(nn.Module):
 
         self.cnns = nn.ModuleList(
             [
-                ConvBnRelu(
+                ConvBNReLU(
                     input_channel,
                     output_channel,
                     kernel,

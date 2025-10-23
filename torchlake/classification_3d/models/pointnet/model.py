@@ -1,7 +1,7 @@
 from torch import nn
 import torch
 
-from torchlake.common.models.conv import ConvBnRelu
+from torchlake.common.models.conv import ConvBNReLU
 from torchlake.common.models.model_base import ModelBase
 
 from .network import TransformModule
@@ -27,8 +27,8 @@ class PointNet(ModelBase):
             {
                 "transform": TransformModule(input_channel),
                 "block": nn.Sequential(
-                    ConvBnRelu(input_channel, 64, 1, dimension="1d"),
-                    ConvBnRelu(64, 64, 1, dimension="1d"),
+                    ConvBNReLU(input_channel, 64, 1, dimension="1d"),
+                    ConvBNReLU(64, 64, 1, dimension="1d"),
                 ),
             }
         )
@@ -38,9 +38,9 @@ class PointNet(ModelBase):
             {
                 "transform": TransformModule(64),
                 "block": nn.Sequential(
-                    ConvBnRelu(64, 64, 1, dimension="1d"),
-                    ConvBnRelu(64, 128, 1, dimension="1d"),
-                    ConvBnRelu(128, 1024, 1, dimension="1d"),
+                    ConvBNReLU(64, 64, 1, dimension="1d"),
+                    ConvBNReLU(64, 128, 1, dimension="1d"),
+                    ConvBNReLU(128, 1024, 1, dimension="1d"),
                 ),
             }
         )
@@ -48,9 +48,9 @@ class PointNet(ModelBase):
     def build_head(self, output_size: int, **kwargs):
         self.head = nn.Sequential(
             nn.AdaptiveMaxPool1d((1)),
-            ConvBnRelu(self.feature_dim, 512, 1, dimension="1d"),
+            ConvBNReLU(self.feature_dim, 512, 1, dimension="1d"),
             nn.Dropout(p=self.dropout_prob),
-            ConvBnRelu(512, 256, 1, dimension="1d"),
+            ConvBNReLU(512, 256, 1, dimension="1d"),
             nn.Dropout(p=self.dropout_prob),
             nn.Flatten(),
             nn.Linear(256, output_size),

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import ConvBnRelu
+from torchlake.common.models import ConvBNReLU
 
 
 class DenseBlock(nn.Module):
@@ -18,13 +18,13 @@ class DenseBlock(nn.Module):
         for i in range(num_layer):
             self.layers.append(
                 nn.Sequential(
-                    ConvBnRelu(
+                    ConvBNReLU(
                         growth_rate * i + input_channel,
                         expansion_ratio * growth_rate,
                         1,
                         conv_last=True,
                     ),
-                    ConvBnRelu(
+                    ConvBNReLU(
                         expansion_ratio * growth_rate,
                         growth_rate,
                         3,
@@ -49,7 +49,7 @@ class TransitionBlock(nn.Module):
         output_channel: int = 1,
     ):
         super(TransitionBlock, self).__init__()
-        self.conv = ConvBnRelu(
+        self.conv = ConvBNReLU(
             input_channel,
             output_channel,
             1,
