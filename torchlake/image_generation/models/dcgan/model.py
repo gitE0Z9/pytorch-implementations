@@ -1,47 +1,146 @@
-import torch
+from math import prod
+from typing import Sequence
+
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
 
+from torchlake.common.models import ConvBNReLU
+from torchlake.common.models.flatten import FlattenFeature
+from torchlake.common.models.model_base import ModelBase
 
-class DcganGenerator(nn.Module):
-    def __init__(self, latent_dim: int = 128, init_scale: int = 7):
-        super(DcganGenerator, self).__init__()
-        self.latent_dim = latent_dim
-        self.init_scale = init_scale
 
-        self.noise_projection = nn.Linear(latent_dim, latent_dim * init_scale**2)
+class DCGANGenerator(ModelBase):
+    def __init__(
+        self,
+        input_channel: int,
+        output_size: int,
+        hidden_dim: int = 1024,
+        num_block: int = 4,
+        init_shape: Sequence[int] = (4, 4),
+    ):
+        self.hidden_dim = hidden_dim
+        self.num_block = num_block
 
-        self.generator = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            Conv2dNormActivation(latent_dim, 128, 3),
-            nn.Upsample(scale_factor=2),
-            Conv2dNormActivation(128, 64, 3),
-            nn.Conv2d(64, 3, 3, padding=1),
-            nn.Tanh(),
+        self.init_shape = init_shape
+        self.final_shape = tuple(s * (2**num_block) for s in init_shape)
+
+        super().__init__(input_channel, output_size)
+
+    def build_foot(self, input_channel):
+        self.foot = nn.Sequential(
+            nn.Linear(input_channel, self.hidden_dim * prod(self.init_shape)),
+            nn.Unflatten(-1, (self.hidden_dim, *self.init_shape)),
+            nn.BatchNorm2d(self.hidden_dim),
+        )
+        # nn.init.normal_(self.foot[2].weight, 1, 0.02)
+        # nn.init.constant_(self.foot[2].bias, 0)
+
+    def build_blocks(self):
+        blocks = []
+        for i in range(self.num_block):
+            blocks.append(
+                nn.Upsample(scale_factor=2),
+            )
+            blocks.append(
+                ConvBNReLU(
+                    self.hidden_dim // (2**i),
+                    self.hidden_dim // (2 ** (i + 1)),
+                    3,
+                    padding=1,
+                    activation=nn.LeakyReLU(0.2),
+                ),
+            )
+
+        self.blocks = nn.Sequential(*blocks)
+
+        # nn.init.normal_(self.blocks[1].conv.weight, 0, 0.02)
+        # self.blocks[1].bn.momentum = 0.8
+        # nn.init.normal_(self.blocks[1].bn.weight, 1, 0.02)
+        # nn.init.constant_(self.blocks[1].bn.bias, 0)
+        # nn.init.normal_(self.blocks[3].conv.weight, 0, 0.02)
+        # self.blocks[3].bn.momentum = 0.8
+        # nn.init.normal_(self.blocks[3].bn.weight, 1, 0.02)
+        # nn.init.constant_(self.blocks[3].bn.bias, 0)
+
+    def build_head(self, output_size: int):
+        self.head = nn.Sequential(
+            # compare to conv2d + tanh, still has reflection pad
+            ConvBNReLU(
+                self.hidden_dim // (2**self.num_block),
+                # 64,
+                output_size,
+                3,
+                padding=1,
+                enable_bn=False,
+                activation=nn.Tanh(),
+            ),
+        )
+        # nn.init.normal_(self.head[0].conv.weight, 0, 0.02)
+
+
+class DCGANDiscriminator(ModelBase):
+
+    def __init__(
+        self,
+        input_channel: int,
+        hidden_dim: int,
+        image_shape: Sequence[int],
+        num_block: int,
+    ):
+        self.hidden_dim = hidden_dim
+        self.num_block = num_block
+
+        assert len(image_shape) == 2, "image size must be (height, width)"
+        for size in image_shape:
+            assert (
+                size % (2**num_block) == 0
+            ), "image size must be divisible by 2^num_block"
+
+        self.init_image_shape = image_shape
+        self.final_image_shape = tuple(
+            size // (2 ** (self.num_block + 1)) for size in self.init_image_shape
+        )
+        super().__init__(input_channel, 1)
+
+    @property
+    def feature_dim(self) -> int:
+        return prod(self.final_image_shape) * self.hidden_dim * (2**self.num_block)
+
+    def build_foot(self, input_channel: int):
+        self.foot = nn.Sequential(
+            Conv2dNormActivation(
+                input_channel,
+                self.hidden_dim,
+                3,
+                stride=2,
+                norm_layer=None,
+                activation_layer=lambda: nn.LeakyReLU(0.2),
+                inplace=None,
+            ),
+            nn.Dropout2d(p=0.25),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.noise_projection(x)
-        y = y.view(-1, self.latent_dim, self.init_scale, self.init_scale)
-        y = self.generator(y)
+        # self.foot[0][1].momentum = 0.8
 
-        return y
+    def build_blocks(self):
+        blocks = []
+        for i in range(self.num_block):
+            blocks.append(
+                Conv2dNormActivation(
+                    self.hidden_dim * (2**i),
+                    self.hidden_dim * (2 ** (i + 1)),
+                    3,
+                    stride=2,
+                    activation_layer=lambda: nn.LeakyReLU(0.2),
+                    inplace=None,
+                ),
+            )
+            # blocks[-1][1].momentum = 0.8
 
+        self.blocks = nn.Sequential(*blocks)
 
-class DcganDiscriminator(nn.Module):
-    def __init__(self):
-        super(DcganDiscriminator, self).__init__()
-        self.discriminator = nn.Sequential(
-            ConvBnRelu(3, 32, 3, padding=1),
-            ConvBnRelu(32, 64, 3, padding=1),
-            ConvBnRelu(64, 128, 3, padding=1),
-            nn.AdaptiveAvgPool2d((1, 1)),
+    def build_head(self, output_size: int, **kwargs):
+        self.head = nn.Sequential(
+            FlattenFeature(reduction=None),
+            nn.Linear(self.feature_dim, output_size),
         )
-
-        self.clf = nn.Linear(128, 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.discriminator(x)
-        y = torch.flatten(y, start_dim=1)
-        y = self.clf(y)
-        return y
