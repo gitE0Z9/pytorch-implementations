@@ -13,10 +13,10 @@ class DCGANGenerator(ModelBase):
     def __init__(
         self,
         input_channel: int,
-        output_size: int,
+        output_size: int = 3,
         hidden_dim: int = 1024,
         num_block: int = 4,
-        init_shape: Sequence[int] = (4, 4),
+        init_shape: Sequence[int] = (2, 2),
     ):
         self.hidden_dim = hidden_dim
         self.num_block = num_block
@@ -31,7 +31,6 @@ class DCGANGenerator(ModelBase):
             nn.Linear(input_channel, self.hidden_dim * prod(self.init_shape)),
             nn.Unflatten(-1, (self.hidden_dim, *self.init_shape)),
             nn.BatchNorm2d(self.hidden_dim),
-            # nn.ReLU(),
         )
         nn.init.normal_(self.foot[2].weight, 1, 0.02)
         nn.init.constant_(self.foot[2].bias, 0)
@@ -73,10 +72,10 @@ class DCGANDiscriminator(ModelBase):
 
     def __init__(
         self,
-        input_channel: int,
-        hidden_dim: int,
-        image_shape: Sequence[int],
-        num_block: int,
+        input_channel: int = 3,
+        hidden_dim: int = 64,
+        image_shape: Sequence[int] = (32, 32),
+        num_block: int = 4,
     ):
         self.hidden_dim = hidden_dim
         self.num_block = num_block
