@@ -1,24 +1,79 @@
 import torch
 
 from torchlake.common.utils.random import generate_normal
-from ..models.gan import GANDiscriminator, GANGenerator
+from ..models.gan import (
+    GANDiscriminator,
+    GANGenerator,
+    GANDiscriminatorLoss,
+    GANGeneratorLoss,
+)
+
+BATCH_SIZE = 1
+INPUT_CHANNEL = 3
+LATENT_DIM = 128
+HIDDEN_DIM = 256
+IMAGE_SIZE = 32
 
 
 class TestModel:
     def test_generator_forward_shape(self):
-        z = generate_normal(1, 128)
+        z = generate_normal(BATCH_SIZE, IMAGE_SIZE)
 
-        model = GANGenerator(128, 256, (3, 32, 32))
+        model = GANGenerator(
+            LATENT_DIM,
+            HIDDEN_DIM,
+            (INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE),
+        )
 
         y = model(z)
 
-        assert y.shape == torch.Size((1, 3, 32, 32))
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        )
 
     def test_discriminator_forward_shape(self):
-        x = torch.rand((1, 3, 32, 32))
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = GANDiscriminator(256, (3, 32, 32))
+        model = GANDiscriminator(HIDDEN_DIM, (INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         y = model(x)
 
-        assert y.shape == torch.Size((1, 1))
+        assert y.shape == torch.Size((BATCH_SIZE, 1))
+
+
+class TestLoss:
+    def test_generator_loss_forward(self):
+        z = generate_normal(BATCH_SIZE, LATENT_DIM)
+
+        g = GANGenerator(
+            LATENT_DIM,
+            HIDDEN_DIM,
+            (INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE),
+        )
+        d = GANDiscriminator(HIDDEN_DIM, (INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+
+        yhat_xhat = d(g(z))
+
+        criterion = GANGeneratorLoss()
+        loss = criterion(yhat_xhat)
+
+        assert not torch.isnan(loss)
+
+    def test_discriminator_loss_forward(self):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+        z = generate_normal(BATCH_SIZE, LATENT_DIM)
+
+        g = GANGenerator(
+            LATENT_DIM,
+            HIDDEN_DIM,
+            (INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE),
+        )
+        d = GANDiscriminator(HIDDEN_DIM, (INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+
+        yhat_x = d(x)
+        yhat_xhat = d(g(z))
+
+        criterion = GANDiscriminatorLoss()
+        loss = criterion(yhat_x, yhat_xhat)
+
+        assert not torch.isnan(loss)

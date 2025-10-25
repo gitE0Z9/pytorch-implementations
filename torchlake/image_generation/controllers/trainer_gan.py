@@ -1,8 +1,9 @@
 from typing import Callable, Generator, Iterable
+
 import torch
-from tqdm import tqdm
-from torch.optim import Optimizer
 from torch import nn
+from torch.optim import Optimizer
+from tqdm import tqdm
 
 from torchlake.common.controller.recorder import TrainRecorder
 
@@ -43,30 +44,27 @@ class GANTrainer:
         self,
         row: tuple[Iterable],
         noise: torch.Tensor,
-        valid: torch.Tensor,
         generator: nn.Module,
         discriminator: nn.Module,
         criterion: nn.Module,
     ) -> torch.Tensor:
-        img, _ = row
-        img = img.to(self.device)
+        x, _ = row
+        x = x.to(self.device)
 
         with torch.no_grad():
-            gen_img = generator(noise)
-        real_loss = criterion(discriminator(img), valid)
-        fake_loss = criterion(discriminator(gen_img), 1 - valid)
-        return real_loss + fake_loss
+            xhat = generator(noise)
+
+        return criterion(discriminator(x), discriminator(xhat))
 
     def train_generator(
         self,
         noise: torch.Tensor,
-        valid: torch.Tensor,
         generator: nn.Module,
         discriminator: nn.Module,
         criterion: nn.Module,
     ) -> torch.Tensor:
-        gen_img = generator(noise)
-        return criterion(discriminator(gen_img), valid)
+        xhat = generator(noise)
+        return criterion(discriminator(xhat))
 
     def run(
         self,
@@ -102,7 +100,7 @@ class GANTrainer:
         for e in range(recorder.current_epoch, recorder.total_epoch):
             for batch_idx, batch in enumerate(tqdm(data)):
                 batch_size = recorder.calc_batch_size(batch)
-                valid = torch.ones(batch_size, 1).to(self.device)
+                noise = noise_generator(batch_size)
 
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
@@ -110,8 +108,7 @@ class GANTrainer:
                 generator.train()
                 d_loss = self.train_discriminator(
                     batch,
-                    next(noise_generator(batch_size)),
-                    valid,
+                    next(noise),
                     generator,
                     discriminator,
                     criterion_d,
@@ -126,8 +123,7 @@ class GANTrainer:
                     generator.train()
                     discriminator.train()
                     g_loss = self.train_generator(
-                        next(noise_generator(batch_size)),
-                        valid,
+                        next(noise),
                         generator,
                         discriminator,
                         criterion_g,
