@@ -69,15 +69,13 @@ class GANDiscriminator(ModelBase):
         self.foot = nn.Sequential(
             nn.Flatten(),
             nn.Linear(input_channel, self.hidden_dim * 2),
-            # nerf
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.2),
         )
 
     def build_blocks(self, **kwargs):
         self.blocks = nn.Sequential(
             nn.Linear(self.hidden_dim * 2, self.hidden_dim),
-            # nerf
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.2),
         )
 
     def build_head(self, output_size, **kwargs):
