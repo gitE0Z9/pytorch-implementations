@@ -5,18 +5,23 @@ description = "implementations of multiple domains of deep learning models"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "albumentations>=2.0.7",
+  "albumentations>=2.0.8",
+  # "datasets>=3.6.0",
+  "lmdb>=1.6.2",
   "matplotlib>=3.10.3",
   "numpy>=2.2.6",
   "opencv-contrib-python>=4.11.0.86",
   "opencv-python>=4.11.0.86",
   "pandas>=2.2.3",
+  "polars>=1.31.0",
   "pydantic>=2.11.4",
   "tensorboardx>=2.6.4",
-  "torch==2.6.0",
+  # "tensorrt",
+  "torch==2.8.0",
   "torchmetrics>=1.7.1",
   "torchvision>=0.21.0",
   "tqdm>=4.67.1",
+  # "transformers>=4.52.4",
 ]
 
 
@@ -26,6 +31,17 @@ notebook = [
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
     "torchinfo>=1.8.0",
+]
+ocr = [
+    "levenshtein>=0.27.1",
+    "trdg>=0.1.1",
+]
+graph = [
+  "networkx>=3.4.2",
+  "torch_geometric>=2.7.0",
+]
+3d = [
+    "trimesh>=4.8.3",
 ]
 
 [dependency-groups]
@@ -53,6 +69,13 @@ torchvision = [
 torch-scatter = [
   { index = "torch-scatter-cu126" },
 ]
+torch-sparse = [
+  { index = "torch-sparse-cu126" },
+]
+torch-tensorrt = [
+  { index = "torch-tensorrt-cu126"},
+]
+tensorrt = { path = "F:/TensorRT-10.7.0.23/python/tensorrt-10.7.0-cp311-none-win_amd64.whl" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
@@ -66,7 +89,18 @@ explicit = true
 
 [[tool.uv.index]]
 name = "torch-scatter-cu126"
-url = "https://data.pyg.org/whl/torch-2.6.0+cu126.html"
+url = "https://data.pyg.org/whl/torch-2.8.0+cu126.html"
+explicit = true
+
+[[tool.uv.index]]
+name = "torch-sparse-cu126"
+url = "https://data.pyg.org/whl/torch-2.8.0+cu126.html"
+explicit = true
+
+
+[[tool.uv.index]]
+name = "torch-tensorrt-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.setuptools.packages.find]
