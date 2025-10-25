@@ -11,7 +11,6 @@ class VAE(ModelBase):
         hidden_dim: int = 128,
         latent_dim: int = 64,
     ):
-        self.input_channel = input_channel
         self.image_size = image_size
         self.total_pixel = input_channel * image_size
         self.hidden_dim = hidden_dim
@@ -43,8 +42,8 @@ class VAE(ModelBase):
         y = self.foot(x)
         return self.neck["mu"](y), self.neck["sigma"](y)
 
-    def sample(self, mu: torch.Tensor, logsigma: torch.Tensor) -> torch.Tensor:
-        sigma = torch.exp(logsigma / 2)
+    def sample(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        sigma = torch.exp(logvar / 2)
         epsilion = torch.normal(
             mean=0.0,
             std=torch.ones_like(sigma),
@@ -55,7 +54,7 @@ class VAE(ModelBase):
     def decode(self, x: torch.Tensor, output_shape: torch.Size = None) -> torch.Tensor:
         y = self.head(x)
 
-        if output_shape:
+        if output_shape is not None:
             return y.view(*output_shape)
 
         return y
@@ -63,16 +62,15 @@ class VAE(ModelBase):
     def forward(
         self,
         x: torch.Tensor,
-        output_param: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         original_shape = x.shape
         x = x.view(-1, self.total_pixel)
 
-        mu, logsigma = self.encode(x)
-        y = self.sample(mu, logsigma)
+        mu, logvar = self.encode(x)
+        y = self.sample(mu, logvar)
         y = self.decode(y, original_shape)
 
         if self.training:
-            return y, mu, logsigma
+            return y, mu, logvar
 
         return y

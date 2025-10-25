@@ -38,7 +38,7 @@ class TestLoss:
         self.x = torch.rand(IMAGE_SHAPE, requires_grad=True)
         self.y = torch.rand(IMAGE_SHAPE)
         self.mu = torch.rand((1, LATENT_DIM))
-        self.logsigma = torch.rand((1, LATENT_DIM))
+        self.logvar = torch.rand((1, LATENT_DIM))
 
     @pytest.mark.parametrize("loss_type", ["mse", "bce"])
     def test_forward(self, loss_type):
@@ -46,7 +46,7 @@ class TestLoss:
 
         criterion = VAELoss(loss_type=loss_type)
 
-        loss = criterion.forward(self.x, self.mu, self.logsigma, self.y)
+        loss = criterion.forward(self.x, self.mu, self.logvar, self.y)
 
         assert not torch.isnan(loss)
 
@@ -56,5 +56,5 @@ class TestLoss:
 
         criterion = VAELoss(loss_type=loss_type)
 
-        loss = criterion.forward(self.x, self.mu, self.logsigma, self.y)
+        loss = criterion.forward(self.x, self.mu, self.logvar, self.y)
         loss.backward()
