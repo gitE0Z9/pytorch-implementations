@@ -15,7 +15,7 @@ from ..models.dqn.network import QNetwork
 class DqnTrainer(object):
     def __init__(
         self,
-        epoches: int,
+        total_epoch: int,
         device: torch.device,
         n_actions: int,
         timeout: int = 500,
@@ -25,7 +25,7 @@ class DqnTrainer(object):
         epsilon_t: int = 5e-2,
         epsilon_decay: int = 5e-2,
     ):
-        self.epoches = epoches
+        self.total_epoch = total_epoch
         self.update_cycle = update_cycle
         self.gamma = gamma  # discount value
         self.epsilon_0 = epsilon_0  # random action probability at 0
@@ -98,7 +98,7 @@ class DqnTrainer(object):
         episode_rewards = []
         training_loss = []
 
-        for epoch in tqdm(range(self.epoches)):
+        for epoch in tqdm(range(self.total_epoch)):
             episode_reward = 0
             running_loss = 0
             state = data[0].unsqueeze(0).to(self.device)

@@ -11,7 +11,7 @@ from torchlake.common.controller.recorder import TrainRecorder
 class GANTrainer:
     def __init__(
         self,
-        epoches: int = 10,
+        total_epoch: int = 10,
         device: torch.device = torch.device("cuda:0"),
         acc_iters: int = 1,
         feature_last: bool = False,
@@ -21,20 +21,20 @@ class GANTrainer:
         """Trainer of GAN
 
         Args:
-            epoches (int, optional): how many epoch to run, if no recorder then use this number as total epoch of this run. Defaults to 10.
+            total_epoch (int, optional): how many epoch to run, if no recorder then use this number as total epoch of this run. Defaults to 10.
             device (torch.device, optional): which device to use. Defaults to torch.device("cuda:0").
             acc_iters (int, optional): how many epoch to finish gradient accumulation. Defaults to 1.
             feature_last (bool, optional): do we need to move index -1 of output to index 1, default value intends to work with image and entropy loss. Defaults to False.
             validate_interval (int, optional): after how many epoch to run validate function. Defaults to 10.
             checkpoint_interval (int, optional): after how many epoch to save checkpint. Defaults to 10.
         """
-        self.epoches = epoches
+        self.total_epoch = total_epoch
         self.device = torch.device(device)
         self.acc_iters = acc_iters
         self.feature_last = feature_last
         self.validate_interval = validate_interval
         self.checkpoint_interval = checkpoint_interval
-        self.recorder = TrainRecorder(total_epoch=self.epoches)
+        self.recorder = TrainRecorder(total_epoch=self.total_epoch)
         self.discriminator_cycle = 1
 
     def set_discriminator_cycle(self, value: int):
@@ -99,8 +99,7 @@ class GANTrainer:
 
         for e in range(recorder.current_epoch, recorder.total_epoch):
             for batch_idx, batch in enumerate(tqdm(data)):
-                batch_size = recorder.calc_batch_size(batch)
-                noise = noise_generator(batch_size)
+                noise = noise_generator(batch)
 
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
