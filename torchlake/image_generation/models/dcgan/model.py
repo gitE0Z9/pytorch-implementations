@@ -8,6 +8,8 @@ from torchlake.common.models import ConvBNReLU
 from torchlake.common.models.flatten import FlattenFeature
 from torchlake.common.models.model_base import ModelBase
 
+from ...utils.initialization import init_bn_dcgan_style, init_conv_dcgan_style
+
 
 class DCGANGenerator(ModelBase):
     def __init__(
@@ -32,8 +34,7 @@ class DCGANGenerator(ModelBase):
             nn.Unflatten(-1, (self.hidden_dim, *self.init_shape)),
             nn.BatchNorm2d(self.hidden_dim),
         )
-        nn.init.normal_(self.foot[2].weight, 1, 0.02)
-        nn.init.constant_(self.foot[2].bias, 0)
+        init_bn_dcgan_style(self.foot[2])
 
     def build_blocks(self):
         blocks = []
@@ -44,13 +45,11 @@ class DCGANGenerator(ModelBase):
                 4,
                 padding=1,
                 stride=2,
-                activation=nn.ReLU(),
                 deconvolution=True,
             )
-            nn.init.normal_(block.conv.weight, 0, 0.02)
+            init_conv_dcgan_style(block.conv)
+            init_bn_dcgan_style(block.bn)
             # block.bn.momentum = 0.8
-            nn.init.normal_(block.bn.weight, 1, 0.02)
-            nn.init.constant_(block.bn.bias, 0)
             blocks.append(block)
 
         self.blocks = nn.Sequential(*blocks)
@@ -65,7 +64,7 @@ class DCGANGenerator(ModelBase):
             ),
             nn.Tanh(),
         )
-        nn.init.normal_(self.head[0].weight, 0, 0.02)
+        init_conv_dcgan_style(self.head[0])
 
 
 class DCGANDiscriminator(ModelBase):

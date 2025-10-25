@@ -55,7 +55,7 @@ class GANTrainer:
             gen_img = generator(noise)
         real_loss = criterion(discriminator(img), valid)
         fake_loss = criterion(discriminator(gen_img), 1 - valid)
-        return (real_loss + fake_loss) / 2
+        return real_loss + fake_loss
 
     def train_generator(
         self,
@@ -107,7 +107,7 @@ class GANTrainer:
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
                 discriminator.train()
-                # generator.eval()
+                generator.train()
                 d_loss = self.train_discriminator(
                     batch,
                     next(noise_generator(batch_size)),
@@ -124,7 +124,7 @@ class GANTrainer:
                     optimizer_d.zero_grad()
                     optimizer_g.zero_grad()
                     generator.train()
-                    # discriminator.eval()
+                    discriminator.train()
                     g_loss = self.train_generator(
                         next(noise_generator(batch_size)),
                         valid,
