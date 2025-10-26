@@ -117,11 +117,16 @@
 
 套件名: `image_generation`
 
-| Model                                | Article Link                                                                                                                                                  | Package   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Variational autoencoder (VAE)        | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539)        | ``vae``   |
-| Generative adversarial network (GAN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd) | ``gan``   |
-| Deep convolution GAN (DCGAN)         | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)                                 | ``dcgan`` |
+| Model                                | Article Link                                                                                                                                                  | Package            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Variational autoencoder (VAE)        | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%BA%8C-variational-autoencoder-954596aae539)        | ``vae``            |
+| Generative adversarial network (GAN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd) | ``gan``            |
+| Deep convolution GAN (DCGAN)         | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)                                 | ``dcgan``          |
+| Conditional GAN (cGAN)               |                                                                                                                                                               | ``cgan.ipynb``     |
+| PixelRNN - diagonal bilstm           |                                                                                                                                                               | ``pixelrnn``       |
+| PixelRNN - row lstm                  |                                                                                                                                                               | ``pixelrnn``       |
+| PixelCNN                             |                                                                                                                                                               | ``pixelcnn``       |
+| Gated PixelCNN                       |                                                                                                                                                               | ``gated_pixelcnn`` |
 
 ### 風格遷移
 
