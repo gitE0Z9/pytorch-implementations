@@ -100,7 +100,8 @@ class GANTrainer:
 
         for e in range(recorder.current_epoch, recorder.total_epoch):
             for batch_idx, batch in enumerate(tqdm(data)):
-                noise = noise_generator(batch)
+                batch_size = recorder.calc_batch_size(batch)
+                noise = noise_generator(batch_size, self.device)
 
                 optimizer_d.zero_grad()
                 optimizer_g.zero_grad()
