@@ -58,6 +58,7 @@ class GANTrainer:
 
     def train_generator(
         self,
+        row: tuple[Iterable],
         noise: torch.Tensor,
         generator: nn.Module,
         discriminator: nn.Module,
@@ -122,6 +123,7 @@ class GANTrainer:
                     generator.train()
                     discriminator.train()
                     g_loss = self.train_generator(
+                        batch,
                         next(noise),
                         generator,
                         discriminator,
