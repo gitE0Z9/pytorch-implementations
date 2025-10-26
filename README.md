@@ -123,6 +123,7 @@
 | Generative adversarial network (GAN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%89-generative-adversarial-network-445ffdc297fd) | ``gan``            |
 | Deep convolution GAN (DCGAN)         | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-11-dcgan-40a78e279030)                                 | ``dcgan``          |
 | Conditional GAN (cGAN)               |                                                                                                                                                               | ``cgan.ipynb``     |
+| Auxiliary classifier GAN (acGAN)     |                                                                                                                                                               | ``acgan``          |
 | PixelRNN - diagonal bilstm           |                                                                                                                                                               | ``pixelrnn``       |
 | PixelRNN - row lstm                  |                                                                                                                                                               | ``pixelrnn``       |
 | PixelCNN                             |                                                                                                                                                               | ``pixelcnn``       |
