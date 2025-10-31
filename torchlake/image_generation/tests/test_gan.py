@@ -17,7 +17,7 @@ IMAGE_SIZE = 32
 
 class TestModel:
     def test_generator_forward_shape(self):
-        z = generate_normal(BATCH_SIZE, IMAGE_SIZE)
+        z = generate_normal(BATCH_SIZE, LATENT_DIM)
 
         model = GANGenerator(
             LATENT_DIM,

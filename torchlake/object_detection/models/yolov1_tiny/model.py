@@ -81,6 +81,8 @@ class YOLOV1Tiny(ModelBase):
     def build_neck(self):
         if self.head_type == "classification":
             self.neck = nn.Dropout(self.dropout_prob)
+        else:
+            self.neck = None
 
     def build_head(self, output_size: int, **kwargs):
         output_shape = kwargs.pop("output_shape")

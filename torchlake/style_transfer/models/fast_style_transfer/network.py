@@ -1,15 +1,15 @@
 import torch
 from torch import nn
 
-from torchlake.common.models import ConvInReLU
+from torchlake.common.models import ConvINReLU
 
 
 class ResidualBlock(nn.Module):
     def __init__(self, hidden_dim: int):
         super().__init__()
         self.layers = nn.Sequential(
-            ConvInReLU(hidden_dim, hidden_dim, 3),
-            ConvInReLU(hidden_dim, hidden_dim, 3, activation=None),
+            ConvINReLU(hidden_dim, hidden_dim, 3),
+            ConvINReLU(hidden_dim, hidden_dim, 3, activation=None),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

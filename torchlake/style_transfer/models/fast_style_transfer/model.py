@@ -1,6 +1,6 @@
 from torch import nn
 
-from torchlake.common.models import ConvInReLU
+from torchlake.common.models import ConvINReLU
 from torchlake.common.models.imagenet_normalization import ImageNetNormalization
 from torchlake.common.models.model_base import ModelBase
 
@@ -21,9 +21,9 @@ class FastStyleTransfer(ModelBase):
     def build_foot(self, input_channel, **kwargs):
         self.foot = nn.Sequential(
             ImageNetNormalization(),
-            ConvInReLU(input_channel, self.hidden_dim, 9),
-            ConvInReLU(self.hidden_dim, self.hidden_dim * 2, 3, stride=2),
-            ConvInReLU(self.hidden_dim * 2, self.hidden_dim * 4, 3, stride=2),
+            ConvINReLU(input_channel, self.hidden_dim, 9),
+            ConvINReLU(self.hidden_dim, self.hidden_dim * 2, 3, stride=2),
+            ConvINReLU(self.hidden_dim * 2, self.hidden_dim * 4, 3, stride=2),
         )
 
     def build_blocks(self, **kwargs):
@@ -34,10 +34,10 @@ class FastStyleTransfer(ModelBase):
     def build_head(self, output_size, **kwargs):
         self.head = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            ConvInReLU(self.hidden_dim * 4, self.hidden_dim * 2, 3),
+            ConvINReLU(self.hidden_dim * 4, self.hidden_dim * 2, 3),
             nn.Upsample(scale_factor=2),
-            ConvInReLU(self.hidden_dim * 2, self.hidden_dim, 3),
-            ConvInReLU(
+            ConvINReLU(self.hidden_dim * 2, self.hidden_dim, 3),
+            ConvINReLU(
                 self.hidden_dim,
                 output_size,
                 9,

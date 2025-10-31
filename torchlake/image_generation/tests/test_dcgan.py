@@ -2,8 +2,9 @@ import torch
 
 from ..models.dcgan import DCGANDiscriminator, DCGANGenerator
 
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 INPUT_CHANNEL = 3
+IMAGE_SIZE = 32
 LATENT_DIM = 16
 HIDDEN_DIM = 64
 
@@ -24,17 +25,19 @@ class TestModel:
 
         y = model(x)
 
-        assert y.shape == torch.Size((BATCH_SIZE, INPUT_CHANNEL, 32, 32))
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        )
 
     def test_dcgan_discriminator_forward_shape(self):
-        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, 32, 32))
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         # 32 -> 1 => downscale (1 + #block) times
         # 64 -> 1024
         model = DCGANDiscriminator(
             INPUT_CHANNEL,
             HIDDEN_DIM,
-            image_shape=(32, 32),
+            image_shape=(IMAGE_SIZE, IMAGE_SIZE),
             num_block=4,
         )
 

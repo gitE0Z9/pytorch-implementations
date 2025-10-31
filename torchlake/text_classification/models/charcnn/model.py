@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import ConvBnRelu
+from torchlake.common.models import ConvBNReLU
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NlpContext
 
@@ -41,14 +41,14 @@ class CharCNN(ModelBase):
 
     def build_blocks(self):
         self.blocks = nn.Sequential(
-            ConvBnRelu(self.input_channel, 256, 7, enable_bn=False, dimension="1d"),
+            ConvBNReLU(self.input_channel, 256, 7, enable_bn=False, dimension="1d"),
             nn.MaxPool1d(3, 3),
-            ConvBnRelu(256, 256, 7, enable_bn=False, dimension="1d"),
+            ConvBNReLU(256, 256, 7, enable_bn=False, dimension="1d"),
             nn.MaxPool1d(3, 3),
-            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
-            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
-            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
-            ConvBnRelu(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBNReLU(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBNReLU(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBNReLU(256, 256, 3, enable_bn=False, dimension="1d"),
+            ConvBNReLU(256, 256, 3, enable_bn=False, dimension="1d"),
             nn.MaxPool1d(3, 3),
         )
 

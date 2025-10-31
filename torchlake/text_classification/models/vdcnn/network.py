@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.models import ConvBnRelu
+from torchlake.common.models import ConvBNReLU
 
 
 class Block(nn.Module):
@@ -16,14 +16,14 @@ class Block(nn.Module):
         super().__init__()
         self.enable_shortcut = enable_shortcut
         self.block = nn.Sequential(
-            ConvBnRelu(
+            ConvBNReLU(
                 input_channel,
                 output_channel,
                 kernel,
                 padding=kernel // 2,
                 dimension="1d",
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 output_channel,
                 output_channel,
                 kernel,
@@ -59,7 +59,7 @@ class Block(nn.Module):
         if input_channel == output_channel and stride == 1:
             return nn.Identity()
 
-        return ConvBnRelu(
+        return ConvBNReLU(
             input_channel,
             output_channel,
             1,

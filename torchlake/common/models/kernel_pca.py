@@ -65,28 +65,21 @@ class KernelPCA(nn.Module):
     def fit(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         self.x_fit = x
 
-        print("Step 1: Compute the kernel matrix")
         K = self.kernel(x, **self.kernel_params)
 
-        print("Step 2: Center the kernel matrix")
         K_centered = center_kernel(K)
 
-        print("Step 3: Eigenvalue decomposition")
         # eigvals, eigvecs = torch.linalg.eigh(K_centered)
         eigvecs, eigvals, _ = torch.linalg.svd(K_centered)
 
-        # Step 4: Sort eigenvalues and eigenvectors in descending order
         # eigvals, eigvecs = eigvals.flip(0), eigvecs.flip(1)
 
-        # Step 5: Select the top n_components eigenvectors
         self.eigenvectors: torch.Tensor = eigvecs[:, : self.n_components]
         self.eigenvalues: torch.Tensor = eigvals[: self.n_components]
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        # Compute the kernel between the new data and the fitted data
         K_new: torch.Tensor = self.kernel(x, self.x_fit, **self.kernel_params)
 
-        # Center the new kernel matrix
         K_new_centered = (
             K_new
             - K_new.mean(dim=1, keepdim=True)
@@ -94,5 +87,4 @@ class KernelPCA(nn.Module):
             + self.x_fit.mean()
         )
 
-        # Project the new data into the PCA space
         return K_new_centered @ self.eigenvectors * self.eigenvalues.sqrt()

@@ -99,7 +99,7 @@ class ConvBNReLU(nn.Module):
         return x
 
 
-class ConvInReLU(nn.Module):
+class ConvINReLU(nn.Module):
     def __init__(
         self,
         input_channel: int,
@@ -113,7 +113,7 @@ class ConvInReLU(nn.Module):
         activation: nn.Module | None = nn.LeakyReLU(0.2),
         dimension: Literal["1d"] | Literal["2d"] | Literal["3d"] = "2d",
     ):
-        """Custom Conv-BN-ReLU block
+        """Custom Conv-IN-ReLU block
 
         Args:
             input_channel (int): input channel size

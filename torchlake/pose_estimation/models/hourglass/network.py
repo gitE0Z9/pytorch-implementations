@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchlake.common.models import ResBlock
 
-from torchlake.common.models.conv import ConvBnRelu
+from torchlake.common.models.conv import ConvBNReLU
 
 
 class BottleNeck(nn.Module):
@@ -24,21 +24,21 @@ class BottleNeck(nn.Module):
         """
         super().__init__()
         self.block = nn.Sequential(
-            ConvBnRelu(
+            ConvBNReLU(
                 input_channel,
                 block_base_channel,
                 1,
                 stride=stride,
                 conv_last=True,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 block_base_channel,
                 block_base_channel,
                 3,
                 padding=1,
                 conv_last=True,
             ),
-            ConvBnRelu(
+            ConvBNReLU(
                 block_base_channel,
                 block_base_channel * 2,
                 1,

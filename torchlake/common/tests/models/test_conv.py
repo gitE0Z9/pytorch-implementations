@@ -1,7 +1,7 @@
 import torch
 import pytest
 
-from ...models import ConvBNReLU, ConvInReLU
+from ...models import ConvBNReLU, ConvINReLU
 
 
 class TestConvBNReLU:
@@ -45,7 +45,7 @@ class TestConvInReLU:
     ):
         x = torch.randn(*input_shape)
 
-        model = ConvInReLU(16, 32, 3, padding=1, dimension=dimension)
+        model = ConvINReLU(16, 32, 3, padding=1, dimension=dimension)
 
         y = model(x)
 
