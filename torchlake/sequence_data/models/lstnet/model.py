@@ -21,7 +21,6 @@ class LSTNet(ModelBase):
         dropout_prob: float = 0.2,
         activation: nn.Module | None = None,
     ):
-        self.output_size = output_size
         self.hidden_dim_c = hidden_dim_c
         self.hidden_dim_r = hidden_dim_r
         self.hidden_dim_skip = hidden_dim_skip
