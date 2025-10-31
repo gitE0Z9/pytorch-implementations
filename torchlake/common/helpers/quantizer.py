@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, get_type_hints
+from typing import Callable
 import torch
 from torch import nn
 

@@ -6,7 +6,6 @@ from .highway import HighwayBlock
 from .imagenet_normalization import ImageNetNormalization
 from .kernel_pca import KernelPCA
 
-from .kmeans import KMeans
 from .l2_norm import L2Norm
 from .mobilenet_feature_extractor import MobileNetFeatureExtractor
 from .multikernel_conv import MultiKernelConvModule
@@ -40,7 +39,6 @@ __all__ = [
     "ConvBNReLU",
     "ConvINReLU",
     "KernelPCA",
-    "KMeans",
     "MultiKernelConvModule",
     "L2Norm",
     "PositionEncoding1d",

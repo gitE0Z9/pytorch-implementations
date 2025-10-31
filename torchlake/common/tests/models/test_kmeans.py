@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ...models.kmeans import KMeans
+from ...models.kmeans.model import KMeans
 
 
 class TestKMeans:

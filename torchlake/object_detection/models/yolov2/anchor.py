@@ -59,15 +59,7 @@ class PriorBox:
         group_indices = m.fit(wh)
         anchors = m.centroids
 
-        final_avg_iou = (
-            sum(
-                [
-                    (1 - iou_dist(wh[group_indices == i], anchors))[:, i].mean().item()
-                    for i in range(na)
-                ]
-            )
-            / na
-        )
+        final_avg_iou = m.score(wh, group_indices)
         print("final mean IOU: ", final_avg_iou)
 
         print(
