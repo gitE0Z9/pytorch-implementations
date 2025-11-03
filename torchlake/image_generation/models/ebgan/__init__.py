@@ -1,8 +1,8 @@
-from .model import EBGABDiscriminator
+from .model import EBGANDiscriminator
 from .loss import EBGANDiscriminatorLoss, EBGANGeneratorLoss
 
 __all__ = [
-    "EBGABDiscriminator",
+    "EBGANDiscriminator",
     "EBGANDiscriminatorLoss",
     "EBGANGeneratorLoss",
 ]

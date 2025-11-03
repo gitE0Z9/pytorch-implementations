@@ -3,7 +3,7 @@ import torch
 
 from ..models.dcgan.model import DCGANGenerator
 from ..models.ebgan.loss import EBGANDiscriminatorLoss, EBGANGeneratorLoss
-from ..models.ebgan.model import EBGABDiscriminator
+from ..models.ebgan.model import EBGANDiscriminator
 
 BATCH_SIZE = 2
 INPUT_CHANNEL = 3
@@ -17,7 +17,7 @@ class TestModel:
     def test_ebgan_discriminator_forward_shape(self, output_latent: bool):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = EBGABDiscriminator(INPUT_CHANNEL, HIDDEN_DIM)
+        model = EBGANDiscriminator(INPUT_CHANNEL, HIDDEN_DIM)
 
         y = model(x, output_latent=output_latent)
 
@@ -39,7 +39,7 @@ class TestLoss:
         z = torch.rand((BATCH_SIZE, LATENT_DIM))
 
         g = DCGANGenerator(LATENT_DIM, INPUT_CHANNEL)
-        d = EBGABDiscriminator(INPUT_CHANNEL, HIDDEN_DIM)
+        d = EBGANDiscriminator(INPUT_CHANNEL, HIDDEN_DIM)
         xhat = g(z)
 
         if lambda_pt > 0:
@@ -60,7 +60,7 @@ class TestLoss:
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         g = DCGANGenerator(LATENT_DIM, INPUT_CHANNEL)
-        d = EBGABDiscriminator(INPUT_CHANNEL, HIDDEN_DIM)
+        d = EBGANDiscriminator(INPUT_CHANNEL, HIDDEN_DIM)
         xhat = g(z)
         yhat_xhat = d(xhat)
         yhat_x = d(x)

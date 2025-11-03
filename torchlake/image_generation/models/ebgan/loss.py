@@ -1,3 +1,4 @@
+from math import prod
 from typing import Literal
 
 import torch
@@ -23,8 +24,8 @@ class EBGANDiscriminatorLoss(nn.Module):
         x: torch.Tensor,
         xhat: torch.Tensor,
     ) -> torch.Tensor:
-        x_mse = F.mse_loss(yhat_x, x, reduction="none")
-        xhat_mse = F.mse_loss(yhat_xhat, xhat, reduction="none")
+        x_mse = F.mse_loss(yhat_x, x, reduction="none").flatten(1, -1).mean(1)
+        xhat_mse = F.mse_loss(yhat_xhat, xhat, reduction="none").flatten(1, -1).mean(1)
         return F.hinge_embedding_loss(
             torch.cat((x_mse, xhat_mse)),
             torch.cat((torch.ones_like(x_mse), -torch.ones_like(xhat_mse))),
@@ -50,7 +51,11 @@ class EBGANGeneratorLoss(nn.Module):
         xhat: torch.Tensor,
         z_xhat: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        loss = F.mse_loss(yhat_xhat, xhat, reduction=self.reduction)
+        loss = F.mse_loss(yhat_xhat, xhat, reduction="none").flatten(1, -1).mean(1)
+        if self.reduction == "sum":
+            loss = loss.sum()
+        elif self.reduction == "mean":
+            loss = loss.mean()
 
         if self.lambda_pt > 0:
             assert (
@@ -60,10 +65,10 @@ class EBGANGeneratorLoss(nn.Module):
             # B, h
             z_xhat_normed = z_xhat / z_xhat.norm(p=2, dim=1, keepdim=True)
             # cosine similarity
-            # B, h, h
-            cos = torch.einsum("bi,bj->bij", z_xhat_normed, z_xhat_normed) ** 2
-            i = torch.arange(h).expand(b, h)
-            cos[:, i, i] = 0
+            # B, B
+            cos = (z_xhat_normed @ z_xhat_normed.T) ** 2
+            i = torch.arange(b).to(z_xhat.device)
+            cos[i, i] = 0
 
             if self.reduction == "sum":
                 return loss + self.lambda_pt * cos.sum()

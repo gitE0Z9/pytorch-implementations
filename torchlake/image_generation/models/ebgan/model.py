@@ -9,7 +9,7 @@ from ...utils.initialization import init_conv_ebgan_style
 
 # init W ~ N(0, 0.002) W0 ~ 0
 # first layer no BN
-class EBGABDiscriminator(ModelBase):
+class EBGANDiscriminator(ModelBase):
     def __init__(
         self,
         input_channel: int = 3,
