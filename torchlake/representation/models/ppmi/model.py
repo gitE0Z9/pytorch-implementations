@@ -4,13 +4,13 @@ import torch
 from torch import nn
 from tqdm import tqdm
 
-from .helper import CoOccurrenceCounter
+from .helper import CooccurrenceCounter
 
 
 class PPMI(nn.Module):
 
     def __init__(self, vocab_size: int, context_size: int):
-        super(PPMI, self).__init__()
+        super().__init__()
         self.vocab_size = vocab_size
         self.context_size = context_size
         self.row_indices = []
@@ -34,7 +34,7 @@ class PPMI(nn.Module):
 
     def fit(
         self,
-        co_occurrence: CoOccurrenceCounter,
+        co_occurrence: CooccurrenceCounter,
         vocab_counts: torch.LongTensor,
         show_progress: bool = True,
     ):

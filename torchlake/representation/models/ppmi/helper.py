@@ -4,7 +4,7 @@ from typing import Literal
 import torch
 
 
-class CoOccurrenceCounter:
+class CooccurrenceCounter:
 
     def __init__(self, vocab_size: int, padding_idx: int | None = None):
         """word-context co-occurrence counter
@@ -13,7 +13,7 @@ class CoOccurrenceCounter:
             vocab_size (int): size of vocabulary
             padding_idx (int | None, optional): index of padding token. Defaults to None.
         """
-        super(CoOccurrenceCounter, self).__init__()
+        super().__init__()
         self.vocab_size = vocab_size
         self.padding_idx = padding_idx
         self.counts: Counter[tuple[int, int]] = Counter()

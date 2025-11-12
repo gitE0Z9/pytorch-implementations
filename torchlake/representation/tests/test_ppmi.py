@@ -2,14 +2,14 @@ from typing import Callable
 from unittest import TestCase
 
 import torch
-from parameterized import parameterized
+import pytest
 from torchlake.common.utils.sparse import get_sparsity
 
-from ..models.ppmi.helper import CoOccurrenceCounter
+from ..models.ppmi.helper import CooccurrenceCounter
 from ..models.ppmi.model import PPMI
 
 
-class TestCoOccurrenceCounter(TestCase):
+class TestCooccurrenceCounter(TestCase):
     def setUp(self) -> None:
         self.vocab_size = 6
         self.gram = torch.LongTensor(
@@ -28,7 +28,7 @@ class TestCoOccurrenceCounter(TestCase):
             ]
         )
 
-        self.counter = CoOccurrenceCounter(self.vocab_size)
+        self.counter = CooccurrenceCounter(self.vocab_size)
         self.counter.update_counts(self.gram, self.context)
 
     def test_update_counts(self):
@@ -57,10 +57,10 @@ class TestCoOccurrenceCounter(TestCase):
             },
         )
 
-    @parameterized.expand(
-        [
+    @pytest.mark.parametrize(
+        "key_by,expected",
+        (
             (
-                "key_by_none",
                 None,
                 lambda vocab_size: {
                     (1, 2 + 0 * vocab_size): 2,
@@ -72,7 +72,6 @@ class TestCoOccurrenceCounter(TestCase):
                 },
             ),
             (
-                "key_by_gram",
                 "gram",
                 lambda vocab_size: {
                     1: {
@@ -88,7 +87,6 @@ class TestCoOccurrenceCounter(TestCase):
                 },
             ),
             (
-                "key_by_context",
                 "context",
                 lambda vocab_size: {
                     2 + 0 * vocab_size: {1: 2},
@@ -99,11 +97,10 @@ class TestCoOccurrenceCounter(TestCase):
                     5 + 2 * vocab_size: {2: 1},
                 },
             ),
-        ]
+        ),
     )
     def test_get_pair_counts(
         self,
-        name: str,
         key_by: str | None,
         expected: Callable[[int], dict[tuple[int, int], int]],
     ):
@@ -133,7 +130,7 @@ class TestPPMI(TestCase):
                 [2, 2],
             ]
         )
-        self.cooccur = CoOccurrenceCounter(3)
+        self.cooccur = CooccurrenceCounter(3)
         self.cooccur.update_counts(self.gram, self.context)
         self.vocab_counts = torch.LongTensor([0, 2, 3])
         self.model = PPMI(self.vocab_size, self.context_size)
