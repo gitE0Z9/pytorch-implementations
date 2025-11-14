@@ -1,4 +1,3 @@
-from math import prod
 from typing import Literal
 
 import torch
@@ -26,12 +25,21 @@ class EBGANDiscriminatorLoss(nn.Module):
     ) -> torch.Tensor:
         x_mse = F.mse_loss(yhat_x, x, reduction="none").flatten(1, -1).mean(1)
         xhat_mse = F.mse_loss(yhat_xhat, xhat, reduction="none").flatten(1, -1).mean(1)
-        return F.hinge_embedding_loss(
-            torch.cat((x_mse, xhat_mse)),
-            torch.cat((torch.ones_like(x_mse), -torch.ones_like(xhat_mse))),
+
+        xhat_energy = F.hinge_embedding_loss(
+            xhat_mse,
+            -torch.ones_like(xhat_mse),
             margin=self.m,
-            reduction=self.reduction,
+            reduction="none",
         )
+        loss = x_mse + xhat_energy
+
+        if self.reduction == "sum":
+            return loss.sum()
+        elif self.reduction == "mean":
+            return loss.mean()
+
+        return loss
 
 
 class EBGANGeneratorLoss(nn.Module):
@@ -61,7 +69,7 @@ class EBGANGeneratorLoss(nn.Module):
             assert (
                 z_xhat is not None
             ), "with pulling away term, latent vector must be provided"
-            b, h = z_xhat.shape
+            b, _ = z_xhat.shape
             # B, h
             z_xhat_normed = z_xhat / z_xhat.norm(p=2, dim=1, keepdim=True)
             # cosine similarity
