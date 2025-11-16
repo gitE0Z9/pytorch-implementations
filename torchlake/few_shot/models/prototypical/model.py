@@ -5,7 +5,7 @@ from torchvision.ops import Conv2dNormActivation
 from torchlake.common.models.model_base import ModelBase
 
 
-class PrototypicalNetwork(ModelBase):
+class PrototypicalNet(ModelBase):
     def __init__(
         self,
         input_channel: int,

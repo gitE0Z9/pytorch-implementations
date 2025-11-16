@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import nn
 
 
-class PrototypicalNetworkLoss(nn.Module):
+class PrototypicalNetLoss(nn.Module):
     def __init__(
         self,
         reduction: Literal["sum", "mean"] | None = "mean",

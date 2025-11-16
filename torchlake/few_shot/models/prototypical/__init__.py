@@ -1,7 +1,7 @@
-from .model import PrototypicalNetwork
-from .loss import PrototypicalNetworkLoss
+from .model import PrototypicalNet
+from .loss import PrototypicalNetLoss
 
 __all__ = [
-    "PrototypicalNetwork",
-    "PrototypicalNetworkLoss",
+    "PrototypicalNet",
+    "PrototypicalNetLoss",
 ]
