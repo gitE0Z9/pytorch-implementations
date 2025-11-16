@@ -1,4 +1,4 @@
-LANGUAGES = (
+TRAIN_LANGUAGES = (
     "Alphabet_of_the_Magi",
     "Anglo-Saxon_Futhorc",
     "Arcadian",
@@ -30,3 +30,26 @@ LANGUAGES = (
     "Tagalog",
     "Tifinagh",
 )
+
+TEST_LANGUAGES = [
+    "Angelic",
+    "Atemayar_Qelisayer",
+    "Atlantean",
+    "Aurek-Besh",
+    "Avesta",
+    "Ge_ez",
+    "Glagolitic",
+    "Gurmukhi",
+    "Kannada",
+    "Keble",
+    "Malayalam",
+    "Manipuri",
+    "Mongolian",
+    "Old_Church_Slavonic_(Cyrillic)",
+    "Oriya",
+    "Sylheti",
+    "Syriac_(Serto)",
+    "Tengwar",
+    "Tibetan",
+    "ULOG",
+]

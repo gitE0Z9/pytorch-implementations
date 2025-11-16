@@ -6,13 +6,14 @@ import torch
 from torch.utils.data import Dataset
 
 from torchlake.common.utils.image import load_image
-from .constant import LANGUAGES
+from .constant import TRAIN_LANGUAGES, TEST_LANGUAGES
 
 
 class OmniglotSet(Dataset):
     def __init__(
         self,
         root: str | Path,
+        train: bool = True,
         languages: str | Sequence[str] | None = None,
         transform: Callable | None = None,
         enable_pair: bool = False,
@@ -26,6 +27,7 @@ class OmniglotSet(Dataset):
 
         Args:
             root (str | Path): the path to the root directory of OmniglotSet
+            train (bool, optional): True use background set, False use evaluation set. Defaults to True.
             languages (str | Sequence[str] | None, optional): the path of directories of languages. Defaults to None.
             transform (Callable | None, optional): torchvision transform. Defaults to None.
             enable_pair (bool, optional): enable image pair of same class or different classes. Defaults to False.
@@ -35,7 +37,12 @@ class OmniglotSet(Dataset):
             query_size (int, optional): query size. Defaults to 5.
             episode_size (int, optional): episode size for few shot learning. Defaults to 0.
         """
-        self.root = Path(root) / "omniglot-py" / "images_background"
+        self.train = train
+        self.root = (
+            Path(root)
+            .joinpath("omniglot-py")
+            .joinpath("images_background" if train else "images_evaluation")
+        )
         self.set_languages(languages)
 
         self.transform = transform
@@ -63,11 +70,16 @@ class OmniglotSet(Dataset):
         Args:
             languages (str | Sequence[str] | None, optional): the path of directories of languages. Defaults to None.
         """
+        language_scope = TRAIN_LANGUAGES if self.train else TEST_LANGUAGES
         if languages is None:
-            self.languages = LANGUAGES
+            self.languages = language_scope
         elif isinstance(languages, str):
-            self.languages = tuple(languages)
+            assert languages in language_scope, "the language is out of scope"
+            self.languages = (languages,)
         else:
+            assert (
+                len(set(languages).difference(set(language_scope))) > 0
+            ), "one of languages is out of scope"
             self.languages = languages
 
         # lang: char paths

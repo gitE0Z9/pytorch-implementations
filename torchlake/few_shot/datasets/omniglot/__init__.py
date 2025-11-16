@@ -1,7 +1,8 @@
-from .constant import LANGUAGES
+from .constant import TRAIN_LANGUAGES, TEST_LANGUAGES
 from .dataset import OmniglotSet
 
 __all__ = [
-    "LANGUAGES",
+    "TRAIN_LANGUAGES",
+    "TEST_LANGUAGES",
     "OmniglotSet",
 ]
