@@ -43,7 +43,6 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
                 output = self._decode_output(output, row=row)
                 self._update_metric(metric, y, output)
 
-        print(metric)
         return metric
 
 
@@ -53,7 +52,7 @@ class ClassificationEvaluator(EvaluatorBase):
         label_size: int,
         device: torch.device,
         feature_dim: int | tuple[int] = 1,
-        reduction: Literal["max"] | None = "max",
+        reduction: Literal["max", "min"] | None = "max",
     ):
         """Evaluator for classification task
 
@@ -61,7 +60,7 @@ class ClassificationEvaluator(EvaluatorBase):
             label_size (int): size of label
             device (torch.device): which device to use
             feature_dim (int | tuple[int], optional): which dimensions should be used as features. Defaults to 1.
-            reduction (Literal["max"] | None, optional): how to decode feature dim. Defaults to None.
+            reduction (Literal["max", "min"] | None, optional): how to decode feature dim. Defaults to None.
         """
         self.label_size = label_size
         self.device = device
@@ -81,6 +80,8 @@ class ClassificationEvaluator(EvaluatorBase):
     ) -> torch.Tensor | tuple[torch.Tensor]:
         if self.reduction == "max":
             return output.argmax(dim=self.feature_dim)
+        elif self.reduction == "min":
+            return output.argmin(dim=self.feature_dim)
         else:
             return output
 

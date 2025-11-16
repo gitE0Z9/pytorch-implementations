@@ -64,7 +64,7 @@ class TrainRecorder:
         # get x
         # case 1: row is a list, e.g. features and labels
         # case 2: row is not a list, e.g. features only or features also serve as labels
-        if isinstance(row, list):
+        if isinstance(row, list | tuple | set):
             x = row[0]
         else:
             x = row
