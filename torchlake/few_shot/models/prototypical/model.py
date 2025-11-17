@@ -57,15 +57,10 @@ class PrototypicalNet(ModelBase):
         query_vectors = self.feature_extract(query_set.view(-1, c, h, w))
         support_vectors = self.feature_extract(support_set.view(-1, c, h, w))
 
-        h = query_vectors.size(-1)
-        query_vectors = query_vectors.view(n, q, h)
-        support_vectors = support_vectors.view(n, k, h)
+        d = query_vectors.size(-1)
+        support_vectors = support_vectors.view(n, k, d)
 
         prototypes = support_vectors.mean(1)
 
         # q, n, n
-        return (
-            torch.cdist(query_vectors.view(-1, h), prototypes)
-            .reshape(n, q, n)
-            .transpose(0, 1)
-        )
+        return torch.cdist(query_vectors, prototypes).reshape(n, q, n).transpose(0, 1)
