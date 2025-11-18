@@ -63,4 +63,4 @@ class PrototypicalNet(ModelBase):
         prototypes = support_vectors.mean(1)
 
         # q, n, n
-        return torch.cdist(query_vectors, prototypes).reshape(n, q, n).transpose(0, 1)
+        return torch.cdist(query_vectors, prototypes).reshape(-1, q, n).transpose(0, 1)
