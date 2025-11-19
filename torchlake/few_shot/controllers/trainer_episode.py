@@ -6,7 +6,7 @@ from torch import nn
 from torchlake.common.controller.trainer import TrainerBase
 
 
-class PrototypicalTrainer(TrainerBase):
+class EpisodeTrainer(TrainerBase):
     def _predict(
         self,
         row: tuple[Iterable],
@@ -14,7 +14,7 @@ class PrototypicalTrainer(TrainerBase):
         *args,
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        query_set, support_set = row
+        query_set, support_set, _ = row
         query_set, support_set = query_set.to(self.device), support_set.to(self.device)
 
         return model(query_set, support_set)
@@ -25,4 +25,7 @@ class PrototypicalTrainer(TrainerBase):
         row: tuple[Iterable],
         criterion: nn.Module,
     ) -> torch.Tensor:
-        return criterion(y_hat)
+        _, _, y = row
+        y = y.to(self.device)
+
+        return criterion(y_hat, y)

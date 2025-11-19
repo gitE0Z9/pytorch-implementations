@@ -1,12 +1,13 @@
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable, Literal, Sequence
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
 from torchlake.common.utils.image import load_image
-from .constant import TRAIN_LANGUAGES, TEST_LANGUAGES
+
+from .constant import TEST_LANGUAGES, TRAIN_LANGUAGES
 
 
 class OmniglotSet(Dataset):
@@ -22,6 +23,8 @@ class OmniglotSet(Dataset):
         shot_size: int = 5,
         query_size: int = 1,
         episode_size: int = 0,
+        target_label: Literal["binary", "multiclass"] = "multiclass",
+        label: Literal["idx", "cls"] = "idx",
     ):
         """OmniglotSet dataset
 
@@ -36,6 +39,8 @@ class OmniglotSet(Dataset):
             shot_size (int, optional): k-shot size. Defaults to 5.
             query_size (int, optional): query size. Defaults to 5.
             episode_size (int, optional): episode size for few shot learning. Defaults to 0.
+            target_label: (Literal["binary", "multiclass"], optional): binary for equal index, multiclass for sampled char index. Defaults to "multiclass".
+            label: (Literal["idx", "cls"], optional): idx for index, cls for class index. Defaults to "cls".
         """
         self.train = train
         self.root = (
@@ -53,6 +58,8 @@ class OmniglotSet(Dataset):
         self.shot_size = shot_size
         self.query_size = query_size
         self.episode_size = episode_size
+        self.target_label = target_label
+        self.label = label
 
         if self.enable_episode:
             assert self.way_size <= len(
@@ -181,4 +188,24 @@ class OmniglotSet(Dataset):
                 )
             )
 
-        return query_sets, support_sets
+        if self.target_label == "multiclass":
+            if self.label == "idx":
+                label = torch.Tensor(
+                    tuple(self.char_paths.index(c) for c in selected_char)
+                ).expand(self.query_size, self.way_size)
+            else:
+                label = torch.arange(self.way_size).expand(
+                    self.query_size, self.way_size
+                )
+        elif self.target_label == "binary":
+            if self.label == "cls":
+                label = torch.Tensor(
+                    tuple(self.char_paths.index(c) for c in selected_char)
+                ).expand(self.query_size, self.way_size, self.way_size)
+
+            else:
+                label = torch.eye(self.way_size).expand(
+                    self.query_size, self.way_size, self.way_size
+                )
+
+        return query_sets, support_sets, label
