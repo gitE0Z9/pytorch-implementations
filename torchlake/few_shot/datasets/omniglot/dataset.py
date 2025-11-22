@@ -152,13 +152,13 @@ class OmniglotSet(Dataset):
             return char1_path, np.random.choice(self.char_paths)
 
     def get_episode(self) -> tuple[torch.Tensor, list[torch.Tensor], torch.Tensor]:
-        seleted_chars: list[Path] = np.random.choice(self.char_paths, self.way_size)
+        selected_chars: list[Path] = np.random.choice(self.char_paths, self.way_size)
 
         # n x (#query x (h, w, c))
         query_sets = []
         # n x (k x (h, w, c))
         support_sets = []
-        for selected_char in seleted_chars:
+        for selected_char in selected_chars:
             query_sets.append([])
             support_sets.append([])
             selected_imgs_path = np.random.choice(
@@ -190,22 +190,21 @@ class OmniglotSet(Dataset):
 
         if self.target_label == "multiclass":
             if self.label == "idx":
-                label = torch.Tensor(
-                    tuple(self.char_paths.index(c) for c in selected_char)
-                ).expand(self.query_size, self.way_size)
-            else:
                 label = torch.arange(self.way_size).expand(
                     self.query_size, self.way_size
                 )
-        elif self.target_label == "binary":
-            if self.label == "cls":
-                label = torch.Tensor(
-                    tuple(self.char_paths.index(c) for c in selected_char)
-                ).expand(self.query_size, self.way_size, self.way_size)
-
             else:
+                label = torch.Tensor(
+                    tuple(self.char_paths.index(c) for c in selected_chars)
+                ).expand(self.query_size, self.way_size)
+        elif self.target_label == "binary":
+            if self.label == "idx":
                 label = torch.eye(self.way_size).expand(
                     self.query_size, self.way_size, self.way_size
                 )
+            else:
+                label = torch.Tensor(
+                    tuple(self.char_paths.index(c) for c in selected_chars)
+                ).expand(self.query_size, self.way_size, self.way_size)
 
         return query_sets, support_sets, label
