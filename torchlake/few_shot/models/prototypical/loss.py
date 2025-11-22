@@ -13,17 +13,16 @@ class PrototypicalNetLoss(nn.Module):
         super().__init__()
         self.reduction = reduction
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """forward
 
         Args:
             x (torch.Tensor): shape (q, n, n). q is query size, n is n way
+            y (torch.Tensor): shape (q, n, n). q is query size, n is n way
 
         Returns:
             torch.Tensor: negative log softmax.
         """
-        q, n, _ = x.shape
-        y = torch.arange(n).expand(q, n).to(x.device)
         logit = F.cross_entropy(-x, y)
 
         if self.reduction == "sum":
