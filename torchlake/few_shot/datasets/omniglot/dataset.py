@@ -85,7 +85,7 @@ class OmniglotSet(Dataset):
             self.languages = (languages,)
         else:
             assert (
-                len(set(languages).difference(set(language_scope))) > 0
+                len(set(languages).difference(set(language_scope))) == 0
             ), "one of languages is out of scope"
             self.languages = languages
 
