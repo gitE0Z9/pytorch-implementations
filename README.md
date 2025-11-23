@@ -203,6 +203,7 @@
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | Siamese network      | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E4%B8%80-siamese-network-c06dc78242ed) | ``siamese``      |
 | Prototypical network | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-13-prototypical-network-360f0e411d21)   | ``prototypical`` |
+| Relation network     | [medium](https://acrocanthosaurus627.medium.com/relation-network-pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-4403ec632c3d)                     | ``relation``     |
 
 ### 表示學習
 
