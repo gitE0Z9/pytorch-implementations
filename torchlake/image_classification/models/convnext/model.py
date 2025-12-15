@@ -2,7 +2,6 @@ from typing import Literal
 
 from torch import nn
 from torchlake.common.models import ResBlock
-from torchlake.common.models.flatten import FlattenFeature
 from torchlake.common.models.model_base import ModelBase
 
 from .network import BottleNeck
@@ -82,8 +81,8 @@ class ConvNeXt(ModelBase):
 
     def build_head(self, output_size: int, **kwargs):
         self.head = nn.Sequential(
-            FlattenFeature(start_dim=-1),  # no flatten
+            nn.AdaptiveAvgPool2d((1, 1)),
             nn.GroupNorm(1, self.feature_dim),
-            FlattenFeature(reduction=None),  # no reduction
+            nn.Flatten(),
             nn.Linear(self.feature_dim, output_size),
         )
