@@ -16,9 +16,11 @@ class Inception(ModelBase):
         output_size: int = 1,
         dropout_prob: float = 0.4,
         aux_dropout_prob: float = 0.4,
+        legacy: bool = False,
     ):
         self.dropout_prob = dropout_prob
         self.aux_dropout_prob = aux_dropout_prob
+        self.legacy = legacy
         super().__init__(input_channel, output_size)
 
     @property
@@ -29,12 +31,15 @@ class Inception(ModelBase):
         self.foot = nn.Sequential(
             Conv2dNormActivation(input_channel, 64, 7, stride=2, norm_layer=None),
             nn.MaxPool2d(3, stride=2, padding=1),
-            LocalResponseNorm(),
+            # lrn here
             Conv2dNormActivation(64, 64, 1, norm_layer=None),
             Conv2dNormActivation(64, 192, 3, norm_layer=None),
-            LocalResponseNorm(),
+            # lrn here
             nn.MaxPool2d(3, stride=2, padding=1),
         )
+        if self.legacy:
+            self.foot.insert(2, LocalResponseNorm())
+            self.foot.insert(5, LocalResponseNorm())
 
     def build_blocks(self, **kwargs):
         self.blocks = nn.Sequential(
