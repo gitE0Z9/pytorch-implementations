@@ -99,8 +99,12 @@ class AuxiliaryClassifier(nn.Module):
 
         self.layers = nn.Sequential(
             nn.AvgPool2d(pooling_kernel, stride=3),
-            nn.Conv2d(input_channel, hidden_dims[0], 1),
-            nn.ReLU(True),
+            Conv2dNormActivation(
+                input_channel,
+                hidden_dims[0],
+                1,
+                norm_layer=torch.nn.BatchNorm2d if enable_bn else None,
+            ),
             FlattenFeature(),
             nn.Dropout(p=self.dropout_prob),
             nn.Linear(hidden_dims[0], hidden_dims[1]),
