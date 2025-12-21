@@ -8,7 +8,7 @@ from ..alexnet.network import LocalResponseNorm
 from .network import AuxiliaryClassifier, InceptionBlock
 
 
-class Inception(ModelBase):
+class GoogLeNet(ModelBase):
 
     def __init__(
         self,
@@ -66,12 +66,14 @@ class Inception(ModelBase):
                     self.output_size,
                     hidden_dims=(128, 1024),
                     dropout_prob=self.aux_dropout_prob,
+                    enable_bn=False,
                 ),
                 AuxiliaryClassifier(
                     528,
                     self.output_size,
                     hidden_dims=(128, 1024),
                     dropout_prob=self.aux_dropout_prob,
+                    enable_bn=False,
                 ),
             ]
         )
@@ -99,6 +101,3 @@ class Inception(ModelBase):
         else:
             y = self.blocks(y)
             return self.head(y)
-
-
-class InceptionV2(ModelBase): ...

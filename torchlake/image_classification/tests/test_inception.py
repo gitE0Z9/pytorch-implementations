@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ..models.inception.model import Inception
+from ..models.inception.model import GoogLeNet
 from ..models.inception.network import AuxiliaryClassifier, InceptionBlock
 
 BATCH_SIZE = 2
@@ -45,9 +45,9 @@ class TestNetwork:
 
 class TestModel:
     @pytest.mark.parametrize("is_training", (True, False))
-    def test_inception_forward_shape(self, is_training: bool):
+    def test_googlenet_forward_shape(self, is_training: bool):
         x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
-        m = Inception(INPUT_CHANNEL, OUTPUT_SIZE)
+        m = GoogLeNet(INPUT_CHANNEL, OUTPUT_SIZE)
 
         if is_training:
             m.train()

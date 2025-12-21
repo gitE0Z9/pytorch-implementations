@@ -86,6 +86,7 @@ class AuxiliaryClassifier(nn.Module):
         pooling_type: Literal["mean", "max"] = "mean",
         pooling_kernel: int = 5,
         dropout_prob: float = 0.7,
+        enable_bn: bool = True,
     ):
         super().__init__()
         self.input_channel = input_channel
@@ -94,6 +95,7 @@ class AuxiliaryClassifier(nn.Module):
         self.pooling_type = pooling_type
         self.pooling_kernel = pooling_kernel
         self.dropout_prob = dropout_prob
+        self.enable_bn = enable_bn
 
         self.layers = nn.Sequential(
             nn.AvgPool2d(pooling_kernel, stride=3),

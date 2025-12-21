@@ -1,8 +1,8 @@
-from .model import Inception
+from .model import GoogLeNet
 from .network import InceptionBlock
 
 
 __all__ = [
-    "Inception",
+    "GoogLeNet",
     "InceptionBlock",
 ]
