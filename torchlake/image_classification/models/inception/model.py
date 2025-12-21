@@ -15,7 +15,7 @@ class GoogLeNet(ModelBase):
         input_channel: int = 3,
         output_size: int = 1,
         dropout_prob: float = 0.4,
-        aux_dropout_prob: float = 0.4,
+        aux_dropout_prob: float = 0.7,
         legacy: bool = False,
     ):
         self.dropout_prob = dropout_prob
