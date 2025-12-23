@@ -41,7 +41,7 @@ class TestNetwork:
         )
 
     @pytest.mark.parametrize(
-        "output_channels,kernels,mode",
+        "output_channels,kernels,expected",
         (
             (
                 (
@@ -51,7 +51,7 @@ class TestNetwork:
                     HIDDEN_DIM,
                 ),
                 (1, (1, 5), (1, 3, 3)),
-                "sequential",
+                4 * HIDDEN_DIM,
             ),
             (
                 (
@@ -61,7 +61,7 @@ class TestNetwork:
                     HIDDEN_DIM,
                 ),
                 (1, (1, (7, False)), (1, (7, True), (7, True))),
-                "sequential",
+                4 * HIDDEN_DIM,
             ),
             (
                 (
@@ -70,8 +70,8 @@ class TestNetwork:
                     (HIDDEN_DIM, 384, (HIDDEN_DIM, HIDDEN_DIM)),
                     HIDDEN_DIM,
                 ),
-                (1, (1, (3, True)), (1, 3, (3, False))),
-                "parallel",
+                (1, (1, (3, True, None)), (1, 3, (3, False, None))),
+                6 * HIDDEN_DIM,
             ),
         ),
     )
@@ -79,26 +79,18 @@ class TestNetwork:
         self,
         output_channels: Sequence[int],
         kernels: Sequence[int],
-        mode: str,
+        expected: int,
     ):
         x = torch.rand(BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)
         m = InceptionBlockV3(
             HIDDEN_DIM,
             output_channels,
             kernels=kernels,
-            mode=mode,
         )
 
         y = m(x)
 
-        assert y.shape == torch.Size(
-            (
-                BATCH_SIZE,
-                4 * HIDDEN_DIM if mode == "sequential" else 6 * HIDDEN_DIM,
-                IMAGE_SIZE,
-                IMAGE_SIZE,
-            )
-        )
+        assert y.shape == torch.Size((BATCH_SIZE, expected, IMAGE_SIZE, IMAGE_SIZE))
 
     def test_auxiliary_classifier_v3_forward_shape(self):
         x = torch.rand(BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE, IMAGE_SIZE)

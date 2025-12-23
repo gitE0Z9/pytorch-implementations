@@ -111,10 +111,9 @@ class InceptionV3(ModelBase):
                 ),
                 kernels=(
                     1,
-                    (1, (3, False)),
-                    (1, 3, (3, False)),
+                    (1, (3, False, None)),
+                    (1, 3, (3, False, None)),
                 ),
-                mode="parallel",
             ),
             InceptionBlockV3(
                 2048,
@@ -126,10 +125,9 @@ class InceptionV3(ModelBase):
                 ),
                 kernels=(
                     1,
-                    (1, (3, False)),
-                    (1, 3, (3, False)),
+                    (1, (3, False, None)),
+                    (1, 3, (3, False, None)),
                 ),
-                mode="parallel",
             ),
         )
 

@@ -74,9 +74,8 @@ class InceptionBlockV3(nn.Module):
         output_channels: Sequence[int | Sequence[int]],
         kernels: Sequence[int] = (1, 3, 5),
         stride: int = 1,
-        pooling_type: Literal["mean", "max"] = "mean",
+        pooling_type: Literal["mean", "max"] | None = "mean",
         pooling_kernel: int = 3,
-        mode: Literal["sequential", "parallel"] = "sequential",
     ):
         super().__init__()
         assert (
@@ -89,7 +88,6 @@ class InceptionBlockV3(nn.Module):
         self.stride = stride
         self.pooling_type = pooling_type
         self.pooling_kernel = pooling_kernel
-        self.mode = mode
 
         branches = []
         for out_c_in_branch, kernel_in_branch in zip(output_channels, kernels):
@@ -114,7 +112,8 @@ class InceptionBlockV3(nn.Module):
                             in_c = sum(in_c)
 
                     if isinstance(k, Sequence):
-                        k, kernel_first = k
+                        mode = "parallel" if len(k) == 3 else "sequential"
+                        k, kernel_first = k[0], k[1]
                         layers.append(
                             AsymmetricConv2d(
                                 in_c,
@@ -133,22 +132,23 @@ class InceptionBlockV3(nn.Module):
 
             branches.append(nn.Sequential(*layers))
 
-        pooling_branch = nn.Sequential(
-            nn.MaxPool2d(
-                pooling_kernel,
-                stride=self.stride,
-                padding=pooling_kernel // 2 if self.stride == 1 else 0,
-            ),
-        )
-        if output_channels[-1] > 0:
-            pooling_branch.append(
-                Conv2dNormActivation(
-                    input_channel,
-                    output_channels[-1],
-                    1,
+        if pooling_type is not None:
+            pooling_branch = nn.Sequential(
+                nn.MaxPool2d(
+                    pooling_kernel,
+                    stride=self.stride,
+                    padding=pooling_kernel // 2 if self.stride == 1 else 0,
                 ),
             )
-        branches.append(pooling_branch)
+            if output_channels[-1] > 0:
+                pooling_branch.append(
+                    Conv2dNormActivation(
+                        input_channel,
+                        output_channels[-1],
+                        1,
+                    ),
+                )
+            branches.append(pooling_branch)
 
         self.branches = nn.ModuleList(branches)
 
