@@ -1,6 +1,8 @@
-from typing import Literal
+from typing import Literal, Sequence
+
 import torch
 from torch import nn
+
 from .conv import ConvBNReLU
 from .flatten import FlattenFeature
 
@@ -10,15 +12,15 @@ class MultiKernelConvModule(nn.Module):
     def __init__(
         self,
         input_channel: int,
-        output_channels: int | list[int],
-        kernels: list[int],
+        output_channels: int | Sequence[int],
+        kernels: Sequence[int],
         disable_padding: bool = False,
         activation: nn.Module | None = nn.ReLU(True),
         dimension: Literal["1d", "2d", "3d"] = "2d",
         reduction: Literal["mean", "max", "none"] = "none",
         concat_output: bool = False,
     ):
-        super(MultiKernelConvModule, self).__init__()
+        super().__init__()
         if isinstance(output_channels, int):
             output_channels = [output_channels] * len(kernels)
 
@@ -40,7 +42,7 @@ class MultiKernelConvModule(nn.Module):
                     padding=(
                         (
                             (k // 2 for k in kernel)
-                            if isinstance(kernel, tuple)
+                            if isinstance(kernel, Sequence)
                             else kernel // 2
                         )
                         if not disable_padding
