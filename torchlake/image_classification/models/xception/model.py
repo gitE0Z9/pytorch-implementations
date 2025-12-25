@@ -34,7 +34,7 @@ class Xception(ModelBase):
                     activation=None,
                 )
                 for i, (in_c, out_c) in enumerate(pairwise([64, 128, 256, 728]))
-            ]
+            ],
         )
 
     def build_blocks(self):
@@ -55,8 +55,8 @@ class Xception(ModelBase):
                     ),
                     activation=None,
                 )
+                for _ in range(8)
             ]
-            * 8
         )
 
     def build_neck(self):
