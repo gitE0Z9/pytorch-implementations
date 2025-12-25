@@ -80,9 +80,5 @@ class ConvNeXt(ModelBase):
         self.blocks = nn.Sequential(*blocks)
 
     def build_head(self, output_size: int, **kwargs):
-        self.head = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.GroupNorm(1, self.feature_dim),
-            nn.Flatten(),
-            nn.Linear(self.feature_dim, output_size),
-        )
+        super().build_head(output_size, **kwargs)
+        self.head.insert(1, nn.GroupNorm(1, self.feature_dim))
