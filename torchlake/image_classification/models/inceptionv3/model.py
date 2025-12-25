@@ -144,6 +144,10 @@ class InceptionV3(ModelBase):
             ]
         )
 
+    def build_head(self, output_size, **kwargs):
+        super().build_head(output_size, **kwargs)
+        self.head.insert(1, nn.Dropout(p=self.dropout_prob))
+
     def forward(self, x: torch.Tensor) -> torch.Tensor | list[torch.Tensor]:
         y = self.foot(x)
 
