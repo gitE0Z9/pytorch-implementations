@@ -38,7 +38,7 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
         with torch.no_grad():
             metric = metric or self._build_metric()
             for row in tqdm(data):
-                _, y = row
+                y = row[-1]
                 output = self._predict(row, model)
                 output = self._decode_output(output, row=row)
                 self._update_metric(metric, y, output)
