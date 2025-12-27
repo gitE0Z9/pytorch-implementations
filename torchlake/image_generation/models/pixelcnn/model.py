@@ -33,15 +33,18 @@ class PixelCNN(ModelBase):
         )
 
     def build_blocks(self, **kwargs):
-        self.blocks = self.num_layer * nn.Sequential(
-            ResBlock(
-                2 * self._h,
-                2 * self._h,
-                block=BottleNeck(
-                    self._h,
-                    mask_groups=self.mask_groups,
-                ),
-            )
+        self.blocks = nn.Sequential(
+            *[
+                ResBlock(
+                    2 * self._h,
+                    2 * self._h,
+                    block=BottleNeck(
+                        self._h,
+                        mask_groups=self.mask_groups,
+                    ),
+                )
+                for _ in range(self.num_layer)
+            ]
         )
 
     def build_neck(self, **kwargs):
