@@ -44,17 +44,20 @@ class PixelRNN(ModelBase):
         )
 
     def build_blocks(self, **kwargs):
-        self.blocks = self.num_layer * nn.Sequential(
-            ResBlock(
-                2 * self._h,
-                2 * self._h,
-                block=BottleNeck(
-                    self._h,
-                    2 if self.rnn_type == "diag" else 3,
-                    type=self.rnn_type,
-                    bidirectional=self.bidirectional,
-                ),
-            )
+        self.blocks = nn.Sequential(
+            *[
+                ResBlock(
+                    2 * self._h,
+                    2 * self._h,
+                    block=BottleNeck(
+                        self._h,
+                        2 if self.rnn_type == "diag" else 3,
+                        type=self.rnn_type,
+                        bidirectional=self.bidirectional,
+                    ),
+                )
+                for _ in range(self.num_layer)
+            ]
         )
 
     def build_neck(self, **kwargs):
