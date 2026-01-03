@@ -12,8 +12,6 @@ class ExtractorBase(nn.Module, ABC):
         network_name: str,
         layer_type: str,
         trainable: bool = True,
-        drop_fc: bool = True,
-        drop_head: bool = True,
     ):
         """feature extractor of image classifier, fully conncted layer will be deleted
 
@@ -26,8 +24,6 @@ class ExtractorBase(nn.Module, ABC):
         super().__init__()
         self.layer_type = layer_type
         self.trainable = trainable
-        self.drop_fc = drop_fc
-        self.drop_head = drop_head
 
         self.network_name = network_name
         self.weights: Weights = self.get_weight(network_name)
@@ -37,6 +33,22 @@ class ExtractorBase(nn.Module, ABC):
 
     @property
     def feature_dims(self) -> list[list[int]] | list[int]:
+        raise NotImplementedError
+
+    @property
+    def hidden_dim_8x(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def hidden_dim_16x(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def hidden_dim_32x(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def feature_dim(self) -> int:
         raise NotImplementedError
 
     @abstractmethod

@@ -225,3 +225,20 @@ def imagenet_denormalization(x: torch.Tensor):
         mean = torch.Tensor(IMAGENET_MEAN)[:, None, None]
 
     return x * std + mean
+
+
+def bilinear_kernel(in_c: int, out_c: int, k: int) -> torch.Tensor:
+    f = (k + 1) // 2
+    c = f - 1 if k % 2 == 1 else f - 0.5
+
+    grid = torch.arange(k)
+    kernel = (1 - (grid[:, None] - c).abs() / f) * (1 - (grid[None, :] - c).abs() / f)
+
+    w = torch.zeros(out_c, in_c, k, k)
+
+    # diagonalization makes deconvolution behave like bilinear interpolation
+    ch = min(in_c, out_c)
+    diag = torch.eye(ch)
+    w[:ch, :ch] = diag[:, :, None, None] * kernel
+
+    return w
