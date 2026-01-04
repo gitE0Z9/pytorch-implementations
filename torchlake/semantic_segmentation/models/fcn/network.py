@@ -19,7 +19,6 @@ def init_deconv_with_bilinear_kernel(layer: nn.ConvTranspose2d):
 def fcn_style_vgg(
     network_name: Literal["vgg11", "vgg13", "vgg16", "vgg19"],
     trainable: bool = True,
-    num_skip_connection: int = 0,
 ) -> VGGFeatureExtractor:
     fe = VGGFeatureExtractor(
         network_name,
@@ -37,12 +36,5 @@ def fcn_style_vgg(
     fe.feature_extractor.append(nn.MaxPool2d(1, 1))
 
     fe.feature_extractor[0].padding = (100, 100)
-
-    layer_names = ["6_1"]
-    if num_skip_connection > 0:
-        layer_names.append("4_1")
-    if num_skip_connection > 1:
-        layer_names.append("3_1")
-    fe.fix_target_layers(layer_names)
 
     return fe

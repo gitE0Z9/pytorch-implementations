@@ -13,11 +13,8 @@ NUM_CLASS = 21
 class TestNetwork:
     def test_fcn_style_vgg_forward_shape(self):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-        m = fcn_style_vgg(
-            "vgg16",
-            trainable=False,
-            num_skip_connection=2,
-        )
+        m = fcn_style_vgg("vgg16", trainable=False)
+        m.fix_target_layers(("3_1", "4_1", "6_1"))
 
         features = m(x)
 
@@ -32,11 +29,7 @@ class TestModel:
     def test_fcn_forward_shape(self, num_skip_connection: int):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        backbone = fcn_style_vgg(
-            "vgg16",
-            trainable=False,
-            num_skip_connection=num_skip_connection,
-        )
+        backbone = fcn_style_vgg("vgg16", trainable=False)
         model = FCN(
             backbone,
             NUM_CLASS,

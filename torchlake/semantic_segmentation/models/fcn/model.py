@@ -27,6 +27,12 @@ class FCN(ModelBase):
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
+        layer_names = ["6_1"]
+        if self.num_skip_connection > 0:
+            layer_names.append("4_1")
+        if self.num_skip_connection > 1:
+            layer_names.append("3_1")
+        self.foot.fix_target_layers(layer_names)
 
     def build_blocks(self, **kwargs):
         layer = nn.Conv2d(self.foot.feature_dim, self.output_size, 1)
