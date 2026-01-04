@@ -11,7 +11,7 @@ class L2Norm(nn.Module):
             input_channel (int): input channel size.
             scale (float, optional): init value of output scale. Defaults to 1.0.
         """
-        super(L2Norm, self).__init__()
+        super().__init__()
         self.input_channel = input_channel
         self.gamma = scale
         self.eps = 1e-10

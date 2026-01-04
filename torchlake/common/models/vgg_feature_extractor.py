@@ -40,6 +40,7 @@ class VGGFeatureExtractor(ExtractorBase):
         self.enable_fc1 = enable_fc1
         self.enable_fc2 = enable_fc2
         self.convert_fc_to_conv = convert_fc_to_conv
+        self._feature_dim = 4096
         super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
@@ -61,7 +62,11 @@ class VGGFeatureExtractor(ExtractorBase):
 
     @property
     def feature_dim(self) -> int:
-        return 4096
+        return self._feature_dim
+
+    @feature_dim.setter
+    def feature_dim(self, dim: int):
+        self._feature_dim = dim
 
     def get_weight(self, network_name: str) -> Weights:
         return {

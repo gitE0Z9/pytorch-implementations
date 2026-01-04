@@ -1,51 +1,57 @@
 # for further speed up, split import is promising
 import torch
 from torch import nn
-from torchvision.ops import Conv2dNormActivation
 
-from ...mixins.vgg_backbone import DeepLabStyleVGGBackboneMixin
+from torchlake.common.models.feature_extractor_base import ExtractorBase
+from torchlake.common.models.model_base import ModelBase
+
+from ..fcn.network import init_deconv_with_bilinear_kernel
 from .network import GlobalContextModule
 
 
-class ParseNet(DeepLabStyleVGGBackboneMixin, nn.Module):
+class ParseNet(ModelBase):
 
     def __init__(
         self,
+        backbone: ExtractorBase,
         output_size: int = 1,
-        frozen_backbone: bool = False,
     ):
         """ParseNet [1506.04579v2]
 
         Args:
+            backbone (ExtractorBase): backbone.
             output_size (int, optional): output size. Defaults to 1.
-            fronzen_backbone (bool, optional): froze the vgg backbone or not. Defaults to False.
         """
-        super().__init__()
-        self.backbone = self.build_backbone("vgg16", frozen_backbone)
+        super().__init__(1, output_size, foot_kwargs={"backbone": backbone})
+
+    def build_foot(self, _, **kwargs):
+        self.foot: ExtractorBase = kwargs.pop("backbone")
+        self.foot.fix_target_layers(("6_1"))
+
+    def build_neck(self, **kwargs):
         self.neck = nn.Sequential(
-            Conv2dNormActivation(
-                512,
-                1024,
-                3,
-                padding=12,
-                dilation=12,
-                norm_layer=None,
+            GlobalContextModule(
+                self.foot.feature_dim,
+                self.output_size,
+                scale=10.0,
             ),
-            nn.Dropout(0.5),
-            Conv2dNormActivation(1024, 1024, 1, norm_layer=None),
-            nn.Dropout(0.5),
-            GlobalContextModule(1024, output_size),
         )
-        self.head = nn.ConvTranspose2d(
+
+    def build_head(self, output_size, **kwargs):
+        layer = nn.ConvTranspose2d(
             output_size,
             output_size,
             16,
             stride=8,
             padding=4,
             groups=output_size,
+            bias=False,
         )
+        init_deconv_with_bilinear_kernel(layer)
+
+        self.head = nn.Sequential(layer)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        features = self.backbone.forward(x, ["5_1"])
+        features = self.foot(x)
         y = self.neck(features.pop())
         return self.head(y)
