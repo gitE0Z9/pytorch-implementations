@@ -18,34 +18,28 @@ class SETR(ModelBase):
         super().__init__(
             3,
             output_size,
-            foot_kwargs={
-                "backbone": backbone,
-            },
-            head_kwargs={
-                "decoder": decoder,
-            },
+            foot_kwargs={"backbone": backbone},
+            head_kwargs={"decoder": decoder},
         )
 
-        num_layers = len(self.foot.feature_dims)
-        if isinstance(self.head, PUPDecoder):
-            self.foot.fix_target_layers((num_layers - 1,))
-        elif isinstance(self.head, MLADecoder):
-            self.foot.fix_target_layers(
-                tuple(range(num_layers // 4 - 1, num_layers, num_layers // 4))
-            )
-        else:
-            raise NotImplementedError("The decoder is not supported.")
-
     def build_foot(self, _, **kwargs):
-        self.foot = kwargs.pop("backbone")
+        self.foot: ExtractorBase = kwargs.pop("backbone")
 
     def build_head(self, output_size, **kwargs):
         decoder = kwargs.pop("decoder")
-        input_channel = self.foot.feature_dims[-1]
+        input_channel = self.foot.feature_dim
 
         if decoder == "PUP":
             self.head = PUPDecoder(input_channel, output_size)
         elif decoder == "MLA":
             self.head = MLADecoder(input_channel, output_size)
+        else:
+            raise NotImplementedError("The decoder is not supported.")
+
+        n = len(self.foot.feature_dims)
+        if isinstance(self.head, PUPDecoder):
+            self.foot.fix_target_layers((n - 1,))
+        elif isinstance(self.head, MLADecoder):
+            self.foot.fix_target_layers(tuple(range(n // 4 - 1, n, n // 4)))
         else:
             raise NotImplementedError("The decoder is not supported.")

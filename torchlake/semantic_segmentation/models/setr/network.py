@@ -13,7 +13,7 @@ class PUPDecoder(nn.Module):
     ):
         """Progressively upsampling"""
         super().__init__()
-        self.block = nn.Sequential(
+        self.layers = nn.Sequential(
             nn.Conv2d(input_channel, 256, 3, padding=1),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(256, 256, 3, padding=1),
@@ -30,7 +30,7 @@ class PUPDecoder(nn.Module):
         # b, s, d => b, d, h, w
         y = x.transpose(-1, -2).unflatten(-1, (num_patch, num_patch))
         # b, d, h, w => b, o, h, w
-        return self.block(y)
+        return self.layers(y)
 
 
 class MLADecoder(nn.Module):
