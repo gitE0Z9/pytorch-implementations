@@ -49,6 +49,14 @@ class VGGFeatureExtractor(ExtractorBase):
         return [64, 128, 256, 512, 512]
 
     @property
+    def hidden_dim_2x(self) -> int:
+        return 64
+
+    @property
+    def hidden_dim_4x(self) -> int:
+        return 128
+
+    @property
     def hidden_dim_8x(self) -> int:
         return 256
 
@@ -146,7 +154,7 @@ class VGGFeatureExtractor(ExtractorBase):
                 if layer_name in target_layer_names:
                     features.append(y)
                 layer_count += 1
-            if isinstance(layer, nn.MaxPool2d):
+            if isinstance(layer, nn.MaxPool2d | nn.AvgPool2d):
                 stage_count += 1
                 layer_count = 1
 

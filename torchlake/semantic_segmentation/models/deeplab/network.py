@@ -9,12 +9,15 @@ def deeplab_style_vgg(
     network_name: Literal["vgg11", "vgg13", "vgg16", "vgg19"],
     trainable: bool = True,
     large_fov: bool = True,
+    pool_5_type: Literal["max", "avg"] = "avg",
 ) -> VGGFeatureExtractor:
     """build backbone with DeepLab style
 
     Args:
         network_name (Literal["vgg11", "vgg13", "vgg16", "vgg19"]): torchvision vgg model
         trainable (bool, optional): froze the backbone or not. Defaults to False.
+        large_fov (bool, optional): use larger field of view. Defaults to True.
+        pool_5_type (Literal["max", "avg"], optional): the type of pool 5. Defaults to "avg".
 
     Returns:
         VGGFeatureExtractor: feature extractor
@@ -44,6 +47,14 @@ def deeplab_style_vgg(
             # stage 4, 5
             if stage >= 4:
                 layer.stride = (1, 1)
+
+    if pool_5_type == "avg":
+        pool_5: nn.MaxPool2d = fe.feature_extractor[-5]
+        fe.feature_extractor[-5] = nn.AvgPool2d(
+            pool_5.kernel_size,
+            stride=pool_5.stride,
+            padding=pool_5.padding,
+        )
 
     # head
     n = len(fe.feature_extractor)

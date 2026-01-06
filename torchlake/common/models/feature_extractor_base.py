@@ -32,7 +32,19 @@ class ExtractorBase(nn.Module, ABC):
         )
 
     @property
+    def input_channel(self) -> int:
+        return 3
+
+    @property
     def feature_dims(self) -> list[list[int]] | list[int]:
+        raise NotImplementedError
+
+    @property
+    def hidden_dim_2x(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def hidden_dim_4x(self) -> int:
         raise NotImplementedError
 
     @property

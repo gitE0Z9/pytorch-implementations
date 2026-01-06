@@ -11,7 +11,12 @@ def parsenet_style_vgg(
     network_name: Literal["vgg11", "vgg13", "vgg16", "vgg19"],
     trainable: bool = True,
 ) -> VGGFeatureExtractor:
-    fe = deeplab_style_vgg(network_name, trainable, large_fov=True)
+    fe = deeplab_style_vgg(
+        network_name,
+        trainable,
+        large_fov=True,
+        pool_5_type="max",
+    )
 
     stage = 0
     for layer in fe.feature_extractor:
