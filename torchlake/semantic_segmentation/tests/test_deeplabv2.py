@@ -1,31 +1,107 @@
+from typing import Callable
 import pytest
 import torch
 from torch import nn
 
-from ...common.models import ResNetFeatureExtractor, VGGFeatureExtractor
-from ..models.deeplabv2 import ASPP, DeepLabV2
-from ..models.deeplabv2.network import ShallowASPP
+from ..models.deeplabv2.model import DeepLabV2
+from ..models.deeplabv2.network import (
+    ASPP,
+    ShallowASPP,
+    deeplab_v2_style_vgg,
+    deeplab_v2_style_resnet,
+)
+
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+HIDDEN_DIM = 8
+IMAGE_SIZE = 321
+DOWNSCALE_IMAGE_SIZE = IMAGE_SIZE // 8 + 1
+NUM_CLASS = 21
 
 
-class TestDeepLabV2:
+class TestNetwork:
+    def test_deeplab_v2_style_vgg_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+
+        model = deeplab_v2_style_vgg("vgg16", trainable=False)
+        features = model(x, ("1_1", "2_1", "3_1", "4_1", "6_1"))
+
+        dims = (
+            model.hidden_dim_2x,
+            model.hidden_dim_4x,
+            model.hidden_dim_8x,
+            model.hidden_dim_16x,
+            model.feature_dim,
+        )
+        for f, d in zip(features, dims):
+            assert f.shape[:2] == torch.Size((BATCH_SIZE, d))
+
+    def test_deeplab_v2_style_resnet_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+
+        model = deeplab_v2_style_resnet("resnet50", trainable=False)
+        features = model(x, ("0_1", "1_1", "2_1", "3_1", "4_1"))
+
+        dims = (
+            model.hidden_dim_stem,
+            model.hidden_dim_4x,
+            model.hidden_dim_8x,
+            model.hidden_dim_16x,
+            model.hidden_dim_32x,
+        )
+        for f, d in zip(features, dims):
+            assert f.shape[:2] == torch.Size((BATCH_SIZE, d))
+
+    def test_aspp_forward_shape(self):
+        x = torch.rand(
+            (BATCH_SIZE, HIDDEN_DIM, DOWNSCALE_IMAGE_SIZE, DOWNSCALE_IMAGE_SIZE)
+        )
+
+        model = ASPP(HIDDEN_DIM, HIDDEN_DIM, NUM_CLASS, [6, 12])
+        y = model(x)
+
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, NUM_CLASS, DOWNSCALE_IMAGE_SIZE, DOWNSCALE_IMAGE_SIZE)
+        )
+
+    def test_shallow_aspp_forward_shape(self):
+        x = torch.rand(
+            (BATCH_SIZE, HIDDEN_DIM, DOWNSCALE_IMAGE_SIZE, DOWNSCALE_IMAGE_SIZE)
+        )
+
+        model = ShallowASPP(HIDDEN_DIM, NUM_CLASS, [6, 12])
+        y = model(x)
+
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, NUM_CLASS, DOWNSCALE_IMAGE_SIZE, DOWNSCALE_IMAGE_SIZE)
+        )
+
+
+class TestModel:
     @pytest.mark.parametrize(
         "is_train,expected",
         [
-            [True, 321 // 8 + 1],
-            [False, 321],
+            [True, DOWNSCALE_IMAGE_SIZE],
+            [False, IMAGE_SIZE],
         ],
     )
     @pytest.mark.parametrize(
-        "fe",
+        "fe_constructor",
         [
-            VGGFeatureExtractor("vgg16", "maxpool", trainable=False),
-            ResNetFeatureExtractor("resnet101", "block", trainable=False),
+            lambda: deeplab_v2_style_vgg("vgg16", trainable=False),
+            lambda: deeplab_v2_style_resnet("resnet101", trainable=False),
         ],
     )
-    def test_forward_shape(self, is_train: bool, expected: int, fe: nn.Module):
-        x = torch.rand((1, 3, 321, 321))
+    def test_deeplab_v2_forward_shape(
+        self,
+        is_train: bool,
+        expected: int,
+        fe_constructor: Callable[[None], nn.Module],
+    ):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = DeepLabV2(fe, output_size=21)
+        fe = fe_constructor()
+        model = DeepLabV2(fe, output_size=NUM_CLASS)
         if is_train:
             model.train()
         else:
@@ -33,20 +109,22 @@ class TestDeepLabV2:
 
         y = model(x)
 
-        assert y.shape == torch.Size((1, 21, expected, expected))
+        assert y.shape == torch.Size((BATCH_SIZE, NUM_CLASS, expected, expected))
 
     @pytest.mark.parametrize(
         "fe",
         [
-            VGGFeatureExtractor("vgg16", "maxpool", trainable=False),
-            ResNetFeatureExtractor("resnet101", "block", trainable=False),
+            deeplab_v2_style_vgg("vgg16", trainable=False),
+            deeplab_v2_style_resnet("resnet101", trainable=False),
         ],
     )
-    def test_backward(self, fe: nn.Module):
-        x = torch.rand((1, 3, 321, 321))
-        y = torch.randint(0, 21, (1, 41, 41))
+    def test_deeplab_v2_backward(self, fe: nn.Module):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+        y = torch.randint(
+            0, NUM_CLASS, (BATCH_SIZE, DOWNSCALE_IMAGE_SIZE, DOWNSCALE_IMAGE_SIZE)
+        )
 
-        model = DeepLabV2(fe, output_size=21)
+        model = DeepLabV2(fe, output_size=NUM_CLASS)
         model.train()
 
         criterion = torch.nn.CrossEntropyLoss()
@@ -57,23 +135,3 @@ class TestDeepLabV2:
         loss.backward()
 
         assert not torch.isnan(loss)
-
-
-class TestASPP:
-    def test_forward_shape(self):
-        x = torch.rand((1, 32, 41, 41))
-
-        model = ASPP(32, 32, 21, [6, 12])
-        y = model(x)
-
-        assert y.shape == torch.Size((1, 21, 41, 41))
-
-
-class TestShallowASPP:
-    def test_forward_shape(self):
-        x = torch.rand((1, 32, 41, 41))
-
-        model = ShallowASPP(32, 21, [6, 12])
-        y = model(x)
-
-        assert y.shape == torch.Size((1, 21, 41, 41))

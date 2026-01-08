@@ -4,6 +4,13 @@ from torch import nn
 CONV_TYPE = nn.Conv1d | nn.Conv2d | nn.Conv3d
 BN_TYPE = nn.BatchNorm1d | nn.BatchNorm2d | nn.BatchNorm3d
 
+VGG_NAMES = Literal[
+    "vgg11",
+    "vgg13",
+    "vgg16",
+    "vgg19",
+]
+
 RESNET_NAMES = Literal[
     "resnet18",
     "resnet34",

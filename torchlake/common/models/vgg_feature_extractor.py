@@ -49,6 +49,14 @@ class VGGFeatureExtractor(ExtractorBase):
         return [64, 128, 256, 512, 512]
 
     @property
+    def feature_dim(self) -> int:
+        return self._feature_dim
+
+    @feature_dim.setter
+    def feature_dim(self, dim: int):
+        self._feature_dim = dim
+
+    @property
     def hidden_dim_2x(self) -> int:
         return 64
 
@@ -67,14 +75,6 @@ class VGGFeatureExtractor(ExtractorBase):
     @property
     def hidden_dim_32x(self) -> int:
         return 512
-
-    @property
-    def feature_dim(self) -> int:
-        return self._feature_dim
-
-    @feature_dim.setter
-    def feature_dim(self, dim: int):
-        self._feature_dim = dim
 
     def get_weight(self, network_name: str) -> Weights:
         return {
@@ -138,6 +138,8 @@ class VGGFeatureExtractor(ExtractorBase):
         else:
             raise NotImplementedError
 
+        targets = {target_layer_names}
+
         features = []
 
         if normalization:
@@ -151,9 +153,15 @@ class VGGFeatureExtractor(ExtractorBase):
 
             layer_name = f"{stage_count}_{layer_count}"
             if check_function(layer):
-                if layer_name in target_layer_names:
-                    features.append(y)
                 layer_count += 1
+
+                if layer_name in targets:
+                    features.append(y)
+                    targets.remove(layer_name)
+
+                    if len(targets) == 0:
+                        break
+
             if isinstance(layer, nn.MaxPool2d | nn.AvgPool2d):
                 stage_count += 1
                 layer_count = 1
