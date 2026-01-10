@@ -40,7 +40,7 @@ def deeplab_v2_style_resnet(
     network_name: RESNET_NAMES,
     trainable: bool = True,
 ) -> ResNetFeatureExtractor:
-    fe = ResNetFeatureExtractor(network_name, trainable=trainable)
+    fe = ResNetFeatureExtractor(network_name, trainable=trainable, enable_gap=False)
     for key, layer in fe.feature_extractor[6].named_modules():
         layer: nn.Conv2d
         if "conv2" in key:

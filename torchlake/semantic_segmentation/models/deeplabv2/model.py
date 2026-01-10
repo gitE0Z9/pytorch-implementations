@@ -24,6 +24,7 @@ class DeepLabV2(ModelBase):
         backbone: ExtractorBase,
         output_size: int = 1,
         dilations: Sequence[int] = (6, 12, 18, 24),
+        enable_shallow_aspp: bool = False,
     ):
         """DeepLab v2 in paper [1606.00915v2]
 
@@ -33,6 +34,7 @@ class DeepLabV2(ModelBase):
             dilations (Sequence[int], optional): dilation size of ASPP, for ASPP-S, it is [2,4,8,12], ASPP-L is default value. Defaults to [6, 12, 18, 24].
         """
         self.dilations = dilations
+        self.enable_shallow_aspp = enable_shallow_aspp
         super().__init__(
             backbone.input_channel,
             output_size,
@@ -56,6 +58,16 @@ class DeepLabV2(ModelBase):
         Args:
             output_size (int, optional): output size. Defaults to 1.
         """
+        if self.enable_shallow_aspp:
+            self.head = nn.Sequential(
+                ShallowASPP(
+                    self.foot.feature_dim,
+                    output_size,
+                    dilations=self.dilations,
+                )
+            )
+            return
+
         # shallow head perform worse, yet heavy head is too heavy about 122M parameters
         if isinstance(self.foot, VGGFeatureExtractor):
             layer = ASPP(
@@ -92,15 +104,6 @@ class DeepLabV2(ModelBase):
                     dilations=self.dilations,
                 )
             )
-
-        # if isinstance(self.foot, ResNetFeatureExtractor)
-        # self.head = nn.Sequential(
-        #     ShallowASPP(
-        #         self.foot.feature_dim,
-        #         output_size,
-        #         dilations=self.dilations,
-        #     )
-        # )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # 8x

@@ -56,13 +56,21 @@ class DeepLabV2Trainer(ClassificationTrainer):
                     mode="nearest",
                 ).squeeze(1)
             else:
-                ele = F.interpolate(ele, scale_factor=1 / scale)
+                ele = F.interpolate(
+                    ele,
+                    scale_factor=1 / scale,
+                    mode="bilinear",
+                )
                 feature_interpolated = True
 
             loss += criterion(ele, copied_y.long())
 
             if not feature_interpolated:
-                ele = F.interpolate(ele, scale_factor=1 / scale)
+                ele = F.interpolate(
+                    ele,
+                    scale_factor=1 / scale,
+                    mode="bilinear",
+                )
 
             fused = torch.maximum(fused, cropper(ele))
 
