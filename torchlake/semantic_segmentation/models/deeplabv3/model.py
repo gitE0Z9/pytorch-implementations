@@ -1,48 +1,48 @@
-from functools import partial
-from typing import Literal
+from typing import Literal, Sequence
 
 import torch
+import torch.nn.functional as F
 from torch import nn
-from torchlake.common.models import ResNetFeatureExtractor
 from torchvision.transforms import CenterCrop
 
+from torchlake.common.models.feature_extractor_base import ExtractorBase
+from torchlake.common.models.model_base import ModelBase
+
 from .network import ASPP, CascadeASPP
-from ...mixins.resnet_backbone import DeepLabStyleResNetBackboneMixin
 
 
-class DeepLabV3(DeepLabStyleResNetBackboneMixin, nn.Module):
+class DeepLabV3(ModelBase):
 
     def __init__(
         self,
+        backbone: ExtractorBase,
+        hidden_dim: int = 256,
         output_size: int = 1,
-        dilations: list[int] = [6, 12, 18],
-        backbone_name: Literal["resnet50", "resnet101", "resnet152"] = "resnet50",
+        dilations: Sequence[int] = (6, 12, 18),
         neck_type: Literal["parallel", "cascade"] = "parallel",
-        frozen_backbone: bool = False,
     ):
         """DeepLab v3 in paper [1706.05587v3]
 
         Args:
+            backbone (ExtractorBase): feature extractor.
             output_size (int, optional): output size. Defaults to 1.
-            dilations (list[int], optional): dilation size of ASPP, for 16x [6, 12, 18], for 8x [12, 24, 36]. Defaults to [6, 12, 18].
-            backbone_name (Literal["resnet50", "resnet101", "resnet152"], optional): resnet network name. Defaults to "resnet50".
+            dilations (list[int], optional):
+                dilation sizes of ASPP, for 16x (6, 12, 18), for 8x (12, 24, 36),
+                as for cascade ASPP it should be (8, 16, 1) for 16x and (16, 32, 1) for 8x. Defaults to (6, 12, 18).
             neck_type: (Literal["parallel", "cascade"], optional): neck type is multi-grid cascade module or parallel ASPP. Defaults to "parallel",
-            fronzen_backbone (bool, optional): froze the resnet backbone or not. Defaults to False.
         """
-        super().__init__()
-        self.feature_dim = 2048
+        self.hidden_dim = hidden_dim
         self.dilations = dilations
         self.neck_type = neck_type
+        super().__init__(
+            backbone.input_channel,
+            output_size,
+            foot_kwargs={"backbone": backbone},
+        )
 
-        self.backbone: ResNetFeatureExtractor = self.build_backbone(
-            backbone_name, frozen_backbone
-        )
-        self.backbone.forward = partial(
-            self.backbone.forward, target_layer_names=["4_1"]
-        )
-        self.neck = self.build_neck()
-        self.head = nn.Conv2d(self.feature_dim // 8, output_size, 1)
-        self.upsample = nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
+    def build_foot(self, _, **kwargs):
+        self.foot: ExtractorBase = kwargs.pop("backbone")
+        self.foot.fix_target_layers(("4_1"))
 
     def build_neck(self) -> nn.Module:
         """deeplab v3 use parallel ASPP and cascade ASPP
@@ -50,25 +50,40 @@ class DeepLabV3(DeepLabStyleResNetBackboneMixin, nn.Module):
         Returns:
             nn.Module: neck module
         """
+        self.neck = nn.Sequential()
+
         if self.neck_type == "parallel":
-            return ASPP(
-                self.feature_dim,
-                self.feature_dim // 8,
-                self.feature_dim // 8,
-                dilations=self.dilations,
+            self.neck.append(
+                ASPP(
+                    self.foot.hidden_dim_32x,
+                    hidden_dim=self.hidden_dim,
+                    dilations=self.dilations,
+                )
             )
         elif self.neck_type == "cascade":
-            return CascadeASPP(dilations=self.dilations)
+            self.neck.append(
+                CascadeASPP(
+                    self.foot.hidden_dim_32x,
+                    hidden_dim=self.hidden_dim,
+                    output_channel=self.foot.hidden_dim_32x,
+                    dilations=self.dilations,
+                )
+            )
         else:
             raise NotImplementedError
 
+    def build_head(self, output_size, **kwargs):
+        self.head = nn.Sequential(
+            nn.Conv2d(self.hidden_dim, output_size, 1),
+        )
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # 8x
-        features: list[torch.Tensor] = self.backbone(x)
+        features: list[torch.Tensor] = self.foot(x)
         y = self.neck(features.pop())
         y = self.head(y)
 
         cropper = CenterCrop(x.shape[2:])
-        y = self.upsample(y)
+        y = F.interpolate(y, scale_factor=8, mode="bilinear", align_corners=True)
         y = cropper(y)
         return y
