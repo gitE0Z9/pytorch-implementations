@@ -151,7 +151,7 @@ class ResNetFeatureExtractor(ExtractorBase):
         if self.layer_type != "block":
             raise NotImplementedError
 
-        targets = {target_layer_names}
+        targets = set(target_layer_names)
 
         features = []
 
@@ -160,6 +160,7 @@ class ResNetFeatureExtractor(ExtractorBase):
         y = self.feature_extractor[:4](img)
         if "0_1" in targets:
             features.append(y)
+            targets.remove("0_1")
 
         for i in range(4, 8):
             layer_name = f"{i-3}_1"
