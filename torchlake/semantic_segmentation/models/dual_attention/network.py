@@ -8,25 +8,18 @@ from torchvision.ops import Conv2dNormActivation
 class SpatialAttention2d(nn.Module):
 
     # Ref from SAGAN
-    def __init__(self, in_dim: int):
+    def __init__(
+        self,
+        input_channel: int,
+        reduction_ratio: float = 8,
+    ):
         """Position attention module"""
         super().__init__()
 
-        self.query_conv = nn.Conv2d(
-            in_channels=in_dim,
-            out_channels=in_dim // 8,
-            kernel_size=1,
-        )
-        self.key_conv = nn.Conv2d(
-            in_channels=in_dim,
-            out_channels=in_dim // 8,
-            kernel_size=1,
-        )
-        self.value_conv = nn.Conv2d(
-            in_channels=in_dim,
-            out_channels=in_dim,
-            kernel_size=1,
-        )
+        hidden_dim = input_channel // reduction_ratio
+        self.query_conv = nn.Conv2d(input_channel, hidden_dim, 1)
+        self.key_conv = nn.Conv2d(input_channel, hidden_dim, 1)
+        self.value_conv = nn.Conv2d(input_channel, input_channel, 1)
         self.alpha = nn.Parameter(torch.zeros(1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -93,17 +86,17 @@ class DualAttention2d(nn.Module):
             reduction_ratio (float, optional): reduction ratio. Defaults to 1.
         """
         super().__init__()
-        inter_channel = input_channel // reduction_ratio
+        hidden_dim = input_channel // reduction_ratio
 
         self.sa_conv = nn.Sequential(
-            Conv2dNormActivation(input_channel, inter_channel),
-            SpatialAttention2d(inter_channel),
-            Conv2dNormActivation(inter_channel, inter_channel),
+            Conv2dNormActivation(input_channel, hidden_dim),
+            SpatialAttention2d(hidden_dim),
+            Conv2dNormActivation(hidden_dim, hidden_dim),
         )
         self.ca_conv = nn.Sequential(
-            Conv2dNormActivation(input_channel, inter_channel),
+            Conv2dNormActivation(input_channel, hidden_dim),
             ChannelAttention2d(),
-            Conv2dNormActivation(inter_channel, inter_channel),
+            Conv2dNormActivation(hidden_dim, hidden_dim),
         )
 
     def get_channel_attention(self, x: torch.Tensor) -> torch.Tensor:
