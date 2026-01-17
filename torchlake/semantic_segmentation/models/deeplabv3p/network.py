@@ -11,6 +11,8 @@ class Decoder(nn.Module):
         self,
         shallow_input_channel: int,
         deep_input_channel: int,
+        shallow_hidden_dim: int,
+        hidden_dim: int,
         output_channel: int,
     ):
         """Decoder in paper [1802.02611v3]
@@ -20,9 +22,17 @@ class Decoder(nn.Module):
             output_channel (int): output channel
         """
         super().__init__()
-        self.conv = Conv2dNormActivation(shallow_input_channel, deep_input_channel, 1)
+        self.conv = Conv2dNormActivation(shallow_input_channel, shallow_hidden_dim, 1)
         self.upsample = nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True)
-        self.head = nn.Conv2d(2 * deep_input_channel, output_channel, 3, padding=1)
+        self.head = nn.Sequential(
+            Conv2dNormActivation(
+                shallow_hidden_dim + deep_input_channel,
+                hidden_dim,
+                3,
+            ),
+            Conv2dNormActivation(hidden_dim, hidden_dim, 3),
+            nn.Conv2d(hidden_dim, output_channel, 1),
+        )
 
     def forward(self, shallow_x: torch.Tensor, deep_x: torch.Tensor) -> torch.Tensor:
         cropper = CenterCrop(shallow_x.shape[2:])

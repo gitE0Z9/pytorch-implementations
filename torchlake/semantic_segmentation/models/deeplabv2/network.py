@@ -1,4 +1,5 @@
 from typing import Literal
+
 import torch
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
@@ -6,6 +7,7 @@ from torchvision.ops import Conv2dNormActivation
 from torchlake.common.models.resnet_feature_extractor import ResNetFeatureExtractor
 from torchlake.common.models.vgg_feature_extractor import VGGFeatureExtractor
 from torchlake.common.types import RESNET_NAMES, VGG_NAMES
+
 from ..deeplab.network import deeplab_style_vgg
 
 

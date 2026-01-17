@@ -18,6 +18,7 @@ class DeepLabV3Plus(ModelBase):
         self,
         backbone: ExtractorBase,
         hidden_dim: int = 256,
+        shallow_hidden_dim: int = 48,
         output_size: int = 1,
         dilations: Sequence[int] = (6, 12, 18),
     ):
@@ -29,6 +30,7 @@ class DeepLabV3Plus(ModelBase):
             dilations (Sequence[int], optional): dilation size of ASPP, for 16x [6, 12, 18], for 8x [12, 24, 36]. Defaults to [6, 12, 18].
         """
         self.hidden_dim = hidden_dim
+        self.shallow_hidden_dim = shallow_hidden_dim
         self.dilations = dilations
         super().__init__(
             backbone.input_channel,
@@ -52,7 +54,13 @@ class DeepLabV3Plus(ModelBase):
 
     def build_head(self, output_size, **kwargs):
         self.head = nn.Sequential(
-            Decoder(self.foot.hidden_dim_4x, self.hidden_dim, output_size),
+            Decoder(
+                self.foot.hidden_dim_4x,
+                self.hidden_dim,
+                self.shallow_hidden_dim,
+                self.hidden_dim,
+                output_size,
+            ),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
