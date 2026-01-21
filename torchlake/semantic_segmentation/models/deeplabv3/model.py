@@ -42,7 +42,7 @@ class DeepLabV3(ModelBase):
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
-        self.foot.fix_target_layers(("4_1"))
+        self.foot.fix_target_layers(("4_1",))
 
     def build_neck(self) -> nn.Module:
         """deeplab v3 use parallel ASPP and cascade ASPP

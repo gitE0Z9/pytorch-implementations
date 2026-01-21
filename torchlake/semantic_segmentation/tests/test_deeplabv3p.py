@@ -22,7 +22,14 @@ class TestNetwork:
             (BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE // 16, IMAGE_SIZE // 16)
         )
 
-        model = Decoder(HIDDEN_DIM, HIDDEN_DIM, HIDDEN_DIM, HIDDEN_DIM, NUM_CLASS)
+        model = Decoder(
+            shallow_input_channel=HIDDEN_DIM,
+            deep_input_channel=HIDDEN_DIM,
+            shallow_hidden_dim=HIDDEN_DIM,
+            upsample_scale=4,
+            hidden_dim=HIDDEN_DIM,
+            output_channel=NUM_CLASS,
+        )
         y = model(z_shallow, z_deep)
 
         assert y.shape == torch.Size(

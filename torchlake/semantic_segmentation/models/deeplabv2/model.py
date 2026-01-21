@@ -5,7 +5,6 @@ from typing import Sequence
 
 import torch
 import torch.nn.functional as F
-from annotated_types import T
 from torch import nn
 from torchvision.transforms import CenterCrop
 
@@ -45,9 +44,9 @@ class DeepLabV2(ModelBase):
         self.foot: ExtractorBase = kwargs.pop("backbone")
 
         if isinstance(self.foot, VGGFeatureExtractor):
-            self.foot.fix_target_layers(("5_1"))
+            self.foot.fix_target_layers(("5_1",))
         elif isinstance(self.foot, ResNetFeatureExtractor):
-            self.foot.fix_target_layers(("4_1"))
+            self.foot.fix_target_layers(("4_1",))
 
     def build_head(self, output_size, **kwargs):
         """

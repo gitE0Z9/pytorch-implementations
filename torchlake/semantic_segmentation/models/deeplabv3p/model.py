@@ -58,8 +58,9 @@ class DeepLabV3Plus(ModelBase):
                 self.foot.hidden_dim_4x,
                 self.hidden_dim,
                 self.shallow_hidden_dim,
-                self.hidden_dim,
-                output_size,
+                upsample_scale=2,
+                hidden_dim=self.hidden_dim,
+                output_channel=output_size,
             ),
         )
 

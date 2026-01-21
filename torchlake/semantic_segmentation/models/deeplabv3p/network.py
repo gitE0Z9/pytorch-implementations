@@ -1,4 +1,3 @@
-from typing import Sequence
 import torch
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
@@ -12,6 +11,7 @@ class Decoder(nn.Module):
         shallow_input_channel: int,
         deep_input_channel: int,
         shallow_hidden_dim: int,
+        upsample_scale: float,
         hidden_dim: int,
         output_channel: int,
     ):
@@ -23,7 +23,11 @@ class Decoder(nn.Module):
         """
         super().__init__()
         self.conv = Conv2dNormActivation(shallow_input_channel, shallow_hidden_dim, 1)
-        self.upsample = nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True)
+        self.upsample = nn.Upsample(
+            scale_factor=upsample_scale,
+            mode="bilinear",
+            align_corners=True,
+        )
         self.head = nn.Sequential(
             Conv2dNormActivation(
                 shallow_hidden_dim + deep_input_channel,
