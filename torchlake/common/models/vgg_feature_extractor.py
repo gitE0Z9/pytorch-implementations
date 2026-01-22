@@ -138,7 +138,7 @@ class VGGFeatureExtractor(ExtractorBase):
         else:
             raise NotImplementedError
 
-        targets = {target_layer_names}
+        targets = set(target_layer_names)
 
         features = []
 
