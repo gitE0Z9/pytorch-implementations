@@ -14,8 +14,6 @@ from torchvision.models.resnet import (
     ResNet152_Weights,
 )
 
-from torchlake.common.models.flatten import FlattenFeature
-
 from ..types import RESNET_NAMES
 from .feature_extractor_base import ExtractorBase
 from .imagenet_normalization import ImageNetNormalization
@@ -27,7 +25,6 @@ class ResNetFeatureExtractor(ExtractorBase):
         network_name: RESNET_NAMES,
         layer_type: Literal["block"] = "block",
         trainable: bool = True,
-        enable_gap: bool = True,
     ):
         """resnet feature extractor
 
@@ -36,7 +33,6 @@ class ResNetFeatureExtractor(ExtractorBase):
             layer_type (Literal["block"]): extract which type of layer
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
-        self.enable_gap = enable_gap
         super().__init__(network_name, layer_type, trainable)
         self._feature_dim = self.feature_dims[-1]
         self.normalization = ImageNetNormalization()
@@ -134,9 +130,6 @@ class ResNetFeatureExtractor(ExtractorBase):
             model.layer4,
         )
 
-        if self.enable_gap:
-            fe.append(FlattenFeature())
-
         if not self.trainable:
             for param in fe.parameters():
                 param.requires_grad = False
@@ -161,7 +154,7 @@ class ResNetFeatureExtractor(ExtractorBase):
         if normalization:
             img = self.normalization(img)
 
-        y = self.feature_extractor[:4](img)
+        y: torch.Tensor = self.feature_extractor[:4](img)
         if "0_1" in targets:
             features.append(y)
             targets.remove("0_1")
@@ -173,11 +166,10 @@ class ResNetFeatureExtractor(ExtractorBase):
                 features.append(y)
                 targets.remove(layer_name)
 
-                if len(targets) == 0:
+                if len(targets) == 0 and "output" not in targets:
                     break
 
         if "output" in targets:
-            y = self.feature_extractor[-1](y)
-            features.append(y)
+            features.append(y.mean((2, 3)))
 
         return features
