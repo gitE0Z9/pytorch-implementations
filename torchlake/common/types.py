@@ -19,6 +19,12 @@ RESNET_NAMES = Literal[
     "resnet152",
 ]
 
+MOBILENET_NAMES = Literal[
+    "mobilenet_v2",
+    "mobilenet_v3_small",
+    "mobilenet_v3_large",
+]
+
 EFFICIENTNET_V1_NAMES = Literal[
     "b0",
     "b1",
