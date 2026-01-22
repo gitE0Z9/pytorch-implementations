@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Sequence
 
 import torch
 import torchvision
@@ -10,6 +10,8 @@ from torchvision.models.mobilenetv3 import (
     MobileNet_V3_Small_Weights,
 )
 
+from torchlake.common.types import MOBILENET_NAMES
+
 from .feature_extractor_base import ExtractorBase
 from .imagenet_normalization import ImageNetNormalization
 
@@ -17,12 +19,8 @@ from .imagenet_normalization import ImageNetNormalization
 class MobileNetFeatureExtractor(ExtractorBase):
     def __init__(
         self,
-        network_name: Literal[
-            "mobilenet_v2",
-            "mobilenet_v3_small",
-            "mobilenet_v3_large",
-        ],
-        layer_type: Literal["block"],
+        network_name: MOBILENET_NAMES,
+        layer_type: Literal["block"] = "block",
         trainable: bool = True,
     ):
         """mobilenet feature extractor
@@ -33,6 +31,7 @@ class MobileNetFeatureExtractor(ExtractorBase):
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
         super().__init__(network_name, layer_type, trainable)
+        self._feature_dim = self.feature_dims[-1][-1]
         self.normalization = ImageNetNormalization()
 
     @property
@@ -61,6 +60,14 @@ class MobileNetFeatureExtractor(ExtractorBase):
             ],
         }[self.network_name]
 
+    @property
+    def feature_dim(self) -> int:
+        return self._feature_dim
+
+    @feature_dim.setter
+    def feature_dim(self, dim: int):
+        self._feature_dim = dim
+
     def get_stage(self) -> list[list[int]]:
         return {
             "mobilenet_v2": [
@@ -86,6 +93,26 @@ class MobileNetFeatureExtractor(ExtractorBase):
             ],
         }[self.network_name]
 
+    @property
+    def hidden_dim_2x(self) -> list[int]:
+        return self.feature_dims[0]
+
+    @property
+    def hidden_dim_4x(self) -> list[int]:
+        return self.feature_dims[1]
+
+    @property
+    def hidden_dim_8x(self) -> list[int]:
+        return self.feature_dims[2]
+
+    @property
+    def hidden_dim_16x(self) -> list[int]:
+        return self.feature_dims[3]
+
+    @property
+    def hidden_dim_32x(self) -> list[int]:
+        return self.feature_dims[4]
+
     def get_weight(self, network_name: str) -> Weights:
         return {
             "mobilenet_v2": MobileNet_V2_Weights.DEFAULT,
@@ -106,26 +133,36 @@ class MobileNetFeatureExtractor(ExtractorBase):
     def forward(
         self,
         img: torch.Tensor,
-        target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"],
+        target_layer_names: Sequence[
+            Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"]
+        ],
+        normalization: bool = True,
     ) -> list[torch.Tensor]:
         if self.layer_type != "block":
             raise NotImplementedError
 
+        targets = set(target_layer_names)
+
         features = []
 
-        img = self.normalization(img)
+        if normalization:
+            img = self.normalization(img)
 
-        y = img
+        y: torch.Tensor = img
         for stage_idx, stage in enumerate(self.get_stage()):
-            for layer_count, layer_idx in enumerate(stage):
+            for layer_count, layer_idx in enumerate(stage, start=1):
                 layer = self.feature_extractor[layer_idx]
-                y: torch.Tensor = layer(y)
+                y = layer(y)
 
-                layer_name = f"{stage_idx}_{layer_count+1}"
+                layer_name = f"{stage_idx}_{layer_count}"
                 if layer_name in target_layer_names:
                     features.append(y)
+                    targets.remove(layer_name)
 
-        if "output" in target_layer_names:
+                    if len(targets) == 0 and "output" not in targets:
+                        break
+
+        if "output" in targets:
             features.append(y.mean((2, 3)))
 
         return features
