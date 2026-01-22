@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Sequence
 
 import torch
 import torchvision
@@ -146,7 +146,10 @@ class ResNetFeatureExtractor(ExtractorBase):
     def forward(
         self,
         img: torch.Tensor,
-        target_layer_names: Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"],
+        target_layer_names: Sequence[
+            Literal["0_1", "1_1", "2_1", "3_1", "4_1", "output"]
+        ],
+        normalization: bool = True,
     ) -> list[torch.Tensor]:
         if self.layer_type != "block":
             raise NotImplementedError
@@ -155,7 +158,8 @@ class ResNetFeatureExtractor(ExtractorBase):
 
         features = []
 
-        img = self.normalization(img)
+        if normalization:
+            img = self.normalization(img)
 
         y = self.feature_extractor[:4](img)
         if "0_1" in targets:
