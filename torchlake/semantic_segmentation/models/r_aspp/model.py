@@ -16,6 +16,7 @@ class MobileNetV2Seg(ModelBase):
         backbone: ExtractorBase,
         output_size: int = 1,
         hidden_dim: int = 256,
+        output_stride: int = 8,
     ):
         """MobileNet v2 semantic segmentation in paper [1801.04381v4]
 
@@ -25,6 +26,7 @@ class MobileNetV2Seg(ModelBase):
             reduction_ratio (int, optional): prediction head dimension reduced ratio. Defaults to 8.
         """
         self.hidden_dim = hidden_dim
+        self.output_stride = output_stride
         super().__init__(
             backbone.input_channel,
             output_size,
@@ -64,6 +66,11 @@ class MobileNetV2Seg(ModelBase):
         y = self.head(y)
 
         cropper = CenterCrop(x.shape[2:])
-        y = F.interpolate(y, scale_factor=8, mode="bilinear", align_corners=True)
+        y = F.interpolate(
+            y,
+            scale_factor=self.output_stride,
+            mode="bilinear",
+            align_corners=True,
+        )
         y = cropper(y)
         return y
