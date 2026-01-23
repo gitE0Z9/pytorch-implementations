@@ -1,55 +1,93 @@
 import pytest
 import torch
 
-from ..models.lr_aspp import LRASPP, MobileNetV3Seg
+from ..models.r_aspp.network import r_aspp_style_mobilenet
+from ..models.lr_aspp.model import MobileNetV3Seg
+from ..models.lr_aspp.network import LRASPP
+
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+HIDDEN_DIM = 8
+IMAGE_SIZE = 512
+FEATURE_MAP_SIZE_8X = IMAGE_SIZE // 8
+FEATURE_MAP_SIZE_16X = IMAGE_SIZE // 16
+NUM_CLASS = 21
 
 
-class TestMobileNetV3Seg:
-    def setUp(self):
-        self.x = torch.rand((2, 3, 1024, 2048))
+class TestNetwork:
+    def test_lr_aspp_forward_shape(self):
+        shallow_x = torch.rand(
+            (BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE_8X, FEATURE_MAP_SIZE_8X)
+        )
+        deep_x = torch.rand(
+            (BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE_16X, FEATURE_MAP_SIZE_16X)
+        )
 
-    def test_backbone_forward_shape(self):
-        self.setUp()
-        model = MobileNetV3Seg(21)
+        model = LRASPP(
+            HIDDEN_DIM,
+            HIDDEN_DIM,
+            2,
+            HIDDEN_DIM,
+            NUM_CLASS,
+            pool_kernel_size=(32, 32),
+            pool_stride=(16, 16),
+        )
+        y = model(shallow_x, deep_x)
 
-        features = model.backbone(self.x)
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, NUM_CLASS, FEATURE_MAP_SIZE_8X, FEATURE_MAP_SIZE_8X)
+        )
 
-        for scale, dim, feature in zip([8, 16], [40, 160], features):
-            assert feature.shape == torch.Size((2, dim, 1024 // scale, 2048 // scale))
 
-    @pytest.mark.parametrize(
-        "backbone_name", ["mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"]
-    )
-    def test_forward_shape(self, backbone_name: str):
-        self.setUp()
-        model = MobileNetV3Seg(21, backbone_name=backbone_name)
+class TestModel:
+    @pytest.mark.parametrize("is_train", [True, False])
+    def test_mobilenet_v3_seg_forward_shape(self, is_train: bool):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        y = model(self.x)
+        backbone = r_aspp_style_mobilenet(
+            "mobilenet_v3_large",
+            trainable=False,
+            dilation_size_16x=1,
+            dilation_size_32x=2,
+        )
+        model = MobileNetV3Seg(
+            backbone,
+            NUM_CLASS,
+            pool_kernel_size=(32, 32),
+            pool_stride=(16, 16),
+        )
+        if is_train:
+            model.train()
+        else:
+            model.eval()
 
-        assert y.shape == torch.Size((2, 21, 1024, 2048))
+        y = model(x)
 
-    def test_backward(self):
-        self.setUp()
-        y = torch.randint(0, 21, (2, 1024, 2048))
+        assert y.shape == torch.Size((BATCH_SIZE, NUM_CLASS, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = MobileNetV3Seg(21)
+    def test_mobilenet_v3_seg_backward(self):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+        y = torch.randint(0, NUM_CLASS, (BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE))
+
+        backbone = r_aspp_style_mobilenet(
+            "mobilenet_v3_large",
+            trainable=False,
+            dilation_size_16x=1,
+            dilation_size_32x=2,
+        )
+        model = MobileNetV3Seg(
+            backbone,
+            NUM_CLASS,
+            pool_kernel_size=(32, 32),
+            pool_stride=(16, 16),
+        )
+        model.train()
 
         criterion = torch.nn.CrossEntropyLoss()
 
-        yhat = model(self.x)
+        yhat = model(x)
         loss = criterion(yhat, y)
 
         loss.backward()
 
         assert not torch.isnan(loss)
-
-
-class TestLRASPP:
-    def test_forward_shape(self):
-        shallow_x = torch.rand((2, 32, 1024 // 8, 2048 // 8))
-        deep_x = torch.rand((2, 32, 1024 // 16, 2048 // 16))
-
-        model = LRASPP([32, 32], 128, 19)
-        y = model(shallow_x, deep_x)
-
-        assert y.shape == torch.Size((2, 19, 1024 // 8, 2048 // 8))

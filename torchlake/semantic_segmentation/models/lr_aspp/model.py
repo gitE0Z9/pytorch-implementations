@@ -1,94 +1,84 @@
-from functools import partial
-from typing import Literal
-
 import torch
 from torch import nn
-from torchlake.common.models import MobileNetFeatureExtractor
 from torchvision.transforms import CenterCrop
+import torch.nn.functional as F
 
-from ...mixins.mobilenet_backbone import MobileNetBackboneMixin
+from torchlake.common.models.feature_extractor_base import ExtractorBase
+from torchlake.common.models.model_base import ModelBase
+
 from .network import LRASPP
 
 
-class MobileNetV3Seg(MobileNetBackboneMixin, nn.Module):
+class MobileNetV3Seg(ModelBase):
 
     def __init__(
         self,
+        backbone: ExtractorBase,
         output_size: int = 1,
         hidden_dim: int = 128,
         pool_kernel_size: tuple[int] = (49, 49),
         pool_stride: tuple[int] = (16, 20),
-        backbone_name: Literal[
-            "mobilenet_v2",
-            "mobilenet_v3_small",
-            "mobilenet_v3_large",
-        ] = "mobilenet_v3_large",
-        frozen_backbone: bool = False,
+        output_stride: int = 8,
     ):
         """MobileNet v3 semantic segmentation in paper [1905.02244v5]
 
         Args:
+            backbone (ExtractorBase): feature extractor.
             output_size (int, optional): output size. Defaults to 1.
             hidden_dim (int): dimension of lr-aspp layer
             pool_kernel_size (tuple[int], optional): kernel size of pool. Defaults to (49, 49).
             pool_stride (tuple[int], optional): stride of pool. Defaults to (16, 20).
-            backbone_name (Literal[ "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"], optional): mobilenet network name. Defaults to "mobilenet_v3_large".
-            fronzen_backbone (bool, optional): froze the backbone or not. Defaults to False.
         """
-        super().__init__()
-        self.backbone: MobileNetFeatureExtractor = self.build_backbone(
-            backbone_name, frozen_backbone
-        )
-        self.backbone.forward = partial(
-            self.backbone.forward,
-            target_layer_names=[
-                f"2_{len(self.backbone.get_stage()[-3])}",
-                f"4_{len(self.backbone.get_stage()[-1])-1}",
-            ],
-        )
-        self.feature_dims = [
-            self.backbone.feature_dims[-3][-1],
-            self.backbone.feature_dims[-1][-2],
-        ]
-        self.head: LRASPP = self.build_head(
-            hidden_dim,
+        self.hidden_dim = hidden_dim
+        self.pool_kernel_size = pool_kernel_size
+        self.pool_stride = pool_stride
+        self.output_stride = output_stride
+        super().__init__(
+            backbone.input_channel,
             output_size,
-            pool_kernel_size,
-            pool_stride,
+            foot_kwargs={"backbone": backbone},
         )
-        self.upsample = nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
 
-    def build_head(
-        self,
-        hidden_dim: int,
-        output_size: int,
-        pool_kernel_size: tuple[int] = (49, 49),
-        pool_stride: tuple[int] = (16, 20),
-    ) -> LRASPP:
+    def build_foot(self, _, **kwargs):
+        self.foot: ExtractorBase = kwargs.pop("backbone")
+        self.foot.fix_target_layers(
+            (
+                f"2_{len(self.foot.get_stage()[-3])}",  # 8x
+                f"4_{len(self.foot.get_stage()[-1])-1}",  # 32x
+            )
+        )
+
+    def build_head(self, output_size: int, **kwargs) -> LRASPP:
         """lr aspp
 
         Args:
-            hidden_dim (int): dimension of intermediate layer
             output_size (int, optional): output size.
-            pool_kernel_size (tuple[int], optional): kernel size of pool. Defaults to (49, 49).
-            pool_stride (tuple[int], optional): stride of pool. Defaults to (16, 20).
         Returns:
             LRASPP: lr aspp
         """
-        return LRASPP(
-            self.feature_dims,
-            hidden_dim,
-            output_size,
-            pool_kernel_size,
-            pool_stride,
+        self.head = nn.Sequential(
+            LRASPP(
+                self.foot.feature_dims[-3][-1],
+                self.foot.feature_dims[-1][-2],
+                upsample_scale=2,
+                hidden_dim=self.hidden_dim,
+                output_channel=output_size,
+                pool_kernel_size=self.pool_kernel_size,
+                pool_stride=self.pool_stride,
+            )
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # 8x
-        features: list[torch.Tensor] = self.backbone(x)
-        y = self.head.forward(*features)
+        features: list[torch.Tensor] = self.foot(x)
+        y = self.head[0](*features)
 
         cropper = CenterCrop(x.shape[2:])
-        y = self.upsample(y)
+        y = F.interpolate(
+            y,
+            scale_factor=self.output_stride,
+            mode="bilinear",
+            align_corners=True,
+        )
         y = cropper(y)
         return y

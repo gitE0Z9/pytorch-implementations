@@ -33,25 +33,25 @@ class MobileNetV2Seg(ModelBase):
             foot_kwargs={"backbone": backbone},
         )
 
-    @property
-    def feature_dim(self) -> int:
-        # penultimate layer of last stage
-        return self.foot.feature_dims[-1][-2]
-
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
 
-        num_layer_of_last_stage = len(self.foot.get_stage()[4])
+        num_layer_of_last_stage = len(self.foot.get_stage()[-1])
         self.foot.fix_target_layers((f"4_{num_layer_of_last_stage-1}",))
 
     def build_neck(self):
-        """ASPP withotut 3x3
+        """Reduced ASPP: an ASPP withotut 3x3
 
         Returns:
             nn.Module: neck module
         """
         self.neck = nn.Sequential(
-            ASPP(self.feature_dim, self.hidden_dim, dilations=[]),
+            ASPP(
+                # penultimate layer of last stage
+                self.foot.feature_dims[-1][-2],
+                self.hidden_dim,
+                dilations=[],
+            ),
         )
 
     def build_head(self, output_size, **kwargs):
