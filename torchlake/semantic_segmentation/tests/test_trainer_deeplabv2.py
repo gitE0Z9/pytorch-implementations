@@ -1,31 +1,49 @@
+from math import floor
+
 import torch
 
-from ...common.models import VGGFeatureExtractor
 from ..controllers.trainer_deeplabv2 import DeepLabV2Trainer
 from ..models.deeplabv2 import DeepLabV2
+from ..models.deeplabv2.network import deeplab_v2_style_vgg
+
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+HIDDEN_DIM = 8
+IMAGE_SIZE = 321
+DOWNSCALE_IMAGE_SIZE = IMAGE_SIZE // 8 + 1
+NUM_CLASS = 21
 
 
 def test_predict_output_shape():
-    x = torch.rand(2, 3, 321, 321)
+    x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
 
-    fe = VGGFeatureExtractor("vgg16", "maxpool", trainable=False)
-    model = DeepLabV2(fe, 21)
+    backbone = deeplab_v2_style_vgg("vgg16", trainable=False)
+    model = DeepLabV2(backbone, output_size=NUM_CLASS)
 
     trainer = DeepLabV2Trainer(1, "cpu")
     trainer.set_multiscales()
 
     output = trainer._predict((x, None), model)
 
-    for ele, shape in zip(output, [41, 31, 21]):
-        assert ele.shape == torch.Size((2, 21, shape, shape))
+    for ele, scale in zip(
+        output,
+        (
+            DOWNSCALE_IMAGE_SIZE,
+            floor(IMAGE_SIZE * 0.75) // 8 + 1,
+            floor(IMAGE_SIZE * 0.5) // 8 + 1,
+        ),
+    ):
+        assert ele.shape == torch.Size((BATCH_SIZE, NUM_CLASS, scale, scale))
 
 
 def test_calc_loss_output_shape():
-    x = torch.rand(2, 3, 321, 321)
-    y = torch.rand(2, 41, 41)
+    x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+    y = torch.randint(
+        0, NUM_CLASS, (BATCH_SIZE, DOWNSCALE_IMAGE_SIZE, DOWNSCALE_IMAGE_SIZE)
+    ).float()
 
-    fe = VGGFeatureExtractor("vgg16", "maxpool", trainable=False)
-    model = DeepLabV2(fe, 21)
+    backbone = deeplab_v2_style_vgg("vgg16", trainable=False)
+    model = DeepLabV2(backbone, output_size=NUM_CLASS)
 
     trainer = DeepLabV2Trainer(1, "cpu")
     trainer.set_multiscales()
