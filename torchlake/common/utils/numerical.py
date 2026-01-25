@@ -228,6 +228,16 @@ def imagenet_denormalization(x: torch.Tensor):
 
 
 def bilinear_kernel(in_c: int, out_c: int, k: int) -> torch.Tensor:
+    """[Caffe](https://github.com/BVLC/caffe/blob/9b891540183ddc834a02b2bd81b31afae71b2153/include/caffe/filler.hpp#L250).
+
+    Args:
+        in_c (int): input channel
+        out_c (int): output channel
+        k (int): kernel size
+
+    Returns:
+        torch.Tensor: bilinear kernel
+    """
     f = (k + 1) // 2
     c = f - 1 if k % 2 == 1 else f - 0.5
 
