@@ -79,21 +79,22 @@ package name: `object_detection`
 
 package name: `semantic_segmentation`
 
-| Model                                       | Article Link                                                                                                                        | Package            |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| UNet                                        | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%8D%81-unet-545efa00ad99) | ``unet``           |
-| Fully convolution network (FCN)             | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b)                       | ``fcn``            |
-| Pyramid spatial pooling network (PSPNet)    | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221)                    | ``pspnet``         |
-| Dual attention(DANet)                       | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)            | ``dual_attention`` |
-| DeepLab v1                                  | -                                                                                                                                   | ``deeplabv1``      |
-| DeepLab v2                                  | -                                                                                                                                   | ``deeplabv2``      |
-| DeepLab v3                                  | -                                                                                                                                   | ``deeplabv3``      |
-| Lite reduced ASPP (LR-ASPP)                 | -                                                                                                                                   | ``lr_aspp``        |
-| Reduced ASPP (R-ASPP)                       | -                                                                                                                                   | ``r_aspp``         |
-| DenseCRF                                    | -                                                                                                                                   | ``densecrf``       |
-| Multi-scale context aggregation by dilation | -                                                                                                                                   | ``mscad``          |
-| ParseNet                                    | -                                                                                                                                   | ``parsenet``       |
-| Segmentation transformer (SETR)             | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-setr-0091abf13f82)                     | ``setr``           |
+| Model                                                                     | Article Link                                                                                                                        | Package            |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Fully convolution network (FCN)                                           | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-fcn-89cac059179b)                       | ``fcn``            |
+| UNet                                                                      | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%8D%81-unet-545efa00ad99) | ``unet``           |
+| DeepLab v1                                                                | -                                                                                                                                   | ``deeplabv1``      |
+| DeepLab v2                                                                | -                                                                                                                                   | ``deeplabv2``      |
+| DeepLab v3                                                                | -                                                                                                                                   | ``deeplabv3``      |
+| DeepLab v3+                                                               | -                                                                                                                                   | ``deeplabv3p``     |
+| Reduced ASPP (R-ASPP)                                                     | -                                                                                                                                   | ``r_aspp``         |
+| Lite reduced ASPP (LR-ASPP)                                               | -                                                                                                                                   | ``lr_aspp``        |
+| DenseCRF                                                                  | -                                                                                                                                   | ``densecrf``       |
+| Multi-scale context aggregation by dilation (Dilation8, Dilation Network) | -                                                                                                                                   | ``dilation``       |
+| ParseNet                                                                  | -                                                                                                                                   | ``parsenet``       |
+| Pyramid spatial pooling network (PSPNet)                                  | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221)                    | ``pspnet``         |
+| Dual attention(DANet)                                                     | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)            | ``dual_attention`` |
+| Segmentation transformer (SETR)                                           | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-setr-0091abf13f82)                     | ``setr``           |
 
 ### 3D recognition
 
