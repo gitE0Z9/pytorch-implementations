@@ -4,7 +4,6 @@ from torchvision.ops import Conv2dNormActivation
 
 from torchlake.common.models.model_base import ModelBase
 
-from ..alexnet.network import LocalResponseNorm
 from .network import AuxiliaryClassifier, InceptionBlock
 
 
@@ -38,8 +37,8 @@ class GoogLeNet(ModelBase):
             nn.MaxPool2d(3, stride=2, padding=1),
         )
         if self.legacy:
-            self.foot.insert(2, LocalResponseNorm())
-            self.foot.insert(5, LocalResponseNorm())
+            self.foot.insert(2, nn.LocalResponseNorm(64))
+            self.foot.insert(5, nn.LocalResponseNorm(192))
 
     def build_blocks(self, **kwargs):
         self.blocks = nn.Sequential(

@@ -45,9 +45,10 @@ class TestNetwork:
 
 class TestModel:
     @pytest.mark.parametrize("is_training", (True, False))
-    def test_googlenet_forward_shape(self, is_training: bool):
+    @pytest.mark.parametrize("legacy", (True, False))
+    def test_googlenet_forward_shape(self, is_training: bool, legacy: bool):
         x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
-        m = GoogLeNet(INPUT_CHANNEL, OUTPUT_SIZE)
+        m = GoogLeNet(INPUT_CHANNEL, OUTPUT_SIZE, legacy=legacy)
 
         if is_training:
             m.train()
