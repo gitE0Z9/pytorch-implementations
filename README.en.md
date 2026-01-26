@@ -93,6 +93,7 @@ package name: `semantic_segmentation`
 | Multi-scale context aggregation by dilation (Dilation8, Dilation Network) | -                                                                                                                                   | ``dilation``       |
 | ParseNet                                                                  | -                                                                                                                                   | ``parsenet``       |
 | Pyramid spatial pooling network (PSPNet)                                  | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-pspnet-8059dc329221)                    | ``pspnet``         |
+| Global Convolution Network                                                |                                                                                                                                     | ``global_conv``    |
 | Dual attention(DANet)                                                     | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)            | ``dual_attention`` |
 | Segmentation transformer (SETR)                                           | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-setr-0091abf13f82)                     | ``setr``           |
 
