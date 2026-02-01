@@ -44,7 +44,7 @@ def deeplab_v2_style_resnet(
     dilation_size_16x: int = 2,
     dilation_size_32x: int = 4,
 ) -> ResNetFeatureExtractor:
-    fe = ResNetFeatureExtractor(network_name, trainable=trainable, enable_gap=False)
+    fe = ResNetFeatureExtractor(network_name, trainable=trainable)
 
     for key, layer in fe.feature_extractor[6].named_modules():
         layer: nn.Conv2d
