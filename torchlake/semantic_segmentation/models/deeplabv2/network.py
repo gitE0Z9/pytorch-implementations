@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Sequence
 
 import torch
 from torch import nn
@@ -134,7 +134,7 @@ class ShallowASPP(nn.Module):
         self,
         input_channel: int,
         output_channel: int,
-        dilations: list[int] = [],
+        dilations: Sequence[int] = [],
     ):
         """A'trous spatial pyramid pooling in [deeplabv2.prototxt](http://liangchiehchen.com/projects/DeepLabv2_resnet.html)
 
