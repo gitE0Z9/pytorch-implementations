@@ -36,10 +36,15 @@ class TestNetwork:
         for f, d in zip(features, dims):
             assert f.shape[:2] == torch.Size((BATCH_SIZE, d))
 
-    def test_deeplab_v2_style_resnet_forward_shape(self):
+    @pytest.mark.parametrize("output_stride", (8, 16))
+    def test_deeplab_v2_style_resnet_forward_shape(self, output_stride: int):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = deeplab_v2_style_resnet("resnet50", trainable=False)
+        model = deeplab_v2_style_resnet(
+            "resnet50",
+            trainable=False,
+            output_stride=output_stride,
+        )
         features = model(x, ("0_1", "1_1", "2_1", "3_1", "4_1"))
 
         dims = (

@@ -43,28 +43,33 @@ def deeplab_v2_style_resnet(
     trainable: bool = True,
     dilation_size_16x: int = 2,
     dilation_size_32x: int = 4,
+    output_stride: int = 8,
 ) -> ResNetFeatureExtractor:
     fe = ResNetFeatureExtractor(network_name, trainable=trainable)
 
     for key, layer in fe.feature_extractor[6].named_modules():
         layer: nn.Conv2d
         if "conv2" in key:
-            layer.dilation, layer.padding, layer.stride = (
+            layer.dilation, layer.padding = (
                 (dilation_size_16x, dilation_size_16x),
                 (dilation_size_16x, dilation_size_16x),
-                (1, 1),
             )
-        elif "downsample.0" in key:
+            if output_stride <= 8:
+                layer.stride = (1, 1)
+
+        elif "downsample.0" in key and output_stride <= 8:
             layer.stride = (1, 1)
 
     for key, layer in fe.feature_extractor[7].named_modules():
         if "conv2" in key:
-            layer.dilation, layer.padding, layer.stride = (
+            layer.dilation, layer.padding = (
                 (dilation_size_32x, dilation_size_32x),
                 (dilation_size_32x, dilation_size_32x),
-                (1, 1),
             )
-        elif "downsample.0" in key:
+            if output_stride <= 16:
+                layer.stride = (1, 1)
+
+        elif "downsample.0" in key and output_stride <= 16:
             layer.stride = (1, 1)
 
     return fe
