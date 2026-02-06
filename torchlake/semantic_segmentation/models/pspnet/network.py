@@ -36,7 +36,12 @@ class PyramidPool2d(nn.Module):
         features = [x]
         for layer in self.layers:
             feature = layer(x)
-            feature = F.interpolate(feature, x.shape[2:], mode="bilinear")
+            feature = F.interpolate(
+                feature,
+                x.shape[2:],
+                mode="bilinear",
+                align_corners=True,
+            )
             features.append(feature)
 
         return torch.cat(features, dim=1)

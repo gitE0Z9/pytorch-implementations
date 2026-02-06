@@ -24,12 +24,22 @@ class DeepLabV2Evaluator(ClassificationEvaluator):
 
         for scale in self.multi_scales:
             yhat = model(
-                F.interpolate(x, size=int(x.size(3) * scale) + 1, mode="bilinear"),
+                F.interpolate(
+                    x,
+                    size=int(x.size(3) * scale) + 1,
+                    mode="bilinear",
+                    align_corners=True,
+                ),
                 *args,
                 **kwargs,
             )
 
-            yhat = F.interpolate(yhat, size=x.shape[2:])
+            yhat = F.interpolate(
+                yhat,
+                size=x.shape[2:],
+                mode="bilinear",
+                align_corners=True,
+            )
 
             output.append(yhat)
 

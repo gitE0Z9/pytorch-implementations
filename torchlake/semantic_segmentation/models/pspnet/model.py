@@ -99,11 +99,11 @@ class PSPNet(ModelBase):
         # head
         y = self.neck(y)
         y = self.head(y)
-        y = F.interpolate(y, x.shape[2:], mode="bilinear")
+        y = F.interpolate(y, x.shape[2:], mode="bilinear", align_corners=True)
 
         if self.training:
             aux = self.aux(aux)
-            aux = F.interpolate(aux, x.shape[2:], mode="bilinear")
+            aux = F.interpolate(aux, x.shape[2:], mode="bilinear", align_corners=True)
             return y, aux
 
         return y

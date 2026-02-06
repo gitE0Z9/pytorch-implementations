@@ -83,11 +83,30 @@ class MLADecoder(nn.Module):
         # b, s, d => b, c, h, w
         y = x.pop().transpose(-1, -2).unflatten(-1, (num_patch, num_patch))
         y = self.blocks[0](y)
-        features.append(F.interpolate(self.necks[0](y), scale_factor=4))
+        features.append(
+            F.interpolate(
+                self.necks[0](y),
+                scale_factor=4,
+                mode="bilinear",
+                align_corners=True,
+            )
+        )
         for block, neck in zip(self.blocks[1:], self.necks[1:]):
             z = x.pop().transpose(-1, -2).unflatten(-1, (num_patch, num_patch))
             z = block(z)
             y = y + z
-            features.append(F.interpolate(neck(y), scale_factor=4))
+            features.append(
+                F.interpolate(
+                    neck(y),
+                    scale_factor=4,
+                    mode="bilinear",
+                    align_corners=True,
+                )
+            )
 
-        return F.interpolate(self.head(torch.cat(features, 1)), scale_factor=4)
+        return F.interpolate(
+            self.head(torch.cat(features, 1)),
+            scale_factor=4,
+            mode="bilinear",
+            align_corners=True,
+        )
