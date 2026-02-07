@@ -31,6 +31,7 @@ class DeepLabV2(ModelBase):
             backbone (ExtractorBase): feature extractor.
             output_size (int, optional): output size. Defaults to 1.
             dilations (Sequence[int], optional): dilation size of ASPP, for ASPP-S, it is [2,4,8,12], ASPP-L is default value. Defaults to [6, 12, 18, 24].
+            enable_shallow_aspp (bool, optional): assign True to enable shallow ASPP, a modern one. False to enable VGG FC6-FC7 LargeFOV ASPP. Defaults to False.
         """
         self.dilations = dilations
         self.enable_shallow_aspp = enable_shallow_aspp
