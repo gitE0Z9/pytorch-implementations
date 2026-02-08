@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Sequence
 
 import torch
 import torch.nn.functional as F
@@ -17,7 +18,7 @@ class PSPNet(ModelBase):
         self,
         backbone: ExtractorBase,
         output_size: int = 1,
-        bins_size: list[int] = [1, 2, 3, 6],
+        bins_size: Sequence[int] = (1, 2, 3, 6),
         dropout_prob: float = 0.5,
     ):
         """Pyramid spatial pooling network [1612.01105v2]
@@ -25,7 +26,7 @@ class PSPNet(ModelBase):
         Args:
             backbone (ExtractorBase): feature extractor.
             output_size (int, optional): output size. Defaults to 1.
-            bins_size (list[int], optional): size of pooled feature maps. Defaults to [1, 2, 3, 6].
+            bins_size (Sequence[int], optional): size of pooled feature maps. Defaults to (1, 2, 3, 6).
             dropout_prob (float, optional): dropout probability. Defaults to 0.5.
         """
         self.dropout_prob = dropout_prob
