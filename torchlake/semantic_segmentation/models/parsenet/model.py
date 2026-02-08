@@ -15,14 +15,21 @@ class ParseNet(ModelBase):
         self,
         backbone: ExtractorBase,
         output_size: int = 1,
+        scale: float = 10.0,
     ):
         """ParseNet [1506.04579v2]
 
         Args:
             backbone (ExtractorBase): backbone.
             output_size (int, optional): output size. Defaults to 1.
+            scale (float, optional): L2 norm initial scale. Defaults to 10.0.
         """
-        super().__init__(1, output_size, foot_kwargs={"backbone": backbone})
+        self.scale = scale
+        super().__init__(
+            backbone.input_channel,
+            output_size,
+            foot_kwargs={"backbone": backbone},
+        )
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
@@ -33,7 +40,7 @@ class ParseNet(ModelBase):
             GlobalContextModule(
                 self.foot.feature_dim,
                 self.output_size,
-                scale=10.0,
+                scale=self.scale,
             ),
         )
 
