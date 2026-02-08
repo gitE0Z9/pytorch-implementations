@@ -1,3 +1,4 @@
+from typing import Sequence
 import pytest
 import torch
 
@@ -25,16 +26,20 @@ class TestNetwork:
 
 
 class TestModel:
-    @pytest.mark.parametrize("num_skip_connection", (0, 1, 2))
-    def test_fcn_forward_shape(self, num_skip_connection: int):
+    @pytest.mark.parametrize(
+        "output_stride,target_layers",
+        (
+            (32, ("6_1",)),
+            (16, ("4_1", "6_1")),
+            (8, ("3_1", "4_1", "6_1")),
+        ),
+    )
+    def test_fcn_forward_shape(self, output_stride: int, target_layers: Sequence[int]):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         backbone = fcn_style_vgg("vgg16", trainable=False)
-        model = FCN(
-            backbone,
-            NUM_CLASS,
-            num_skip_connection=num_skip_connection,
-        )
+        backbone.fix_target_layers(target_layers)
+        model = FCN(backbone, NUM_CLASS, output_stride=output_stride)
 
         y = model(x)
 

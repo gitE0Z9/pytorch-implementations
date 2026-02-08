@@ -1,3 +1,4 @@
+import math
 import torch
 from torch import nn
 from torchvision.transforms import CenterCrop
@@ -13,45 +14,53 @@ class FCN(ModelBase):
         self,
         backbone: ExtractorBase,
         output_size: int = 1,
-        num_skip_connection: int = 2,
+        output_stride: int = 8,
     ):
         """Fully Convolutional Networks for Semantic Segmentation in paper [1605.06211v1]
 
         Args:
             backbone (ExtractorBase): backbone.
             output_size (int, optional): output size. Defaults to 1.
-            num_skip_connection (int, optional): number of skip connection, e.g. 2 means FCN-8s, 1 means FCN-16s, 0 means FCN-32s. Defaults to 2.
+            output_stride (int, optional): output stride, e.g. 4 means FCN-4s, 8 means FCN-8s, 16 means FCN-16s, 32 means FCN-32s and so on. Defaults to 8.
         """
-        self.num_skip_connection = num_skip_connection
-        super().__init__(1, output_size, foot_kwargs={"backbone": backbone})
+        self.output_stride = output_stride
+        super().__init__(
+            backbone.input_channel,
+            output_size,
+            foot_kwargs={"backbone": backbone},
+        )
+
+    @property
+    def num_skip_connection(self) -> int:
+        return 5 - int(math.log2(self.output_stride))
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
-        layer_names = ["6_1"]
-        if self.num_skip_connection > 0:
-            layer_names.append("4_1")
-        if self.num_skip_connection > 1:
-            layer_names.append("3_1")
-        self.foot.fix_target_layers(layer_names)
 
     def build_blocks(self, **kwargs):
         layer = nn.Conv2d(self.foot.feature_dim, self.output_size, 1)
         init_conv_to_zeros(layer)
+        # from high to low
         self.blocks = nn.ModuleList([layer])
 
-        if self.num_skip_connection > 0:
-            layer = nn.Conv2d(self.foot.hidden_dim_16x, self.output_size, 1)
+        s = 16
+        while self.output_stride <= s:
+            layer = nn.Conv2d(
+                getattr(self.foot, f"hidden_dim_{s}x"),
+                self.output_size,
+                1,
+            )
             init_conv_to_zeros(layer)
             self.blocks.append(layer)
-        if self.num_skip_connection > 1:
-            layer = nn.Conv2d(self.foot.hidden_dim_8x, self.output_size, 1)
-            init_conv_to_zeros(layer)
-            self.blocks.append(layer)
+
+            s //= 2
 
     def build_head(self, output_size, **kwargs):
         # 8s => k=16, s=8
         # 16s => k=32, s=16
         # 32s => k=64, s=32
+
+        # from low to high
         self.head = nn.ModuleList()
 
         for _ in range(self.num_skip_connection):
@@ -65,18 +74,11 @@ class FCN(ModelBase):
             init_deconv_with_bilinear_kernel(layer)
             self.head.append(layer)
 
-        mapping = [
-            (64, 32),
-            (32, 16),
-            (16, 8),
-        ]
-
-        k, s = mapping[self.num_skip_connection]
         layer = nn.ConvTranspose2d(
             output_size,
             output_size,
-            k,
-            stride=s,
+            self.output_stride * 2,
+            stride=self.output_stride,
             bias=False,
         )
         init_deconv_with_bilinear_kernel(layer)
@@ -84,6 +86,7 @@ class FCN(ModelBase):
         self.head.insert(0, layer)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # vgg
         # 8s => 3, 4, 6
         # 16s => 4, 6
         # 32s => 6
