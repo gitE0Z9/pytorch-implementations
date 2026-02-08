@@ -2,8 +2,6 @@ from typing import Literal
 
 import torch
 from torch import nn
-from torchvision.ops import Conv2dNormActivation
-import torch.nn.functional as F
 
 from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
