@@ -38,29 +38,29 @@ class FCN(ModelBase):
         self.foot: ExtractorBase = kwargs.pop("backbone")
 
     def build_blocks(self, **kwargs):
-        layer = nn.Conv2d(self.foot.feature_dim, self.output_size, 1)
-        init_conv_to_zeros(layer)
-        # from high to low
-        self.blocks = nn.ModuleList([layer])
+        self.blocks = nn.ModuleList()
 
+        # from high to low
+        # i.e. stage5, stage4, stage3, stage2, stage1
+        dims = [self.foot.feature_dim]
         s = 16
         while self.output_stride <= s:
-            layer = nn.Conv2d(
-                getattr(self.foot, f"hidden_dim_{s}x"),
-                self.output_size,
-                1,
-            )
+            dims.append(getattr(self.foot, f"hidden_dim_{s}x"))
+            s //= 2
+
+        for dim in dims:
+            layer = nn.Conv2d(dim, self.output_size, 1)
             init_conv_to_zeros(layer)
             self.blocks.append(layer)
-
-            s //= 2
 
     def build_head(self, output_size, **kwargs):
         # 8s => k=16, s=8
         # 16s => k=32, s=16
         # 32s => k=64, s=32
 
-        # from low to high
+        # from high to low
+        # except the first one is lowest
+        # i.e. final upsampling, stage5, stage4, stage3, stage2, stage1
         self.head = nn.ModuleList()
 
         for _ in range(self.num_skip_connection):
@@ -93,12 +93,13 @@ class FCN(ModelBase):
         features: list[torch.Tensor] = self.foot(x)
 
         y = self.blocks[0](features.pop())
-        for h, block in zip(self.head[1:], self.blocks[1:]):
+        for head, block in zip(self.head[1:], self.blocks[1:]):
             # upsampling low-level features
-            y = h(y)
+            y = head(y)
 
             # feature fusion
-            y += CenterCrop(y.shape[-2:])(block(features.pop()))
+            cropper = CenterCrop(y.shape[-2:])
+            y = y + cropper(block(features.pop()))
 
         y = self.head[0](y)
         return CenterCrop(x.shape[-2:])(y)
