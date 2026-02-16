@@ -99,7 +99,8 @@
 | Understanding Convolution for Semantic Segmentation (HDC, UDC)            |                                                                                                                                     | ``hdc_duc``        |
 | Learning a Discriminative Feature Network for Semantic Segmentation (DFN) |                                                                                                                                     | ``dfn``            |
 | RefineNet                                                                 |                                                                                                                                     | ``refinenet``      |
-| Dual attention(DANet)                                                     | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)            | ``dual_attention`` |
+| Dual attention (DANet)                                                    | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-dual-attention-56013cbf927a)            | ``dual_attention`` |
+| Context Encoding for Semantic Segmentation (EncNet)                       |                                                                                                                                     | ``encnet``         |
 | Segmentation transformer (SETR)                                           | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-setr-0091abf13f82)                     | ``setr``           |
 
 ### 3D辨識
