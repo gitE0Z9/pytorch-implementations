@@ -8,7 +8,7 @@ from torchlake.common.models.flatten import FlattenFeature
 class EncodingModule2d(nn.Module):
     def __init__(self, input_channel: int, k: int = 32):
         super().__init__()
-        self.centers = nn.Parameter(torch.rand(k, input_channel))
+        self.codes = nn.Parameter(torch.rand(k, input_channel))
         self.scales = nn.Parameter(torch.rand(k))
         self.stem = Conv2dNormActivation(input_channel, input_channel, 1)
         self.layers = nn.Sequential(
@@ -31,6 +31,7 @@ class EncodingModule2d(nn.Module):
 
         Args:
             x (torch.Tensor): shape (B, D, H, W)
+            output_latent (bool, optional): output latent variables for semantic encoding loss. Defaults to False.
 
         Returns:
             torch.Tensor: _description_
@@ -41,7 +42,7 @@ class EncodingModule2d(nn.Module):
 
         # scaled l2
         # B, N, K, D
-        d: torch.Tensor = y[:, :, None, :] - self.centers[None, None, :, :]
+        d: torch.Tensor = y[:, :, None, :] - self.codes[None, None, :, :]
         # B, N, K
         a = (self.scales[None, None, :] * d.pow(2).sum(-1)).softmax(-1)
 
