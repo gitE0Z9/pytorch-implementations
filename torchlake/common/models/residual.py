@@ -62,8 +62,8 @@ class ResBlock(nn.Module):
 
         return layer
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.block(x) + self.downsample(x)
+    def forward(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        y = self.block(x, *args, **kwargs) + self.downsample(x)
 
         if self.activation is None:
             return y
