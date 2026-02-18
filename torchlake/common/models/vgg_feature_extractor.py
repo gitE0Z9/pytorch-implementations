@@ -9,6 +9,10 @@ from torchvision.models.vgg import (
     VGG13_Weights,
     VGG16_Weights,
     VGG19_Weights,
+    VGG11_BN_Weights,
+    VGG13_BN_Weights,
+    VGG16_BN_Weights,
+    VGG19_BN_Weights,
     VGG,
 )
 
@@ -22,11 +26,12 @@ class VGGFeatureExtractor(ExtractorBase):
         network_name: Literal["vgg11", "vgg13", "vgg16", "vgg19"],
         layer_type: Literal["conv", "relu", "maxpool", "gap"],
         trainable: bool = True,
-        # enable_bn: bool = False,
+        enable_bn: bool = False,
         enable_gap: bool = False,
         enable_fc1: bool = False,
         enable_fc2: bool = False,
         convert_fc_to_conv: bool = False,
+        return_pooling_indices: bool = False,
     ):
         """VGG feature extractor
 
@@ -35,12 +40,14 @@ class VGGFeatureExtractor(ExtractorBase):
             layer_type (Literal["conv", "relu", "maxpool"]): extract which type of layer
             trainable (bool, optional): backbone is trainable or not. Defaults to True.
         """
-        # self.enable_bn = enable_bn
+        self.enable_bn = enable_bn
         self.enable_gap = enable_gap
         self.enable_fc1 = enable_fc1
         self.enable_fc2 = enable_fc2
         self.convert_fc_to_conv = convert_fc_to_conv
+        self.return_pooling_indices = return_pooling_indices
         self._feature_dim = 4096
+
         super().__init__(network_name, layer_type, trainable)
         self.normalization = ImageNetNormalization()
 
@@ -78,14 +85,17 @@ class VGGFeatureExtractor(ExtractorBase):
 
     def get_weight(self, network_name: str) -> Weights:
         return {
-            "vgg11": VGG11_Weights.DEFAULT,
-            "vgg13": VGG13_Weights.DEFAULT,
-            "vgg16": VGG16_Weights.DEFAULT,
-            "vgg19": VGG19_Weights.DEFAULT,
+            "vgg11": VGG11_Weights.DEFAULT if not self.enable_bn else VGG11_BN_Weights,
+            "vgg13": VGG13_Weights.DEFAULT if not self.enable_bn else VGG13_BN_Weights,
+            "vgg16": VGG16_Weights.DEFAULT if not self.enable_bn else VGG16_BN_Weights,
+            "vgg19": VGG19_Weights.DEFAULT if not self.enable_bn else VGG19_BN_Weights,
         }[network_name]
 
     def build_feature_extractor(self, network_name: str, weights: Weights) -> nn.Module:
-        model_class = getattr(torchvision.models, network_name)
+        module_name = network_name
+        if self.enable_bn:
+            module_name += "_bn"
+        model_class = getattr(torchvision.models, module_name)
         m: VGG = model_class(weights=weights)
 
         fe: nn.Sequential = m.features
@@ -115,6 +125,11 @@ class VGGFeatureExtractor(ExtractorBase):
             # relu
             fe.append(m.classifier[4])
 
+        if self.return_pooling_indices:
+            for _, m in fe.named_modules():
+                if isinstance(m, nn.MaxPool2d):
+                    m.return_indices = True
+
         if not self.trainable:
             for param in fe.parameters():
                 param.requires_grad = False
@@ -141,6 +156,7 @@ class VGGFeatureExtractor(ExtractorBase):
         targets = set(target_layer_names)
 
         features = []
+        pooling_indices = []
 
         if normalization:
             img = self.normalization(img)
@@ -150,6 +166,10 @@ class VGGFeatureExtractor(ExtractorBase):
         layer_count = 1
         for layer in self.feature_extractor:
             y = layer(y)
+
+            if isinstance(layer, nn.MaxPool2d) and self.return_pooling_indices:
+                y, pooling_index = y
+                pooling_indices.append(pooling_index)
 
             layer_name = f"{stage_count}_{layer_count}"
             if check_function(layer):
@@ -165,5 +185,8 @@ class VGGFeatureExtractor(ExtractorBase):
             if isinstance(layer, nn.MaxPool2d | nn.AvgPool2d):
                 stage_count += 1
                 layer_count = 1
+
+        if self.return_pooling_indices:
+            return features, pooling_indices
 
         return features
