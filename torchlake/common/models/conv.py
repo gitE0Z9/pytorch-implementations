@@ -69,7 +69,7 @@ class ConvBNReLU(nn.Module):
             "padding": padding,
             "dilation": dilation,
             "groups": group,
-            "bias": not enable_bn,
+            "bias": not (enable_bn and not conv_last),
         }
         if deconvolution:
             kwargs["output_padding"] = output_padding

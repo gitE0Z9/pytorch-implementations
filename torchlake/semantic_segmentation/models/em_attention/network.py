@@ -55,7 +55,10 @@ class EMAttention2d(nn.Module):
                 mu = F.normalize(mu, p=2, dim=1)
 
             # update mu in MA way
-            self.mu.copy_((self.momentum * self.mu + (1 - self.momentum) * mu).mean(0))
+            if self.training:
+                self.mu.copy_(
+                    (self.momentum * self.mu + (1 - self.momentum) * mu).mean(0)
+                )
 
         # reestimation
         # b, c, k x b, k, n -> b, c, h, w
