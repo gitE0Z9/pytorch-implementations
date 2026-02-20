@@ -14,6 +14,7 @@ class EMANet(ModelBase):
         self,
         backbone: ExtractorBase,
         output_size: int = 1,
+        hidden_dim: int = 512,
         k: int = 64,
         num_iter: int = 3,
         output_stride: int = 8,
@@ -21,6 +22,7 @@ class EMANet(ModelBase):
         momentum: float = 0.9,
     ):
         self.output_stride = output_stride
+        self.hidden_dim = hidden_dim
         self.k = k
         self.num_iter = num_iter
         self.lambda_a = lambda_a
@@ -37,9 +39,9 @@ class EMANet(ModelBase):
     def build_neck(self, **kwargs):
         self.neck = nn.ModuleList(
             [
-                Conv2dNormActivation(self.foot.hidden_dim_32x, 512, 3),
+                Conv2dNormActivation(self.foot.hidden_dim_32x, self.hidden_dim, 3),
                 EMAttention2d(
-                    512,
+                    self.hidden_dim,
                     k=self.k,
                     num_iter=self.num_iter,
                     lambda_a=self.lambda_a,
@@ -50,9 +52,9 @@ class EMANet(ModelBase):
 
     def build_head(self, output_size, **kwargs):
         self.head = nn.Sequential(
-            Conv2dNormActivation(512, 256, 3),
+            Conv2dNormActivation(self.hidden_dim, self.hidden_dim // 2, 3),
             nn.Dropout2d(p=0.1),
-            nn.Conv2d(256, output_size, 1),
+            nn.Conv2d(self.hidden_dim // 2, output_size, 1),
             nn.Upsample(
                 scale_factor=self.output_stride,
                 mode="bilinear",
