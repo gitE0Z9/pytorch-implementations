@@ -18,7 +18,9 @@ class PyramidPool2d(nn.Module):
             bins_size (list[int], optional): size of pooled feature maps. Defaults to [1, 2, 3, 6].
         """
         super().__init__()
-        self.layers = nn.ModuleList(
+        self.input_channel = input_channel
+        self.bins_size = bins_size
+        self.branches = nn.ModuleList(
             [
                 nn.Sequential(
                     nn.AdaptiveAvgPool2d(bin_size),
@@ -32,10 +34,14 @@ class PyramidPool2d(nn.Module):
             ]
         )
 
-    def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
+    @property
+    def output_channel(self) -> int:
+        return self.input_channel * (1 + len(self.bins_size))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = [x]
-        for layer in self.layers:
-            feature = layer(x)
+        for branch in self.branches:
+            feature = branch(x)
             feature = F.interpolate(
                 feature,
                 x.shape[2:],
