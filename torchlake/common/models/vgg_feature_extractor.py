@@ -63,6 +63,38 @@ class VGGFeatureExtractor(ExtractorBase):
     def feature_dim(self, dim: int):
         self._feature_dim = dim
 
+    def get_stage(self) -> Sequence[Sequence[int]]:
+        return {
+            "vgg11": (
+                (0,),
+                (1,),
+                (2, 3),
+                (4, 5),
+                (6, 7),
+            ),
+            "vgg13": (
+                (0, 1),
+                (2, 3),
+                (4, 5),
+                (6, 7),
+                (8, 9),
+            ),
+            "vgg16": (
+                (0, 1),
+                (2, 3),
+                (4, 5, 6),
+                (7, 8, 9),
+                (10, 11, 12),
+            ),
+            "vgg19": (
+                (0, 1),
+                (2, 3),
+                (4, 5, 6, 7),
+                (8, 9, 10, 11),
+                (12, 13, 14, 15),
+            ),
+        }[self.network_name]
+
     @property
     def hidden_dim_2x(self) -> int:
         return 64

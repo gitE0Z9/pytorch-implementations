@@ -23,7 +23,7 @@ class ResNetFeatureExtractor(ExtractorBase):
     def __init__(
         self,
         network_name: RESNET_NAMES,
-        layer_type: Literal["block"] = "block",
+        layer_type: Literal["block", "stage"] = "stage",
         trainable: bool = True,
     ):
         """resnet feature extractor
@@ -56,15 +56,43 @@ class ResNetFeatureExtractor(ExtractorBase):
     def feature_dim(self, dim: int):
         self._feature_dim = dim
 
+    def get_stage(self) -> Sequence[Sequence[int]]:
+        return {
+            "resnet18": (
+                (0, 1),
+                (2, 3),
+                (4, 5),
+                (6, 7),
+            ),
+            "resnet34": (
+                (0, 1, 2),
+                (3, 4, 5, 6),
+                (7, 8, 9, 10, 11, 12),
+                (13, 14, 15),
+            ),
+            "resnet50": (
+                (0, 1, 2),
+                (3, 4, 5, 6),
+                (7, 8, 9, 10, 11, 12),
+                (13, 14, 15),
+            ),
+            "resnet101": (
+                (0, 1, 2),
+                (3, 4, 5, 6),
+                tuple(range(7, 30)),
+                (30, 31, 32),
+            ),
+            "resnet152": (
+                (0, 1, 2),
+                tuple(range(3, 11)),
+                tuple(range(11, 47)),
+                (47, 48, 49),
+            ),
+        }[self.network_name]
+
     @property
     def hidden_dim_stem(self) -> int:
-        return {
-            "resnet18": 64,
-            "resnet34": 64,
-            "resnet50": 64,
-            "resnet101": 64,
-            "resnet152": 64,
-        }[self.network_name]
+        return 64
 
     @property
     def hidden_dim_4x(self) -> int:
@@ -144,7 +172,7 @@ class ResNetFeatureExtractor(ExtractorBase):
         ],
         normalization: bool = True,
     ) -> list[torch.Tensor]:
-        if self.layer_type != "block":
+        if self.layer_type not in ("block", "stage"):
             raise NotImplementedError
 
         targets = set(target_layer_names)
@@ -159,15 +187,34 @@ class ResNetFeatureExtractor(ExtractorBase):
             features.append(y)
             targets.remove("0_1")
 
-        for i in range(4, 8):
-            layer_name = f"{i-3}_1"
-            y = self.feature_extractor[i](y)
-            if layer_name in targets:
-                features.append(y)
-                targets.remove(layer_name)
+        stage_idx = 1
+        for blocks in self.feature_extractor[4:]:
+            block_idx = 1
+            layer_name = f"{stage_idx}_{block_idx}"
+            if self.layer_type == "stage":
+                y = blocks(y)
 
-                if len(targets) == 0 and "output" not in targets:
-                    break
+                if layer_name in targets:
+                    features.append(y)
+                    targets.remove(layer_name)
+
+                    if len(targets) == 0 and "output" not in targets:
+                        break
+            elif self.layer_type == "block":
+                for block in blocks:
+                    y = block(y)
+
+                    if layer_name in targets:
+                        features.append(y)
+                        targets.remove(layer_name)
+
+                        if len(targets) == 0 and "output" not in targets:
+                            break
+
+                    block_idx += 1
+                    layer_name = f"{stage_idx}_{block}"
+
+            stage_idx += 1
 
         if "output" in targets:
             features.append(y.mean((2, 3)))
