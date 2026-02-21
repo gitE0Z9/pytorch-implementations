@@ -56,10 +56,11 @@ class TestResNetFeatureExtractor:
     #     y = original_model.avgpool(y)
     #     assert_close(features.pop(0), y.squeeze((-1, -2)))
 
+    @pytest.mark.parametrize("layer_type", ["stage", "block"])
     @pytest.mark.parametrize("num_layer", [18, 34, 50, 101, 152])
-    def test_output_shape(self, num_layer: int):
+    def test_output_shape(self, layer_type: str, num_layer: int):
         self.setUp()
-        model = ResNetFeatureExtractor(f"resnet{num_layer}", layer_type="block")
+        model = ResNetFeatureExtractor(f"resnet{num_layer}", layer_type=layer_type)
         y = model.forward(self.x, ["0_1", "1_1", "2_1", "3_1", "4_1", "output"])
 
         factor = 1 if num_layer >= 50 else 4
