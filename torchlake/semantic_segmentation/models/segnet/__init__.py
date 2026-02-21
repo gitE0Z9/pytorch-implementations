@@ -1,5 +1,6 @@
-from .model import SegNet
+from .model import SegNet, BayesianSegNet
 
-__all__= [
+__all__ = [
     "SegNet",
+    "BayesianSegNet",
 ]
