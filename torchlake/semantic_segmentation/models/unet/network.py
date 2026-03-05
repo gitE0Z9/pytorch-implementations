@@ -1,45 +1,65 @@
+import math
+
 import torch
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
+from torchvision.transforms import CenterCrop
+
+from torchlake.semantic_segmentation.models.fcn.network import (
+    init_deconv_with_bilinear_kernel,
+)
 
 
-class DoubleConv(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int):
+class ConvBlock(nn.Module):
+    def __init__(self, input_channel: int, output_channel: int):
         super().__init__()
-        self.conv1 = Conv2dNormActivation(in_ch, out_ch, 3)
-        self.conv2 = Conv2dNormActivation(out_ch, out_ch, 3)
+        self.layers = nn.Sequential(
+            Conv2dNormActivation(input_channel, output_channel, 3),
+            Conv2dNormActivation(output_channel, output_channel, 3),
+        )
 
-        # nn.init.normal_(self.conv1.conv.weight, 0, math.sqrt(2 / 9 / in_ch))
-        # nn.init.normal_(self.conv2.conv.weight, 0, math.sqrt(2 / 9 / out_ch))
+        for layer in self.layers:
+            nn.init.kaiming_normal_(layer[0].weight, mode="fan_in", nonlinearity="relu")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv1(x)
-        y = self.conv2(y)
-        return y
+        return self.layers(x)
 
 
 class DownSampling(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int):
+    def __init__(self, input_channel: int, output_channel: int):
         super().__init__()
-        self.pool = nn.MaxPool2d(2, 2)
-        self.convs = DoubleConv(in_ch, out_ch)
+        self.layers = nn.Sequential(
+            nn.MaxPool2d(2, 2),
+            ConvBlock(input_channel, output_channel),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.pool(x)
-        y = self.convs(y)
-        return y
+        return self.layers(x)
 
 
 class UpSampling(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int):
+    def __init__(
+        self,
+        deep_input_channel: int,
+        shallow_input_channel: int,
+    ):
         super().__init__()
-        self.up = nn.ConvTranspose2d(in_ch, in_ch // 2, 2, stride=2)
-        self.convs = DoubleConv(in_ch, out_ch)
+        self.upsample = nn.ConvTranspose2d(
+            deep_input_channel,
+            shallow_input_channel,
+            4,
+            stride=2,
+            padding=1,
+        )
+        init_deconv_with_bilinear_kernel(self.upsample)
+        self.block = ConvBlock(2 * shallow_input_channel, shallow_input_channel)
 
-    def forward(self, x: torch.Tensor, feature: torch.Tensor) -> torch.Tensor:
-        y = self.up(x)
-        y_pad, x_pad = feature.size(3) - y.size(3), feature.size(2) - y.size(2)
-        y = nn.ReflectionPad2d((0, 0, y_pad // 2, x_pad // 2))(y)
-        y = torch.cat([feature, y], dim=1)
-        y = self.convs(y)
+    def forward(self, deep_x: torch.Tensor, shallow_x: torch.Tensor) -> torch.Tensor:
+        y = self.upsample(deep_x)
+        cropper = CenterCrop(shallow_x.shape[-2:])
+        y = cropper(y)
+        # y_pad, x_pad = shallow_x.size(3) - y.size(3), shallow_x.size(2) - y.size(2)
+        # y = nn.ReflectionPad2d((0, 0, y_pad // 2, x_pad // 2))(y)
+        y = torch.cat([shallow_x, y], dim=1)
+        y = self.block(y)
         return y
