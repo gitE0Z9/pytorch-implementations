@@ -33,7 +33,6 @@ class ParseNet(ModelBase):
 
     def build_foot(self, _, **kwargs):
         self.foot: ExtractorBase = kwargs.pop("backbone")
-        self.foot.fix_target_layers(("6_1"))
 
     def build_neck(self, **kwargs):
         self.neck = nn.Sequential(

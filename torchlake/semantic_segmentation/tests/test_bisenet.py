@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from torchlake.common.models.resnet_feature_extractor import ResNetFeatureExtractor
@@ -41,13 +42,25 @@ class TestNetwork:
 
 
 class TestModel:
-    def test_bisenet_forward_shape(self):
+    @pytest.mark.parametrize(
+        "is_training,output_shape",
+        (
+            (True, (IMAGE_SIZE // 8, IMAGE_SIZE // 8)),
+            (False, (IMAGE_SIZE, IMAGE_SIZE)),
+        ),
+    )
+    def test_bisenet_forward_shape(self, is_training: bool, output_shape: torch.Size):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         backbone = ResNetFeatureExtractor("resnet18", trainable=False)
         backbone.fix_target_layers(("3_1", "4_1", "output"))
         model = BiSeNet(backbone, NUM_CLASS)
 
+        if is_training:
+            model.train()
+        else:
+            model.eval()
+
         y = model(x)
 
-        assert y.shape == torch.Size((BATCH_SIZE, NUM_CLASS, IMAGE_SIZE, IMAGE_SIZE))
+        assert y.shape == torch.Size((BATCH_SIZE, NUM_CLASS, *output_shape))

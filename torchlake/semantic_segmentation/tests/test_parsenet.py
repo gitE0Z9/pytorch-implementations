@@ -14,7 +14,7 @@ class TestNetwork:
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         model = parsenet_style_vgg("vgg16", trainable=False)
-        model.fix_target_layers(("6_1"))
+        model.fix_target_layers(("6_1",))
 
         y = model(x).pop()
 
@@ -37,6 +37,7 @@ class TestModel:
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         backbone = parsenet_style_vgg("vgg16", trainable=False)
+        backbone.fix_target_layers(("6_1",))
         model = ParseNet(backbone, NUM_CLASS)
 
         y = model(x)

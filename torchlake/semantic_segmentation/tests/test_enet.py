@@ -58,7 +58,7 @@ class TestNetwork:
         pooling_indices = torch.randint(
             0,
             FEATURE_MAP_SIZE**2,
-            (BATCH_SIZE, in_c, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE),
+            (BATCH_SIZE, out_c, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE),
         )
 
         model = UpsamplingBlock(in_c, out_c)

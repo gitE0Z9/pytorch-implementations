@@ -45,7 +45,7 @@ class TestNetwork:
         y = model(shallow_x, deep_x)
 
         assert y.shape == torch.Size(
-            (BATCH_SIZE, HIDDEN_DIM + 2, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+            (BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
         )
 
 
