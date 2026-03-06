@@ -13,7 +13,7 @@ class ImageDataset(Dataset):
     def __init__(self, pattern: str, transform=None, debug_size: int = 0):
         assert debug_size >= 0, "debug size must be non-negative"
 
-        self.path = list(glob(pattern))
+        self.path = tuple(glob(pattern))
         self.transform = transform
         self.debug_size = debug_size
 

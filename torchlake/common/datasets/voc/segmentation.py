@@ -1,8 +1,7 @@
-from glob import glob
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
-from PIL import Image
 from torch.utils.data import Dataset
 
 from ...utils.image import load_image
@@ -14,29 +13,32 @@ class VOCSegmentation(Dataset):
         self,
         root: str,
         year: YEARS = "2012",
+        mode: Literal["train", "val", "test", "trainval"] = "val",
         transform=None,
         label_transform=None,
     ):
+        self.root = Path(root)
         self.transform = transform
         self.label_transform = label_transform
         self.year = year
-        self.root = Path(root).joinpath("VOCdevkit").joinpath(f"VOC{self.year}")
+        self.mode = mode
 
-        self.label_root = self.root / "SegmentationClass"
-        self.label_files = glob(self.label_root.joinpath("*.png").as_posix())
+        list_path = (
+            self.root
+            / f"VOC{self.year}"
+            / "ImageSets"
+            / "Segmentation"
+            / f"{self.mode}.txt"
+        )
+        self.ids = [img_id.strip() for img_id in list_path.read_text().splitlines()]
 
-    def __len__(self):
-        return len(self.label_files)
+    def __len__(self) -> int:
+        return len(self.ids)
 
     def __getitem__(self, idx: int):
-        image = load_image(
-            self.label_files[idx]
-            .replace("png", "jpg")
-            .replace("SegmentationClass", "JPEGImages"),
-            is_numpy=True,
-        )
+        image = load_image(self.get_img_filename(idx), is_numpy=True)
 
-        mask = Image.open(self.label_files[idx])
+        mask = load_image(self.get_label_filename(idx))
         mask = np.array(mask)
         mask = np.where(mask == 255, 0, mask)
 
@@ -48,3 +50,11 @@ class VOCSegmentation(Dataset):
             mask = self.label_transform(mask)
 
         return image, mask
+
+    def get_img_filename(self, idx: int) -> str:
+        return self.root / f"VOC{self.year}" / "JPEGImages" / f"{self.ids[idx]}.jpg"
+
+    def get_label_filename(self, idx: int) -> str:
+        return (
+            self.root / f"VOC{self.year}" / "SegmentationClass" / f"{self.ids[idx]}.png"
+        )

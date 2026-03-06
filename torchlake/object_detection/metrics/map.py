@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Sequence
 
-import pandas as pd
+import polars as pl
 import torch
 
 from ..constants.enums import PRCurveInterpolation
@@ -87,7 +87,7 @@ class MeanAveragePrecision:
                 # elif num_gt == 0 and has_this_class_detection:
                 #     assert ap_table_per_image[2] == 0
 
-    def score(self):
+    def score(self) -> pl.DataFrame:
         # calculate pr curve and auc
         interpolation_mapping = {
             "VOC": PRCurveInterpolation.VOC.value,
@@ -106,4 +106,4 @@ class MeanAveragePrecision:
                 interpolation=interpolation,
             )
 
-        return pd.DataFrame(AP, index=["precision", "recall", "AP@0.5"])
+        return pl.DataFrame(AP, schema=["precision", "recall", "AP@0.5"])

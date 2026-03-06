@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Iterator
 
 import albumentations as A
-import pandas as pd
+import polars as pl
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from tensorboardX import SummaryWriter
@@ -39,7 +39,7 @@ class Evaluator:
         model: nn.Module,
         data: Iterator,
         class_names: list[str],
-    ) -> tuple[dict[str, tuple[torch.Tensor, torch.Tensor, int]], pd.DataFrame]:
+    ) -> tuple[dict[str, tuple[torch.Tensor, torch.Tensor, int]], pl.DataFrame]:
         """evaluate detector with mAP
 
         Args:
@@ -84,7 +84,7 @@ class Evaluator:
         save_dir: str = None,
         output_filename: str = "eval.csv",
         tf_description: str | None = None,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """_summary_
 
         Args:
@@ -98,10 +98,13 @@ class Evaluator:
             tf_description (str | None, optional): tensorboard record description. Defaults to None.
         """
         _, eval_table = self.evaluate_detector(predictor, model, data, class_names)
+        eval_table: pl.DataFrame
 
-        result_table = eval_table.loc["AP@0.5"].to_frame().T
-        result_table.columns = class_names
-        result_table["all"] = result_table.mean(axis=None)
+        result_table = (
+            eval_table.select("AP@0.5")
+            .transpose(column_names=class_names)
+            .with_columns(all=pl.sum_horizontal(pl.all()) / len(class_names))
+        )
 
         if verbose:
             print(result_table)

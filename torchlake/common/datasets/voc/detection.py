@@ -5,10 +5,11 @@ from xml.etree import cElementTree as etree
 
 import lmdb
 import numpy as np
-import pandas as pd
+import polars as pl
 from torch.utils.data import Dataset
-from torchlake.common.constants import VOC_CLASS_NAMES
 from tqdm import tqdm
+
+from torchlake.common.constants import VOC_CLASS_NAMES
 
 from ...utils.image import load_image
 from .types import YEARS
@@ -30,7 +31,7 @@ class VOCDetectionRaw(Dataset):
         self.transform = transform
 
         # each xml file
-        self.labels: list[Path] = []
+        self.ids: list[Path] = []
         for year in self.years:
             dir = self.root.joinpath(f"VOC{year}")
             list_path = (
@@ -38,12 +39,12 @@ class VOCDetectionRaw(Dataset):
             )
 
             for img_id in list_path.read_text().splitlines():
-                self.labels.append(
+                self.ids.append(
                     dir.joinpath("Annotations").joinpath(f"{img_id.strip()}.xml")
                 )
 
     def __len__(self) -> int:
-        return len(self.labels)
+        return len(self.ids)
 
     def __getitem__(self, idx: int):
         if idx >= len(self):
@@ -69,9 +70,7 @@ class VOCDetectionRaw(Dataset):
         return img, label
 
     def get_img_filename(self, idx: int) -> str:
-        return (
-            self.labels[idx].replace("Annotations", "JPEGImages").replace("xml", "jpg")
-        )
+        return self.ids[idx].replace("Annotations", "JPEGImages").replace("xml", "jpg")
 
     def get_img(self, idx: int) -> tuple[np.ndarray, int, int]:
         img: np.ndarray = load_image(self.get_img_filename(idx), is_numpy=True)
@@ -80,7 +79,7 @@ class VOCDetectionRaw(Dataset):
         return img, h, w
 
     def get_label(self, idx: int, h: int, w: int) -> list[list[float]]:
-        xml = self.labels[idx]
+        xml = self.ids[idx]
         tree = etree.parse(xml)
 
         return self.process_label(tree, h, w)
@@ -116,7 +115,7 @@ class VOCDetectionRaw(Dataset):
 
         return label
 
-    def to_pandas(self) -> pd.DataFrame:
+    def to_polars(self) -> pl.DataFrame:
         data = []
         for idx, (_, labels) in enumerate(tqdm(self)):
             img_filename = self.get_img_filename(idx)
@@ -125,14 +124,14 @@ class VOCDetectionRaw(Dataset):
                 placeholder.extend(label)
                 data.append(placeholder)
 
-        return pd.DataFrame(
+        return pl.DataFrame(
             data,
-            columns=["id", "name", "cx", "cy", "w", "h", "class_id"],
+            schema=["id", "name", "cx", "cy", "w", "h", "class_id"],
         )
 
-    def to_csv(self, csv_path: str = ""):
-        df = self.to_pandas()
-        df.to_csv(csv_path, index=False)
+    def to_csv(self, csv_path: str):
+        df: pl.DataFrame = self.to_polars()
+        df.write_csv(csv_path)
 
     def to_lmdb(self, env: lmdb.Environment):
         with env.begin(write=True) as tx:
@@ -157,25 +156,32 @@ class VOCDetectionFromCSV(Dataset):
         self.csv_path = Path(csv_path)
         self.transform = transform
 
-        self.table = pd.read_csv(
+        df: pl.DataFrame = pl.read_csv(
             self.csv_path.as_posix(),
-            index_col="id",
-            dtype={"class_id": pd.Int8Dtype()},
+            schema_overrides={"class_id": pl.Int8},
         )
 
-        self.data_size = self.table.index.nunique()
+        grouped = df.group_by("id", maintain_order=True).agg(
+            [
+                pl.col("name").first(),
+                pl.struct(["cx", "cy", "w", "h", "class_id"]).alias("labels"),
+            ]
+        )
+
+        self.labels = grouped["labels"].to_list()
+        self.paths = grouped["name"].to_list()
 
     def __len__(self):
-        return self.data_size
+        return len(self.paths)
 
     def __getitem__(self, idx):
-        if idx >= self.data_size:
+        if idx >= len(self):
             raise IndexError
 
         label, path = self._get_label(idx)
         img = self._get_img(path)
 
-        if self.transform:
+        if self.transform is not None:
             is_bbox = self.transform.to_dict()["transform"]["bbox_params"]
 
             kwargs = dict(image=img)
@@ -198,16 +204,12 @@ class VOCDetectionFromCSV(Dataset):
         return img
 
     def _get_label(self, idx: int) -> tuple[list, str]:
-        img_table = self.table.loc[idx]
-        label = img_table[["cx", "cy", "w", "h", "class_id"]].to_numpy().tolist()
-
-        if isinstance(img_table, pd.Series):
-            label = [label]
-            path = img_table["name"]
-        else:
-            path = img_table.iloc[0]["name"]
-
-        path = self.root.joinpath(path).as_posix()
+        label = self.labels[idx]
+        label = [
+            [bbox["cx"], bbox["cy"], bbox["w"], bbox["h"], bbox["class_id"]]
+            for bbox in label
+        ]
+        path = self.root.joinpath(self.paths[idx]).as_posix()
 
         return label, path
 
