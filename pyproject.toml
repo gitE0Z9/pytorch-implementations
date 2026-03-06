@@ -12,7 +12,6 @@ dependencies = [
   "numpy>=2.2.6",
   "opencv-contrib-python>=4.11.0.86",
   "opencv-python>=4.11.0.86",
-  "pandas>=2.2.3",
   "polars>=1.31.0",
   "pydantic>=2.11.4",
   "tensorboardx>=2.6.4",
@@ -21,37 +20,33 @@ dependencies = [
   "torchmetrics>=1.7.1",
   "torchvision>=0.21.0",
   "tqdm>=4.67.1",
+  # "torch-scatter==2.8.0",
+  # "torch-sparse==2.8.0",
   # "transformers>=4.52.4",
 ]
 
 
 [project.optional-dependencies]
 notebook = [
-    "ipykernel>=6.29.5",
-    "scikit-learn>=1.6.1",
-    "seaborn>=0.13.2",
-    "torchinfo>=1.8.0",
+  "av>=14.4.0",
+  "ipykernel>=6.29.5",
+  "scikit-learn>=1.6.1",
+  "seaborn>=0.13.2",
+  "torchinfo>=1.8.0",
 ]
-ocr = [
-    "levenshtein>=0.27.1",
-    "trdg>=0.1.1",
-]
-graph = [
-  "networkx>=3.4.2",
-  "torch_geometric>=2.7.0",
-]
-3d = [
-    "trimesh>=4.8.3",
-]
+ocr = ["levenshtein>=0.27.1", "trdg>=0.1.1"]
+graph = ["networkx>=3.4.2", "torch_geometric>=2.7.0"]
+3d = ["trimesh>=4.8.3"]
+text = ["tokenizers>=0.21.1"]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
-    "pytest-benchmark>=5.1.0",
-    "pytest-cov>=6.1.1",
-    "pytest-html>=4.1.1",
-    "pytest-sugar>=1.0.0",
-    "pytest-xdist>=3.6.1",
+  "pytest>=8.3.5",
+  "pytest-benchmark>=5.1.0",
+  "pytest-cov>=6.1.1",
+  "pytest-html>=4.1.1",
+  "pytest-sugar>=1.0.0",
+  "pytest-xdist>=3.6.1",
 ]
 
 [tool.uv]
@@ -67,14 +62,14 @@ torchvision = [
   { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 torch-scatter = [
-  { index = "torch-scatter-cu126" },
+  { index = "torch-scatter", marker = "sys_platform == 'darwin'" },
+  { index = "torch-scatter-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 torch-sparse = [
-  { index = "torch-sparse-cu126" },
+  { index = "torch-sparse", marker = "sys_platform == 'darwin'" },
+  { index = "torch-sparse-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-torch-tensorrt = [
-  { index = "torch-tensorrt-cu126"},
-]
+torch-tensorrt = [{ index = "torch-tensorrt-cu126" }]
 tensorrt = { path = "F:/TensorRT-10.7.0.23/python/tensorrt-10.7.0-cp311-none-win_amd64.whl" }
 
 [[tool.uv.index]]
@@ -85,6 +80,16 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cu126"
 url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "torch-scatter"
+url = "https://data.pyg.org/whl/torch-2.8.0+cpu.html"
+explicit = true
+
+[[tool.uv.index]]
+name = "torch-sparse"
+url = "https://data.pyg.org/whl/torch-2.8.0+cpu.html"
 explicit = true
 
 [[tool.uv.index]]
