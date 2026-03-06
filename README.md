@@ -256,7 +256,84 @@
 
 ## 安裝方式
 
-```pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake```
+### UV
+
+1. 下載專案
+
+    ```sh
+    git clone https://github.com/gitE0Z9/pytorch-implementations --depth 1
+    
+    cd pytorch-implementations
+    ```
+
+2. 安裝依賴
+
+    - cpu
+
+    ```sh
+    # main
+    uv sync --extra cpu
+
+    # torch-scatter torch-sparse
+    uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+    ```
+
+    - cuda 12.6
+
+    ```sh
+    # main
+    uv sync --extra cu126
+
+    # torch-scatter torch-sparse
+    uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cu126.html
+    ```
+
+    - 額外依賴
+
+    當前提供的額外依賴組包括
+
+    1. `ocr`: OCR，資料生成
+    2. `text`: 文字領域，分詞器跟資料集
+    3. `notebook`: 執行筆記本需要用到的依賴，例如 ipykernel 跟 UI 套件
+    4. `graph`: 圖網路，資料集跟視覺化
+    5. `3d`: 3D，資料處理跟視覺化
+    6. `dev`: 開發套件，以 pytest 為主
+
+    範例如下
+
+    ```sh
+    # OCR
+    uv sync --extra ocr --extra cu126
+
+    # 文字領域
+    uv sync --extra text --extra cu126
+
+    # 筆記本
+    uv sync --extra notebook --extra cu126
+
+    # 圖網路
+    uv sync --extra graph --extra cu126
+
+    # 3D
+    uv sync --extra 3d --extra cu126
+
+    # 開發測試
+    uv sync --extra dev --extra cu126
+    ```
+
+3. 安裝 torchlake
+
+    `uv build && uv pip install .`
+
+### PIP
+
+```sh
+# main
+pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake
+
+# torch-scatter torch-sparse
+參考ＵＶ的指令
+```
 
 ## 專案結構
 

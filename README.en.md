@@ -250,9 +250,88 @@ package name: `reinforcement_learning`
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | Deep Q Network | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337) | ``dqn`` |
 
+## Environment
+
+`python`: `3.11`
+
 ## Installation
 
-```pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake```
+### UV
+
+1. Clone the project
+
+    ```sh
+    git clone https://github.com/gitE0Z9/pytorch-implementations --depth 1
+    
+    cd pytorch-implementations
+    ```
+
+2. Install dependencies
+
+    - cpu
+
+    ```sh
+    # main
+    uv sync --extra cpu
+
+    # torch-scatter torch-sparse
+    uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+    ```
+
+    - cuda 12.6
+
+    ```sh
+    # main
+    uv sync --extra cu126
+
+    # torch-scatter torch-sparse
+    uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cu126.html
+    ```
+
+    - Extra dependencies
+
+    1. `ocr`: OCR, for synthetic data generation
+    2. `text`: text domain, tokenizers and datasets
+    3. `notebook`: dependencies used in `notebooks`, e.g. ipykernel and UI packages
+    4. `graph`: graph datasets and visualization
+    5. `3d`: 3D，data processing and visualization
+    6. `dev`: development kits, pytest and its extensions
+
+    example commands
+
+    ```sh
+    # OCR
+    uv sync --extra ocr --extra cu126
+
+    # text
+    uv sync --extra text --extra cu126
+
+    # notebook
+    uv sync --extra notebook --extra cu126
+
+    # graph
+    uv sync --extra graph --extra cu126
+
+    # 3D
+    uv sync --extra 3d --extra cu126
+
+    # dev
+    uv sync --extra dev --extra cu126
+    ```
+
+3. Install torchlake
+
+    `uv build && uv pip install .`
+
+### PIP
+
+```sh
+# main
+pip install git+https://www.github.com/gite0z9/pytorch-implementations.git@main#torchlake --target=/torchlake
+
+# torch-scatter torch-sparse
+the same as the uv section
+```
 
 ## Project structure
 
