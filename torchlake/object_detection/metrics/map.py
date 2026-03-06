@@ -15,16 +15,16 @@ class MeanAveragePrecision:
         self.class_names = class_names
         self.ap_table = defaultdict(list)
 
+        self.is_yolo = "yolo" in self.context.detector_name.lower()
+        self.offset = 5 if self.is_yolo else 4
+
     def update(self, detections: list[torch.Tensor], labels: list[torch.Tensor]):
         for labels_per_image, detections_per_image in zip(labels, detections):
-            if "yolo" in self.context.detector_name:
-                cls_prediction = detections_per_image[:, 5:].argmax(1)
-            else:
-                cls_prediction = detections_per_image[:, 4:].argmax(1)
+            cls_prediction = detections_per_image[:, self.offset :].argmax(1)
 
             ap_table_per_image = None
             for class_index, class_name in enumerate(self.class_names):
-                if "yolo" not in self.context.detector_name:
+                if self.is_yolo:
                     class_index += 1
 
                 this_class_detection = detections_per_image[
@@ -32,21 +32,18 @@ class MeanAveragePrecision:
                 ]
                 num_det = this_class_detection.size(0)
                 # have det
-                has_this_class_detection = num_det != 0
+                has_this_class_detection = num_det > 0
 
                 this_class_label = labels_per_image[
                     labels_per_image[:, -1] == class_index
                 ]
                 num_gt = this_class_label.size(0)
                 # have gt
-                has_this_class_groundtruth = num_gt != 0
+                has_this_class_groundtruth = num_gt > 0
 
                 # if detected
                 if has_this_class_detection:
-                    if "yolo" in self.context.detector_name:
-                        this_class_prob = this_class_detection[:, 5 + class_index]
-                    else:
-                        this_class_prob = this_class_detection[:, 4 + class_index]
+                    this_class_prob = this_class_detection[:, self.offset + class_index]
 
                     # has gt and det
                     if has_this_class_groundtruth:
