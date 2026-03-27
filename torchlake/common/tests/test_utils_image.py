@@ -1,5 +1,10 @@
 import torch
-from ..utils.image import yiq_transform, yiq_inverse_transform
+from ..utils.image import (
+    yiq_transform,
+    yiq_inverse_transform,
+    ycbcr_transform,
+    ycbcr_inverse_transform,
+)
 
 
 def test_yiq_transform():
@@ -12,5 +17,19 @@ def test_yiq_transform():
 def test_yiq_inverse_transform():
     x = torch.rand((1, 3, 16, 16))
     y = yiq_inverse_transform(x)
+
+    assert y.shape == torch.Size((1, 3, 16, 16))
+
+
+def test_ycbcr_transform():
+    x = torch.rand((1, 3, 16, 16))
+    y = ycbcr_transform(x)
+
+    assert y.shape == torch.Size((1, 3, 16, 16))
+
+
+def test_ycbcr_inverse_transform():
+    x = torch.rand((1, 3, 16, 16))
+    y = ycbcr_inverse_transform(x)
 
     assert y.shape == torch.Size((1, 3, 16, 16))

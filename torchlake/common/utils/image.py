@@ -113,10 +113,10 @@ def yiq_transform(x: torch.Tensor) -> torch.Tensor:
     """YIQ transform, transform RGB(Red-Green-Blue) space to YIQ(luma-chrominance) space
 
     Args:
-        x (torch.Tensor): RGB image tensor
+        x (torch.Tensor): RGB image tensor, shape is (b, c, ...), scale is [0, 1]
 
     Returns:
-        torch.Tensor: YIQ image tensor
+        torch.Tensor: YIQ image tensor, shape is (b, c, ...)
     """
     A = torch.Tensor(
         [
@@ -135,10 +135,10 @@ def yiq_inverse_transform(x: torch.Tensor) -> torch.Tensor:
     """YIQ inverse transform, transform YIQ(luma-chrominance) space to RGB(Red-Green-Blue) space
 
     Args:
-        x (torch.Tensor): YIQ image tensor
+        x (torch.Tensor): YIQ image tensor, shape is (b, c, ...), scale is [0, 1]
 
     Returns:
-        torch.Tensor: RGB image tensor
+        torch.Tensor: RGB image tensor, shape is (b, c, ...)
     """
     A = torch.Tensor(
         [
@@ -151,6 +151,54 @@ def yiq_inverse_transform(x: torch.Tensor) -> torch.Tensor:
     ).to(x.device)
 
     return torch.bmm(A.inverse(), torch.flatten(x, start_dim=2)).reshape(x.shape)
+
+
+def ycbcr_transform(x: torch.Tensor) -> torch.Tensor:
+    """YCbCr transform, transform RGB(Red-Green-Blue) space to YCbCr(luma + chroma-difference) space
+
+    Args:
+        x (torch.Tensor): RGB image tensor, shape is (b, c, ...), scale is [0, 1]
+
+    Returns:
+        torch.Tensor: YCbCr image tensor, shape is (b, c, ...)
+    """
+    A = torch.Tensor(
+        [
+            [
+                [0.299, 0.587, 0.114],
+                [-0.169, -0.331, 0.5],
+                [0.5, -0.419, -0.081],
+            ]
+        ]
+    ).to(x.device)
+
+    bias = torch.Tensor([[[0], [0.5], [0.5]]]).to(x.device)
+
+    return torch.bmm(A, torch.flatten(x, start_dim=2)).add(bias).reshape(x.shape)
+
+
+def ycbcr_inverse_transform(x: torch.Tensor) -> torch.Tensor:
+    """YCbCr inverse transform, transform YIQ(luma + chroma-difference) space to RGB(Red-Green-Blue) space
+
+    Args:
+        x (torch.Tensor): YCbCr image tensor, shape is (b, c, ...), scale is [0, 1]
+
+    Returns:
+        torch.Tensor: RGB image tensor, shape is (b, c, ...)
+    """
+    A = torch.Tensor(
+        [
+            [
+                [0.299, 0.587, 0.114],
+                [-0.169, -0.331, 0.5],
+                [0.5, -0.419, -0.081],
+            ]
+        ]
+    ).to(x.device)
+
+    bias = torch.Tensor([[[0], [0.5], [0.5]]]).to(x.device)
+
+    return torch.bmm(A.inverse(), torch.flatten(x, start_dim=2) - bias).reshape(x.shape)
 
 
 def luminance_transfer(content: torch.Tensor, style: torch.Tensor) -> torch.Tensor:

@@ -27,8 +27,8 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor]: ...
 
-    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
-        metric.update(y.long(), yhat.detach().cpu().long())
+    @abstractmethod
+    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor): ...
 
     def run(self, data: Iterator, model: nn.Module, metric: T | None = None) -> T:
         if not hasattr(self, "_predict"):
@@ -84,6 +84,9 @@ class ClassificationEvaluator(EvaluatorBase):
             return output.argmin(dim=self.feature_dim)
         else:
             return output
+
+    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
+        metric.update(yhat.detach().cpu().long(), y.long())
 
     # TODO: split classification matrix to itself utils, or just use torchmetric
     @staticmethod
@@ -178,3 +181,6 @@ class RegressionEvaluator(EvaluatorBase):
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor]:
         return output
+
+    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
+        metric.update(yhat.detach().cpu(), y)
