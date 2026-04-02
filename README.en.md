@@ -232,6 +232,15 @@ package name: `representation`
 | Positive pairwise mutual information (PPMI) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``ppmi``      |
 | Hellinger PCA                               | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a) | ``hellinger`` |
 
+### Super Resolution
+
+package name: `super_resolution`
+
+| Model | Article Link | Package   |
+| ----- | ------------ | --------- |
+| SRCNN |              | ``srcnn`` |
+| VDSR  |              | ``vdsr``  |
+
 ### Graph neural network (GNN)
 
 package name: `graph`
