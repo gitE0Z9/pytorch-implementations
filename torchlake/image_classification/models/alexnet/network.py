@@ -1,11 +1,13 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 
 class LocalResponseNorm(nn.Module):
 
     def __init__(
         self,
+        input_channel: int,
         k: int = 2,
         kernel: int = 5,
         alpha: float = 1e-4,
@@ -17,10 +19,12 @@ class LocalResponseNorm(nn.Module):
         self.alpha = alpha
         self.beta = beta
 
-        self.layer = nn.Unfold(kernel, padding=kernel // 2)
+        self.register_buffer(
+            "filter",
+            torch.ones(input_channel, input_channel, kernel, kernel),
+            persistent=False,
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, c, h, w = x.shape
-        y = self.layer(x)
-        y = y.view(b, c, -1, h, w)
-        return x / (self.k + self.alpha * y.square().sum(2)) ** self.beta
+        y = F.conv2d(x**2, self.filter, padding=self.kernel // 2)
+        return x / (self.k + self.alpha * y) ** self.beta

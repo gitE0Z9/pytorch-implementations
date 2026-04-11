@@ -12,7 +12,7 @@ OUTPUT_SIZE = 10
 class TestNetwork:
     def test_local_response_norm_forward_shape(self):
         x = torch.rand(BATCH_SIZE, HIDDEN_DIM, IMAGE_SIZE // 4, IMAGE_SIZE // 4)
-        m = LocalResponseNorm()
+        m = LocalResponseNorm(HIDDEN_DIM)
 
         y = m(x)
 
