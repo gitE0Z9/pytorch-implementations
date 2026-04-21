@@ -42,7 +42,7 @@ class BiLSTMCRF(ModelBase):
             num_layers=self.num_layers,
             bidirectional=True,
             context=self.context,
-            sequence_output=True,
+            output_sequence=True,
         )
 
     def build_head(self, output_size):
