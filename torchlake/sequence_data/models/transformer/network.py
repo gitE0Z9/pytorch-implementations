@@ -1,9 +1,11 @@
 import math
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 
+# practice
 class ScaledDotProductAttention(nn.Module):
     def forward(
         self,
@@ -17,7 +19,7 @@ class ScaledDotProductAttention(nn.Module):
 
         # masked
         if mask is not None:
-            scaled_product *= mask
+            scaled_product = scaled_product.masked_fill(mask == 0, float("-inf"))
 
         # B, S, S
         weights = scaled_product.softmax(-1)
@@ -32,7 +34,7 @@ class SingleHeadAttention(nn.Module):
         self.wq = nn.Linear(hidden_dim, output_dim)
         self.wk = nn.Linear(hidden_dim, output_dim)
         self.wv = nn.Linear(hidden_dim, output_dim)
-        self.attention = ScaledDotProductAttention()
+        self.attention = F.scaled_dot_product_attention
 
     def forward(
         self,
@@ -41,7 +43,7 @@ class SingleHeadAttention(nn.Module):
         v: torch.Tensor,
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        return self.attention(self.wq(q), self.wq(k), self.wq(v), mask)
+        return self.attention(self.wq(q), self.wk(k), self.wv(v), mask)
 
 
 class MultiHeadAttention(nn.Module):
@@ -106,7 +108,7 @@ class TransformerDecoderBlock(nn.Module):
         super().__init__()
         self.attention = MultiHeadAttention(hidden_dim, num_heads)
         self.norm = nn.LayerNorm(hidden_dim)
-        self.attention2 = MultiHeadAttention(hidden_dim, num_heads)
+        self.cross_attention = MultiHeadAttention(hidden_dim, num_heads)
         self.norm2 = nn.LayerNorm(hidden_dim)
         self.fc = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim * 4),
@@ -114,7 +116,7 @@ class TransformerDecoderBlock(nn.Module):
             nn.Linear(hidden_dim * 4, hidden_dim),
         )
         self.norm3 = nn.LayerNorm(hidden_dim)
-        self.dropout = nn.Dropout1d(p=dropout_prob)
+        self.dropout = nn.Dropout(p=dropout_prob)
 
     def forward(
         self,
@@ -126,8 +128,7 @@ class TransformerDecoderBlock(nn.Module):
         y = self.dropout(y)
         y = self.norm(y + x)
 
-        # cross attention
-        y1 = self.attention2(y, encoded, encoded)
+        y1 = self.cross_attention(y, encoded, encoded)
         y1 = self.dropout(y1)
         y = self.norm2(y + y1)
 

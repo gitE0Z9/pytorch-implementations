@@ -2,7 +2,7 @@ import math
 
 import torch
 from torch import nn
-from torchlake.common.models import PositionEncoding
+from torchlake.common.models import PositionEncoding1d
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.utils.numerical import causal_mask
 
@@ -29,7 +29,7 @@ class TransformerEncoder(ModelBase):
     def build_foot(self, vocab_size):
         self.foot = nn.ModuleDict(
             {
-                "pos_embed": PositionEncoding(trainable=False),
+                "pos_embed": PositionEncoding1d(trainable=False),
                 "token_embed": nn.Embedding(
                     vocab_size,
                     self.hidden_dim,
@@ -93,7 +93,7 @@ class TransformerDecoder(ModelBase):
     def build_foot(self, vocab_size):
         self.foot = nn.ModuleDict(
             {
-                "pos_embed": PositionEncoding(trainable=False),
+                "pos_embed": PositionEncoding1d(trainable=False),
                 "token_embed": nn.Embedding(
                     vocab_size,
                     self.hidden_dim,
@@ -118,16 +118,20 @@ class TransformerDecoder(ModelBase):
             ]
         )
 
-    def forward(self, x: torch.Tensor, encoded: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        encoded: torch.Tensor,
+        mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         _, seq_len = x.shape
 
         y = self.foot["token_embed"](x)
         y = y + self.foot["pos_embed"](y).to(x.device)
         y = self.foot["dropout"](y)
 
-        mask = None
-        if self.causal_mask:
-            mask = causal_mask(1, seq_len, seq_len)
+        if self.causal_mask and mask is None:
+            mask = causal_mask(1, seq_len, seq_len).to(x.device)
 
         # encoder returned last layer representation
         # each layer of decoder receive same representation
@@ -155,9 +159,14 @@ class Transformer(ModelBase):
     def build_head(self, _, **kwargs):
         self.head = kwargs.pop("decoder")
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         # encode
         z = self.foot(x)
 
         # decode
-        return self.head(y, z)
+        return self.head(y, z, mask)
