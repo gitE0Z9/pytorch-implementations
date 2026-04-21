@@ -40,13 +40,13 @@ class RNNGenerator(ModelBase):
 
     def train(self, mode=True):
         result = super().train(mode)
-        result.head.sequence_output = False
+        result.head.output_sequence = False
         result.forward = self.loss_forward
         return result
 
     def eval(self):
         result = super().eval()
-        result.head.sequence_output = True
+        result.head.output_sequence = True
         result.forward = self.predict
         return result
 

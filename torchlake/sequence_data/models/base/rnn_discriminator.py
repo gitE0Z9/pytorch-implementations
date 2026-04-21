@@ -1,4 +1,3 @@
-from typing import overload
 import torch
 from torch import nn
 from torchlake.common.schemas.nlp import NlpContext
@@ -17,7 +16,7 @@ class RNNDiscriminator(ModelBase):
         num_layers: int = 1,
         context_dim: int = 0,
         bidirectional: bool = False,
-        sequence_output: bool = False,
+        output_sequence: bool = False,
         enable_embed: bool = True,
         drop_fc: bool = False,
         context: NlpContext = NlpContext(),
@@ -33,7 +32,7 @@ class RNNDiscriminator(ModelBase):
             num_layers (int, optional): number of layers. Defaults to 1.
             context_dim (int, optional): dimension of context vector. Defaults to 0.
             bidirectional (bool, optional): is bidirectional layer. Defaults to False.
-            sequence_output (bool, optional): is output tensor a sequence. Defaults to False.
+            output_sequence (bool, optional): every position of a sequence has output. Defaults to False.
             enable_embed (bool, optional): need an embedding layer. Defaults to True.
             drop_fc (bool, optional): remove fully connected head. Defaults to False.
             context (NlpContext, optional): nlp context. Defaults to NlpContext().
@@ -46,7 +45,7 @@ class RNNDiscriminator(ModelBase):
         self.context_dim = context_dim
         self.num_layers = num_layers
         self.bidirectional = bidirectional
-        self.sequence_output = sequence_output
+        self.output_sequence = output_sequence
         self.enable_embed = enable_embed
         self.drop_fc = drop_fc
         self.context = context
@@ -159,7 +158,7 @@ class RNNDiscriminator(ModelBase):
             o is not None or ht is not None
         ), " Must provide either output or hidden state"
 
-        if self.sequence_output:
+        if self.output_sequence:
             y = self.neck(o)
         else:
             _, b, _ = ht.shape
