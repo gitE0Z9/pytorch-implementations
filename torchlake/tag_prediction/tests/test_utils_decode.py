@@ -1,8 +1,17 @@
 import torch
 from torch.testing import assert_close
 
+from torchlake.common.schemas.nlp import NlpContext
+
 from ..utils.decode import viterbi_decode
-from .constants import BATCH_SIZE, CONTEXT, NUM_CLASS, SEQ_LEN
+
+BATCH_SIZE = 2
+SEQ_LEN = 16
+VOCAB_SIZE = 10
+EMBED_DIM = 8
+HIDDEN_DIM = 8
+NUM_CLASS = 5
+CONTEXT = NlpContext(device="cpu", max_seq_len=SEQ_LEN)
 
 
 class TestViterbiDecode:
@@ -16,14 +25,16 @@ class TestViterbiDecode:
         assert score.shape == torch.Size((BATCH_SIZE,))
 
     def test_example(self):
-        CONTEXT.max_seq_len = 4
+        batch_size = 1
+        max_seq_len = 4
+        CONTEXT.max_seq_len = max_seq_len
         x = torch.Tensor(
             [
                 [
-                    [-1e2, 1e2, -1e2, -1e2, -1e2, -1e2],  # t=1
-                    [-1e2, -1e2, -1e2, -1e2, 1e2, 1e1],  # t=2
-                    [-1e2, -1e2, -1e2, -1e2, 1e1, 1e2],  # t=3
-                    [-1e2, -1e2, 1e2, -1e2, -1e2, -1e2],  # t=4
+                    [-10, 10, -10, -10, -10, -10],  # t=1
+                    [-10, -10, -10, -10, 10, -10],  # t=2
+                    [-10, -10, -10, -10, -10, 10],  # t=3
+                    [-10, -10, 10, -10, -10, -10],  # t=4
                 ]
             ]
         )
@@ -31,19 +42,18 @@ class TestViterbiDecode:
         # unk, bos, eos, pad, token1, token2
         t = torch.Tensor(
             [
-                [-1e2, -1e4, -1e2, -1e4, -5e1, -1e2],
+                [-10, -10, -10, -10, 10, -10],
                 # tune higher from bos to token1, so transfer to 4
                 # if token1 and token2 are evenly possible, test will have undeterministic result
                 # and a tiny difference in prior could cause highly divergent result (╯°□°）╯︵ ┻━┻
-                [-1e2, -1e4, -1e4, -1e4, -5e1, -1e2],
-                [-1e4, -1e4, -1e4, 0, -1e4, -1e4],
-                [-1e4, -1e4, -1e4, 0, -1e4, -1e4],
-                [-1e2, -1e4, -1e2, -1e4, -1e2, -5e1],
-                [-1e2, -1e4, -1e2, -1e4, -5e1, -1e2],
+                [-10, -10, -10, -10, 10, -10],
+                [-10, -10, -10, 10, -10, -10],
+                [-10, -10, -10, 10, -10, -10],
+                [-10, -10, -10, -10, -10, 10],
+                [-10, -10, 10, -10, -10, -10],
             ]
         )
         best_path, best_score = viterbi_decode(x, t, context=CONTEXT)
-        assert best_path.shape == torch.Size((1, 4))
-        print(best_path)
+        assert best_path.shape == torch.Size((batch_size, max_seq_len))
+        assert best_score.shape == torch.Size((batch_size,))
         assert_close(best_path, torch.LongTensor([[1, 4, 5, 2]]))
-        assert best_score.shape == torch.Size((1,))

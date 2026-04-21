@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+
 from torchlake.common.schemas.nlp import NlpContext
 from torchlake.common.utils.numerical import log_sum_exp
 
@@ -9,16 +10,19 @@ class LinearCRFLoss(nn.Module):
         self,
         crf_weight: float = 1,
         cross_entroy_weight: float = 1,
-        context: NlpContext = NlpContext(),
+        context: NlpContext | None = None,
     ):
         """Linear CRF(conditional random field) loss
 
         Args:
             crf_weight (float, optional): weight of crf weight. Defaults to 1.
             cross_entroy_weight (float, optional): weight of cross entropy loss. Defaults to 1.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NlpContext, optional): nlp context. Defaults to None.
         """
         super().__init__()
+        if context is None:
+            context = NlpContext()
+
         self.crf_weight = crf_weight
         self.cross_entroy_weight = cross_entroy_weight
         self.context = context
