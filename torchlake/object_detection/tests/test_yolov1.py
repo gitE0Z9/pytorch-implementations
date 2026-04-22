@@ -9,6 +9,8 @@ from ..models.yolov1.loss import YOLOLoss
 from ..models.yolov1.model import YOLOV1, YOLOV1Modified
 
 BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+IMAGE_SIZE = 448
 GRID_SIZE = 7
 MAX_OBJECT_SIZE = 10
 NUM_CLASS = 20
@@ -25,32 +27,36 @@ CONTEXT = DetectorContext(
 OUTPUT_SIZE = CONTEXT.num_classes + CONTEXT.num_anchors * 5
 
 
-class TestYOLOV1Original:
-    def test_output_shape(self):
+class TestModel:
+    def test_forward_shape_yolov1_original(self):
+        x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
         backbone = ExtractionFeatureExtractor("block", trainable=False)
         backbone.fix_target_layers(["3_1"])
 
         model = YOLOV1(backbone, CONTEXT)
-        x = torch.rand(2, 3, 448, 448)
 
         output: torch.Tensor = model(x)
-        assert_close(output.shape, torch.Size([2, OUTPUT_SIZE, 7, 7]))
+        assert_close(
+            output.shape,
+            torch.Size([BATCH_SIZE, OUTPUT_SIZE, GRID_SIZE, GRID_SIZE]),
+        )
 
-
-class TestYOLOV1Modified:
-    def test_output_shape(self):
+    def test_forward_shape_yolov1_modified(self):
+        x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
         backbone = ResNetFeatureExtractor("resnet18", "block", False)
         backbone.fix_target_layers(["4_1"])
 
         model = YOLOV1Modified(backbone, CONTEXT)
-        x = torch.rand(2, 3, 448, 448)
 
         output: torch.Tensor = model(x)
-        assert_close(output.shape, torch.Size([2, OUTPUT_SIZE, 7, 7]))
+        assert_close(
+            output.shape,
+            torch.Size([BATCH_SIZE, OUTPUT_SIZE, GRID_SIZE, GRID_SIZE]),
+        )
 
 
-class TestYOLOLoss:
-    def setUp(self):
+class TestLoss:
+    def setup(self):
         self.x = torch.rand(
             BATCH_SIZE,
             OUTPUT_SIZE,
@@ -71,16 +77,16 @@ class TestYOLOLoss:
             for _ in range(BATCH_SIZE)
         ]
 
-    def test_isnan(self):
-        self.setUp()
+    def test_forward_yolo_loss(self):
+        self.setup()
 
         criterion = YOLOLoss(CONTEXT)
 
         loss = criterion(self.x, self.y)
         assert not torch.isnan(loss)
 
-    def test_backward(self):
-        self.setUp()
+    def test_backward_yolo_loss(self):
+        self.setup()
 
         criterion = YOLOLoss(CONTEXT)
 
