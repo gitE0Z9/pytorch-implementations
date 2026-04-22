@@ -13,6 +13,7 @@ class CRNN(ModelBase):
         input_channel: int,
         hidden_dim: int,
         output_size: int,
+        context: NlpContext | None = None,
     ):
         """Convolution recurrent neural network, arxiv [1507.05717]
 
@@ -21,7 +22,11 @@ class CRNN(ModelBase):
             hidden_dim (int): rnn hidden dimension
             output_size (int): output size
         """
+        if context is None:
+            context = NlpContext(padding_idx=None)
+
         self.hidden_dim = hidden_dim
+        self.context = context
         super().__init__(input_channel, output_size)
 
     def build_foot(self, input_channel, **kwargs):
@@ -63,7 +68,7 @@ class CRNN(ModelBase):
                 bidirectional=True,
                 output_sequence=True,
                 enable_embed=False,
-                context=NlpContext(padding_idx=None),
+                context=self.context,
             ),
         )
 
