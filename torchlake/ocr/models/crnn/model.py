@@ -61,7 +61,7 @@ class CRNN(ModelBase):
                 output_size,
                 num_layers=2,
                 bidirectional=True,
-                sequence_output=True,
+                output_sequence=True,
                 enable_embed=False,
                 context=NlpContext(padding_idx=None),
             ),
