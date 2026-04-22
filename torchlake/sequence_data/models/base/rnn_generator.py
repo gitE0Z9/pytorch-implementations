@@ -73,7 +73,7 @@ class RNNGenerator(ModelBase):
         *states: tuple[torch.Tensor],
         ot: torch.Tensor | None = None,
         teacher_forcing_ratio: float = 0.5,
-        output_score: bool = False,
+        output_attention: bool = False,
         output_state: bool = False,
         early_stopping: bool = True,
     ) -> torch.Tensor:
@@ -85,7 +85,7 @@ class RNNGenerator(ModelBase):
             *states (tuple[torch.Tensor]): other hidden states.
             ot (torch.Tensor, optional): output state. shape is (batch_size, seq_len, bidirectional * hidden_dim). Defaults to None.
             teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
-            output_score (bool, optional): output attention score or not. Defaults to False.
+            output_attention (bool, optional): output attention score or not. Defaults to False.
             output_state (bool, optional): output hidden state or not. Defaults to False.
             early_stopping (bool, optional): stop generation after longest meaningful tokens in y. Defaults to True.
 
@@ -101,7 +101,7 @@ class RNNGenerator(ModelBase):
         device = context.device
 
         # keep attention score
-        scores = []
+        attention_weights = []
         # keep hidden states
         all_states = []
         if output_state:
@@ -122,20 +122,15 @@ class RNNGenerator(ModelBase):
         for t in range(1, max_seq_len, 1):
             # attention
             if self.neck is not None:
-                c, score = self.attend(ht, ot)
+                c, attention_weight = self.attend(ht, ot)
             # store attention score
-            if output_score:
-                scores.append(score)
+            if output_attention:
+                attention_weights.append(attention_weight)
 
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
             # B, V
-            output, states = self.head(
-                input_seq,
-                ht,
-                *states,
-                context_vector=c,
-            )
+            output, states = self.head(input_seq, ht, *states, context_vector=c)
             ht, states = states[0], states[1:]
             if output_state:
                 all_states.append(tuple(ht, *states))
@@ -158,11 +153,11 @@ class RNNGenerator(ModelBase):
         # B, ?, V
         outputs = torch.stack(outputs, 1)
 
-        if output_score and output_state:
-            return outputs, torch.stack(scores, -1), all_states
-        elif output_score:
+        if output_attention and output_state:
+            return outputs, torch.stack(attention_weights, -1), all_states
+        elif output_attention:
             # B, S, V # D, B, S, S'
-            return outputs, torch.stack(scores, -1)
+            return outputs, torch.stack(attention_weights, -1)
         elif output_state:
             return outputs, all_states
         else:
@@ -176,7 +171,7 @@ class RNNGenerator(ModelBase):
         *states: tuple[torch.Tensor],
         ot: torch.Tensor | None = None,
         topk: int = 1,
-        output_score: bool = False,
+        output_attention: bool = False,
     ) -> torch.Tensor:
         """predict sequence with beam search
 
@@ -186,7 +181,7 @@ class RNNGenerator(ModelBase):
             *states (tuple[torch.Tensor]): other hidden states.
             ot (torch.Tensor, optional): output state. shape is (batch_size, seq_len, bidirectional * hidden_dim). Defaults to None.
             topk (int, optional): beam search size. Defaults to 1.
-            output_score (bool, optional): output attention score or not. Defaults to False.
+            output_attention (bool, optional): output attention weight or not. Defaults to False.
 
         Returns:
             torch.Tensor: output sequence
@@ -198,8 +193,8 @@ class RNNGenerator(ModelBase):
         device = context.device
         output_size = self.head.output_size
 
-        # keep attention score
-        scores = []
+        #  attention weights
+        attention_weights = []
 
         # next token prediction (first one)
         if primer is None:
@@ -213,10 +208,10 @@ class RNNGenerator(ModelBase):
         # (B, 1, V), (D, B, h)
         # attention
         if self.neck is not None:
-            c, score = self.attend(ht, ot)
+            c, attention_weight = self.attend(ht, ot)
         # store attention score
-        if output_score:
-            scores.append(score)
+        if output_attention:
+            attention_weights.append(attention_weight)
         output, states = self.head(input_seq, ht, *states, context_vector=c)
         # D, topk*B, h
         states = tuple(state.repeat(1, topk, 1) for state in states)
@@ -235,10 +230,10 @@ class RNNGenerator(ModelBase):
         for t in range(1, max_seq_len, 1):
             # attention
             if self.neck is not None:
-                c, score = self.attend(ht, ot)
+                c, attention_weight = self.attend(ht, ot)
             # store attention score
-            if output_score:
-                scores.append(score)
+            if output_attention:
+                attention_weights.append(attention_weight)
 
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
@@ -283,8 +278,8 @@ class RNNGenerator(ModelBase):
         # B, S
         outputs = paths[probs.argmax(-1), torch.arange(batch_size).to(device)]
 
-        if output_score:
+        if output_attention:
             # B, S, V # D, B, S, S'
-            return outputs, torch.stack(scores, -1)
+            return outputs, torch.stack(attention_weights, -1)
         else:
             return outputs

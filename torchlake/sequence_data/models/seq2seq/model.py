@@ -61,7 +61,7 @@ class Seq2Seq(ModelBase):
         x: torch.Tensor,
         y: torch.Tensor,
         teacher_forcing_ratio: float = 0.5,
-        output_score: bool = False,
+        output_attention: bool = False,
         early_stopping: bool = True,
     ) -> torch.Tensor | tuple[torch.Tensor]:
         """training loss forward
@@ -70,7 +70,7 @@ class Seq2Seq(ModelBase):
             x (torch.Tensor): source sequence, shape is (batch_size, seq_len)
             y (torch.Tensor): groundtruth sequence, shape is (batch_size, seq_len)
             teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
-            output_score (bool, optional): output attention score or not. Defaults to False.
+            output_attention (bool, optional): output attention score or not. Defaults to False.
             early_stopping (bool, optional): stop generation after longest meaningful tokens in y. Defaults to True.
 
         Returns:
@@ -85,7 +85,7 @@ class Seq2Seq(ModelBase):
             *states,
             ot=o,
             teacher_forcing_ratio=teacher_forcing_ratio,
-            output_score=output_score,
+            output_attention=output_attention,
             early_stopping=early_stopping,
         )
 
@@ -93,14 +93,14 @@ class Seq2Seq(ModelBase):
         self,
         x: torch.Tensor,
         topk: int = 1,
-        output_score: bool = False,
+        output_attention: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor]:
         """predict sequence with beam search
 
         Args:
             x (torch.Tensor): source sequence, shape in (batch, seq)
             topk (int, optional): beam search size. Defaults to 1.
-            output_score (bool, optional): output attention score or not. Defaults to False.
+            output_attention (bool, optional): output attention score or not. Defaults to False.
 
         Returns:
             torch.Tensor: output sequence
@@ -116,5 +116,5 @@ class Seq2Seq(ModelBase):
             *states,
             ot=o,
             topk=topk,
-            output_score=output_score,
+            output_attention=output_attention,
         )

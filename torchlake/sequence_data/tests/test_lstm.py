@@ -45,7 +45,7 @@ class TestLayer:
 
 class TestDiscriminator:
     @pytest.mark.parametrize(
-        "name,label_size,target_shape,num_layers,bidirectional,sequence_output",
+        "name,label_size,target_shape,num_layers,bidirectional,output_sequence",
         [
             ("single_class", 1, torch.Size((2, 1)), 1, False, False),
             ("multi_class", 3, torch.Size((2, 3)), 1, False, False),
@@ -128,7 +128,7 @@ class TestDiscriminator:
         target_shape: torch.Size,
         num_layers: int,
         bidirectional: bool,
-        sequence_output: bool,
+        output_sequence: bool,
     ) -> None:
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
@@ -139,7 +139,7 @@ class TestDiscriminator:
             label_size,
             num_layers=num_layers,
             bidirectional=bidirectional,
-            sequence_output=sequence_output,
+            output_sequence=output_sequence,
         )
 
         y = model.forward(x)
