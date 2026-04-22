@@ -88,7 +88,7 @@ class NeuralImageCation(ModelBase):
         x: torch.Tensor,
         y: torch.Tensor,
         teacher_forcing_ratio: float = 0.5,
-        output_score: bool = False,
+        output_attention: bool = False,
         early_stopping: bool = True,
     ) -> torch.Tensor:
         ht, states = self.encode(x)
@@ -99,7 +99,7 @@ class NeuralImageCation(ModelBase):
             ht,
             *states,
             teacher_forcing_ratio=teacher_forcing_ratio,
-            output_score=output_score,
+            output_attention=output_attention,
             early_stopping=early_stopping,
         )
 
@@ -107,7 +107,7 @@ class NeuralImageCation(ModelBase):
         self,
         x: torch.Tensor,
         topk: int = 1,
-        output_score: bool = False,
+        output_attention: bool = False,
     ) -> torch.Tensor:
         ht, states = self.encode(x)
 
@@ -118,5 +118,5 @@ class NeuralImageCation(ModelBase):
             ht,
             *states,
             topk=topk,
-            output_score=output_score,
+            output_attention=output_attention,
         )

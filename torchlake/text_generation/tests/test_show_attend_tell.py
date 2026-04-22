@@ -18,7 +18,7 @@ from .constants import BATCH_SIZE, SEQ_LEN, VOCAB_SIZE, EMBED_DIM, CONTEXT
 ENCODE_DIM = 512
 DECODE_DIM = 8
 extractor = VGGFeatureExtractor("vgg16", "relu", False)
-extractor.forward = partial(extractor.forward, target_layer_names=["5_3"])
+extractor.fix_target_layers(("5_3",))
 NUM_PATCH = 196
 
 
@@ -50,7 +50,7 @@ class TestNetwork:
 
 
 class TestModel:
-    def setUpSoftAttention(self, bidirectional: bool):
+    def setup_soft_attention(self, bidirectional: bool):
         self.x = torch.rand(BATCH_SIZE, 3, 224, 224)
         self.y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
@@ -75,7 +75,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-    def setUpHardAttention(self, bidirectional: bool):
+    def setup_hard_attention(self, bidirectional: bool):
         self.x = torch.rand(BATCH_SIZE, 3, 224, 224)
         self.y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
@@ -107,7 +107,7 @@ class TestModel:
         early_stopping: bool,
         bidirectional: bool,
     ):
-        self.setUpSoftAttention(bidirectional)
+        self.setup_soft_attention(bidirectional)
 
         self.model.train()
         y, a = self.model(self.x, self.y, early_stopping=early_stopping)
@@ -129,7 +129,7 @@ class TestModel:
         topk: int,
         bidirectional: bool,
     ):
-        self.setUpSoftAttention(bidirectional)
+        self.setup_soft_attention(bidirectional)
 
         self.model.eval()
         y = self.model(self.x, topk=topk)
@@ -143,7 +143,7 @@ class TestModel:
         early_stopping: bool,
         bidirectional: bool,
     ):
-        self.setUpSoftAttention(bidirectional)
+        self.setup_soft_attention(bidirectional)
 
         self.model.train()
         y, a = self.model(self.x, self.y, early_stopping=early_stopping)
@@ -165,7 +165,7 @@ class TestModel:
         topk: int,
         bidirectional: bool,
     ):
-        self.setUpSoftAttention(bidirectional)
+        self.setup_soft_attention(bidirectional)
 
         self.model.eval()
         y = self.model(self.x, topk=topk)
@@ -174,7 +174,7 @@ class TestModel:
 
 
 class TestLoss:
-    def test_forward(self):
+    def test_forward_doubly_stochastic_attention_loss(self):
         x = torch.rand(BATCH_SIZE, SEQ_LEN, VOCAB_SIZE).transpose(1, 2)
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
         a = torch.rand(BATCH_SIZE, NUM_PATCH, SEQ_LEN)
@@ -183,7 +183,7 @@ class TestLoss:
         loss = criterion(x, y, a)
         assert not torch.isnan(loss)
 
-    def test_backward(self):
+    def test_backward_doubly_stochastic_attention_loss(self):
         x = torch.rand(BATCH_SIZE, SEQ_LEN, VOCAB_SIZE).transpose(1, 2).requires_grad_()
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
         a = torch.rand(BATCH_SIZE, NUM_PATCH, SEQ_LEN).requires_grad_()

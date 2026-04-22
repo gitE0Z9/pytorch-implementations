@@ -12,7 +12,7 @@ from .constants import BATCH_SIZE, CONTEXT, HIDDEN_DIM, SEQ_LEN, VOCAB_SIZE
 
 class TestModel:
     @pytest.mark.parametrize("early_stopping", [True, False])
-    def test_forward_shape_train(self, early_stopping: bool):
+    def test_neurak_image_caption_forward_shape_train(self, early_stopping: bool):
         x = torch.rand((BATCH_SIZE, 3, 224, 224))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
@@ -39,7 +39,7 @@ class TestModel:
         assert y.size(2) == VOCAB_SIZE
 
     @pytest.mark.parametrize("topk", [1, 2])
-    def test_forward_shape_inference(self, topk: int):
+    def test_neurak_image_caption_forward_shape_inference(self, topk: int):
         x = torch.rand((BATCH_SIZE, 3, 224, 224))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
