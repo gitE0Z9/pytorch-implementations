@@ -1,6 +1,8 @@
 import random
+
 import torch
 from torch.testing import assert_close
+
 from torchlake.common.models import ResNetFeatureExtractor
 from torchlake.image_classification.models.extraction import ExtractionFeatureExtractor
 

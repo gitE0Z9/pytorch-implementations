@@ -1,10 +1,10 @@
 import torch
-from torch.testing import assert_close
 
 from ..constants.schema import DetectorContext
 from ..models.yolov1_tiny.model import YOLOV1Tiny
 
 BATCH_SIZE = 2
+INPUT_CHANNEL = 3
 IMAGE_SIZE = 448
 GRID_SIZE = 7
 MAX_OBJECT_SIZE = 100
@@ -19,8 +19,8 @@ CONTEXT = DetectorContext(
 
 
 class TestModel:
-    def test_forward_shape(self):
-        x = torch.rand((BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE))
+    def test_forward_shape_yolov1_tiny(self):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         model = YOLOV1Tiny(CONTEXT)
 
