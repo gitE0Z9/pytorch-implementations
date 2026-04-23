@@ -11,7 +11,7 @@ LATENT_DIM = 16
 
 class TestModel:
     @pytest.mark.parametrize("output_latent", (True, False))
-    def test_forward_shape(self, output_latent: bool):
+    def test_forward_shape_autoencoder(self, output_latent: bool):
         x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
 
         m = AutoEncoder(INPUT_CHANNEL * IMAGE_SIZE * IMAGE_SIZE, LATENT_DIM)

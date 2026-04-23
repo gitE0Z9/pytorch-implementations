@@ -1,16 +1,15 @@
-from unittest import TestCase
-
 import pytest
 import torch
+from torch.testing import assert_close
 
 from ..models.hellinger.helper import CooccurrenceCounter
 from ..models.hellinger.model import HellingerPCA
-from torch.testing import assert_close
+
+VOCAB_SIZE = 6
 
 
-class TestCooccurrenceCounter(TestCase):
-    def setUp(self) -> None:
-        self.vocab_size = 6
+class TestHelper:
+    def setup_cooccurrence_counter(self) -> None:
         self.gram = torch.LongTensor(
             [
                 [1],
@@ -27,32 +26,33 @@ class TestCooccurrenceCounter(TestCase):
             ]
         )
 
-        self.counter = CooccurrenceCounter(self.vocab_size)
-        self.counter.update_counts(self.gram, self.context)
+    def test_update_counts_cooccurrence_counter(self):
+        self.setup_cooccurrence_counter()
 
-    def test_update_counts(self):
-        self.assertDictEqual(
-            self.counter.counts,
-            {
-                (1, 2): 2,
-                (1, 3): 2,
-                (1, 4): 2,
-                (2, 3): 1,
-                (2, 4): 1,
-                (2, 5): 1,
-            },
-        )
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
 
-    def test_get_context_counts(self):
-        self.assertDictEqual(
-            self.counter.get_context_counts(),
-            {
-                2: 2,
-                3: 3,
-                4: 3,
-                5: 1,
-            },
-        )
+        assert counter.counts == {
+            (1, 2): 2,
+            (1, 3): 2,
+            (1, 4): 2,
+            (2, 3): 1,
+            (2, 4): 1,
+            (2, 5): 1,
+        }
+
+    def test_get_context_counts_cooccurrence_counter(self):
+        self.setup_cooccurrence_counter()
+
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
+        assert counter.get_context_counts() == {
+            2: 2,
+            3: 3,
+            4: 3,
+            5: 1,
+        }
 
     @pytest.mark.parametrize(
         "key_by,expected",
@@ -95,30 +95,36 @@ class TestCooccurrenceCounter(TestCase):
         ),
         # ids=(None, "gram", "context"),
     )
-    def test_get_pair_counts(
+    def test_get_pair_counts_cooccurrence_counter(
         self,
         key_by: str | None,
         expected: dict[tuple[int, int], int],
     ):
-        self.assertDictEqual(
-            self.counter.get_pair_counts(key_by=key_by),
-            expected,
-        )
+        self.setup_cooccurrence_counter()
 
-    def test_get_tensor(self):
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
+        assert counter.get_pair_counts(key_by=key_by) == expected
+
+    def test_get_tensor_cooccurrence_counter(self):
+        self.setup_cooccurrence_counter()
+
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
         assert_close(
-            self.counter.get_tensor(),
+            counter.get_tensor(),
             torch.sparse_coo_tensor(
                 [[1, 1, 1, 2, 2, 2], [2, 3, 4, 3, 4, 5]],
                 [2, 2, 2, 1, 1, 1],
-                size=(self.vocab_size, self.vocab_size),
+                size=(VOCAB_SIZE, VOCAB_SIZE),
             ),
         )
 
 
-class TestHellingerPCA(TestCase):
-    def setUp(self) -> None:
-        self.vocab_size = 3
+class TestModel:
+    def setup_hellinger_pca(self) -> None:
         self.context_size = 3
         self.gram = torch.LongTensor(
             [
@@ -135,39 +141,45 @@ class TestHellingerPCA(TestCase):
                 [2, 2],
             ]
         )
-        self.cooccur = CooccurrenceCounter(3)
-        self.cooccur.update_counts(self.gram, self.context)
-        self.vocab_counts = torch.LongTensor([0, 2, 3])
-        self.model = HellingerPCA(self.vocab_size)
 
-    def test_fit(self):
-        self.model.fit(
-            self.cooccur,
-            self.vocab_counts,
-        )
+        self.vocab_counts = torch.LongTensor([0, 2, 3, 0, 0, 0])
 
-        self.assertTrue(hasattr(self.model.model, "eigenvectors"))
+    def test_fit_hellinger_pca(self):
+        self.setup_hellinger_pca()
 
-    def test_embedding(self):
-        self.model.fit(
-            self.cooccur,
-            self.vocab_counts,
-        )
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
 
-        embedding = self.model.embedding
+        model = HellingerPCA(VOCAB_SIZE)
 
-        # assert shape
-        self.assertEqual(
-            embedding.shape,
-            torch.Size((self.vocab_size, self.model.n_components)),
-        )
+        model.fit(counter, self.vocab_counts)
 
-    def test_transform(self):
-        self.model.fit(
-            self.cooccur,
-            self.vocab_counts,
-        )
+        assert hasattr(model.model, "eigenvectors")
 
-        target = self.model.transform([1, 1])
+    def test_embedding_hellinger_pca(self):
+        self.setup_hellinger_pca()
 
-        self.assertEqual(target.shape, torch.Size((2, self.model.n_components)))
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
+        model = HellingerPCA(VOCAB_SIZE)
+
+        model.fit(counter, self.vocab_counts)
+
+        embedding = model.embedding
+
+        assert embedding.shape == torch.Size((VOCAB_SIZE, model.n_components))
+
+    def test_transform_hellinger_pca(self):
+        self.setup_hellinger_pca()
+
+        counter = CooccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
+        model = HellingerPCA(VOCAB_SIZE)
+
+        model.fit(counter, self.vocab_counts)
+
+        target = model.transform([1, 1])
+
+        assert target.shape == torch.Size((2, model.n_components))
