@@ -40,7 +40,7 @@ class OmniglotSet(Dataset):
             query_size (int, optional): query size. Defaults to 5.
             episode_size (int, optional): episode size for few shot learning. Defaults to 0.
             target_label: (Literal["binary", "multiclass"], optional): binary for equal index, multiclass for sampled char index. Defaults to "multiclass".
-            label: (Literal["idx", "cls"], optional): idx for index, cls for class index. Defaults to "cls".
+            label: (Literal["idx", "cls"], optional): idx for index, cls for class index. Defaults to "idx".
         """
         self.train = train
         self.root = (
