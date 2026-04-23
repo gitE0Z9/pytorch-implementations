@@ -19,7 +19,7 @@ class RNNDiscriminator(ModelBase):
         output_sequence: bool = False,
         enable_embed: bool = True,
         drop_fc: bool = False,
-        context: NlpContext = NlpContext(),
+        context: NlpContext | None = None,
         model_class: nn.Module | None = None,
     ):
         """Wrapper for sequence model discriminator
@@ -35,10 +35,12 @@ class RNNDiscriminator(ModelBase):
             output_sequence (bool, optional): every position of a sequence has output. Defaults to False.
             enable_embed (bool, optional): need an embedding layer. Defaults to True.
             drop_fc (bool, optional): remove fully connected head. Defaults to False.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NlpContext, optional): nlp context. Defaults to None.
             model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
         """
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
+        if context is None:
+            context = NlpContext()
 
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
