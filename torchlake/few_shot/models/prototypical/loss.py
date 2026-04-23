@@ -18,7 +18,7 @@ class PrototypicalNetLoss(nn.Module):
 
         Args:
             x (torch.Tensor): shape (q, n, n). q is query size, n is n way
-            y (torch.Tensor): shape (q, n, n). q is query size, n is n way
+            y (torch.Tensor): shape (q, n). q is query size, n is n way
 
         Returns:
             torch.Tensor: negative log softmax.

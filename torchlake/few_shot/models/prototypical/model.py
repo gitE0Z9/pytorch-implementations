@@ -43,24 +43,55 @@ class PrototypicalNet(ModelBase):
         y = self.head(y)
         return y
 
+    def get_logit(
+        self,
+        query_vectors: torch.Tensor,
+        support_vectors: torch.Tensor,
+    ) -> torch.Tensor:
+        """get cross logits
+
+        Args:
+            query_vectors (torch.Tensor): shape (n*q or q, d)
+            support_vectors (torch.Tensor): shape (n, d)
+
+        Returns:
+            torch.Tensor: shape (n*q, n)
+        """
+        return torch.cdist(query_vectors, support_vectors)
+
     def forward(
         self,
         query_set: torch.Tensor,
         support_set: torch.Tensor,
     ) -> torch.Tensor:
+        """forward
+
+        Args:
+            query_set (torch.Tensor): shape (n, q, c, h, w)
+            support_set (torch.Tensor): shape (n, k, c, h, w)
+
+        Returns:
+            torch.Tensor: shape (q, n, n)
+        """
         # q is query size
         q = query_set.size(1)
         # n is n way
         # k is k shot
         n, k, c, h, w = support_set.shape
 
+        # n*q, d
         query_vectors = self.feature_extract(query_set.view(-1, c, h, w))
+        # n*k, d
         support_vectors = self.feature_extract(support_set.view(-1, c, h, w))
 
         d = query_vectors.size(-1)
+        # n, k, d
         support_vectors = support_vectors.view(n, k, d)
 
+        # n, d
         prototypes = support_vectors.mean(1)
 
         # q, n, n
-        return torch.cdist(query_vectors, prototypes).reshape(-1, q, n).transpose(0, 1)
+        return (
+            self.get_logit(query_vectors, prototypes).reshape(-1, q, n).transpose(0, 1)
+        )

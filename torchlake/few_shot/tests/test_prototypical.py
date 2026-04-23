@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 from ..models.prototypical.model import PrototypicalNet
@@ -16,14 +15,27 @@ NUM_CLASS = 20
 class TestModel:
     def test_prototypical_net_feature_extract_shape(self):
         q = torch.randn(N_WAY, QUERY_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+
         m = PrototypicalNet(INPUT_CHANNEL, HIDDEN_DIM)
+
         y = m.feature_extract(q.view(-1, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
         assert y.shape == torch.Size((N_WAY * QUERY_SIZE, HIDDEN_DIM))
 
+    def test_prototypical_net_get_logit_shape(self):
+        q = torch.rand(N_WAY * QUERY_SIZE, HIDDEN_DIM)
+        support = torch.rand(N_WAY, HIDDEN_DIM)
+
+        m = PrototypicalNet(INPUT_CHANNEL, HIDDEN_DIM)
+
+        y = m.get_logit(q, support)
+
+        assert y.shape == torch.Size((N_WAY * QUERY_SIZE, N_WAY))
+
     def test_prototypical_net_forward_shape(self):
         q = torch.randn(N_WAY, QUERY_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
         support = torch.randn(N_WAY, K_SHOT, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+
         m = PrototypicalNet(INPUT_CHANNEL, HIDDEN_DIM)
 
         y = m(q, support)
@@ -35,11 +47,12 @@ class TestLoss:
     def test_prototypical_net_loss_forward(self):
         q = torch.randn(N_WAY, QUERY_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
         support = torch.randn(N_WAY, K_SHOT, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        y = torch.randint(0, N_WAY, (QUERY_SIZE, N_WAY))
 
         m = PrototypicalNet(INPUT_CHANNEL, HIDDEN_DIM)
         yhat = m(q, support)
 
         criterion = PrototypicalNetLoss()
-        loss = criterion(yhat)
+        loss = criterion(yhat, y)
 
         assert not torch.isnan(loss)

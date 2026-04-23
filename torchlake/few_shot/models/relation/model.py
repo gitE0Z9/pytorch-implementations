@@ -95,6 +95,15 @@ class RelationNet(ModelBase):
         query_set: torch.Tensor,
         support_set: torch.Tensor,
     ) -> torch.Tensor:
+        """forward
+
+        Args:
+            query_set (torch.Tensor): shape (n, q, c, h, w)
+            support_set (torch.Tensor): shape (n, k, c, h, w)
+
+        Returns:
+            torch.Tensor: shape (q, n, n)
+        """
         # q is query size
         q = query_set.size(1)
         # n is n way

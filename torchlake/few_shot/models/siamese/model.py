@@ -50,6 +50,7 @@ class SiameseNet(ModelBase):
         init_conv(self.foot[0][0])
 
     def build_blocks(self, **kwargs):
+        n = prod(2 + (s - 73) // 8 if s > 72 else 1 for s in self.image_shape)
         self.blocks = nn.Sequential(
             Conv2dNormActivation(
                 self.hidden_dim,
@@ -74,19 +75,14 @@ class SiameseNet(ModelBase):
                 padding=0,
                 norm_layer=None,
             ),
+            FlattenFeature(reduction=None),
+            nn.Linear(n * self.hidden_dim * 4, self.feature_dim),
+            nn.Sigmoid(),
         )
         init_conv(self.blocks[0][0])
         init_conv(self.blocks[2][0])
         init_conv(self.blocks[4][0])
-
-    def build_neck(self, **kwargs):
-        n = prod(2 + (s - 73) // 8 if s > 72 else 1 for s in self.image_shape)
-        self.neck = nn.Sequential(
-            FlattenFeature(reduction=None),
-            nn.Linear(n * self.hidden_dim * 4, self.feature_dim),
-        )
-
-        init_dense(self.neck[1])
+        init_dense(self.blocks[6])
 
     def build_head(self, output_size, **kwargs):
         self.head = nn.Sequential(
@@ -98,7 +94,7 @@ class SiameseNet(ModelBase):
     def feature_extract(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot(x)
         y = self.blocks(y)
-        return self.neck(y)
+        return y
 
     def get_logit(
         self,
@@ -108,41 +104,22 @@ class SiameseNet(ModelBase):
         """get cross logits
 
         Args:
-            query_vectors (torch.Tensor): shape (n1, d)
-            support_vectors (torch.Tensor): shape (n2, d)
+            query_vectors (torch.Tensor): shape (b, d)
+            support_vectors (torch.Tensor): shape (b, d)
 
         Returns:
-            torch.Tensor: shape (n1, n2)
+            torch.Tensor: shape (b, 1)
         """
-        d = query_vectors.size(-1)
-        query_vectors = query_vectors.view(-1, 1, d)
-        support_vectors = support_vectors.view(1, -1, d)
-
-        # n1, n2
-        return self.head((query_vectors - support_vectors).abs()).squeeze(-1)
+        # b, 1
+        return self.head((query_vectors - support_vectors).abs())
 
     def forward(
         self,
         query_set: torch.Tensor,
         support_set: torch.Tensor,
     ) -> torch.Tensor:
-        # q is query size
-        q = query_set.size(1)
-        # n is n way
-        # k is k shot
-        n, k, c, h, w = support_set.shape
-        assert k == 1, "only one shot supported"
+        query_vectors = self.feature_extract(query_set)
+        support_vectors = self.feature_extract(support_set)
 
-        query_vectors = self.feature_extract(query_set.view(-1, c, h, w))
-        support_vectors = self.feature_extract(support_set.view(-1, c, h, w))
-
-        y = (
-            # n*q, n*k => n, q, n, k
-            self.get_logit(query_vectors, support_vectors).reshape(n, q, n, k)
-            # q, n, n, k
-            .permute(1, 0, 2, 3)
-            # q, n, n
-            .squeeze(-1)
-        )
-
-        return y
+        # b, 1
+        return self.get_logit(query_vectors, support_vectors)
