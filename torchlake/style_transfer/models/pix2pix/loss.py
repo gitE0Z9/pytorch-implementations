@@ -5,42 +5,25 @@ from torch import nn
 
 class Pix2PixGeneratorLoss(nn.Module):
     def __init__(self, lambda_coef: float):
-        super(Pix2PixGeneratorLoss, self).__init__()
+        super().__init__()
         self.lambda_coef = lambda_coef
 
     def forward(
         self,
-        fake_discriminated: torch.Tensor,
-        generated: torch.Tensor,
-        label: torch.Tensor,
+        yhat_xhat: torch.Tensor,
+        xhat: torch.Tensor,
+        x: torch.Tensor,
     ) -> torch.Tensor:
-        g_loss = F.binary_cross_entropy_with_logits(
-            fake_discriminated,
-            torch.ones_like(fake_discriminated),
+        adversarial_loss = F.binary_cross_entropy_with_logits(
+            yhat_xhat, torch.ones_like(yhat_xhat)
         )
-        g2_loss = F.l1_loss(generated, label)
-        loss_G = g_loss + self.lambda_coef * g2_loss
-
-        return loss_G
+        reconstruction_loss = F.l1_loss(xhat, x)
+        return adversarial_loss + self.lambda_coef * reconstruction_loss
 
 
 class Pix2PixDiscriminatorLoss(nn.Module):
-    def __init__(self):
-        super(Pix2PixDiscriminatorLoss, self).__init__()
-
-    def forward(
-        self,
-        real_discriminated: torch.Tensor,
-        fake_discriminated: torch.Tensor,
-    ) -> torch.Tensor:
-        real_loss = F.binary_cross_entropy_with_logits(
-            real_discriminated,
-            torch.ones_like(real_discriminated),
+    def forward(self, yhat_xhat: torch.Tensor, yhat_x: torch.Tensor) -> torch.Tensor:
+        return F.binary_cross_entropy_with_logits(
+            torch.cat([yhat_xhat, yhat_x], 1),
+            torch.cat([torch.zeros_like(yhat_xhat), torch.ones_like(yhat_x)], 1),
         )
-        fake_loss = F.binary_cross_entropy_with_logits(
-            fake_discriminated,
-            torch.zeros_like(fake_discriminated),
-        )
-        loss_D = (real_loss + fake_loss) / 2
-
-        return loss_D

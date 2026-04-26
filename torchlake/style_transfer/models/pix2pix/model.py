@@ -1,55 +1,170 @@
+from itertools import pairwise
+
 import torch
 from torch import nn
-from .network import DownSampling, UpSampling, ConvInRelu
+
+from torchlake.common.models.model_base import ModelBase
+from torchlake.common.models import ConvINReLU
+
+from .network import DownSampling, UpSampling
 
 
-class Pix2PixDiscriminator(nn.Module):
-    def __init__(self):
-        super(Pix2PixDiscriminator, self).__init__()
-        self.discriminator = nn.Sequential(
-            ConvInRelu(6, 32),
-            ConvInRelu(32, 64),
-            ConvInRelu(64, 128),
-            nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(128, 1, 3, padding=1),
+def init_conv(layer: nn.Conv2d):
+    nn.init.normal_(layer.weight, 0, 0.02)
+    if layer.bias is not None:
+        nn.init.zeros_(layer.bias)
+
+
+def init_norm(layer: nn.BatchNorm2d):
+    if layer.weight is not None:
+        nn.init.normal_(layer.weight, 1, 0.02)
+    if layer.bias is not None:
+        nn.init.zeros_(layer.bias)
+
+
+class Pix2PixDiscriminator(ModelBase):
+    def __init__(
+        self,
+        input_channel: int,
+        hidden_dim: int = 64,
+        num_layer: int = 3,
+    ):
+        """Pix2pix discriminator, a PatchGAN
+
+        Args:
+            input_channel (int): input channel size
+            hidden_dim (int): dimension of hidden layers
+            num_layer (int): number of blocks
+        """
+        self.hidden_dim = hidden_dim
+        self.num_layer = num_layer
+        super().__init__(input_channel, 1)
+
+        for layer in self.modules():
+            if isinstance(layer, nn.Conv2d):
+                init_conv(layer)
+            elif isinstance(layer, nn.BatchNorm2d):
+                init_norm(layer)
+
+    def build_foot(self, input_channel, **kwargs):
+        self.foot = nn.Sequential(
+            ConvINReLU(input_channel, self.hidden_dim, 4, 2, 1),
         )
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        z = torch.cat([x, y], dim=1)
-        z = self.discriminator(z)
-        return z
+    def build_blocks(self, **kwargs):
+        blocks = nn.Sequential()
+
+        d = self.hidden_dim
+        for _ in range(self.num_layer - 1):
+            block = ConvINReLU(d, d * 2, 4, 2, 1)
+            d *= 2
+            blocks.append(block)
+
+        block = ConvINReLU(d, d * 2, 4, 1, 1)
+        blocks.append(block)
+
+        self.blocks = blocks
+
+    def build_head(self, output_size, **kwargs):
+        self.head = nn.Sequential(
+            nn.Conv2d(self.hidden_dim * (2**self.num_layer), output_size, 4, 1, 1),
+        )
+
+    def forward(self, x: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+        y = torch.cat([x, z], dim=1)
+        y = self.foot(y)
+        y = self.blocks(y)
+        return self.head(y)
 
 
-class Pix2PixGenerator(nn.Module):
-    def __init__(self, output_size: int):
+class Pix2PixGenerator(ModelBase):
+    def __init__(
+        self,
+        input_channel: int,
+        output_size: int,
+        hidden_dim: int = 64,
+        num_block: int = 6,
+        dropout_prob: float = 0.5,
+    ):
         """Pix2pix generator, a UNet
 
         Args:
-            output_size (int): the channel size of ouput
+            input_channel (int): input channel size
+            output_size (int): output size
+            hidden_dim (int): dimension of hidden layers. Defaults to 64.
+            num_block (int): number of downsampling and upsampling blocks. Defaults to 6.
         """
-        super(Pix2PixGenerator, self).__init__()
-        self.down1 = DownSampling(3, 64)  # 64,112
-        self.down2 = DownSampling(64, 128)  # 128,56
-        self.down3 = DownSampling(128, 256)  # 256,28
-        self.down4 = DownSampling(256, 512)  # 512,14
-        self.expand = DownSampling(512, 1024)  # 1024,7
-        self.up1 = UpSampling(1024, 1024)  # 512+512,14
-        self.up2 = UpSampling(1024, 512)  # 256+256,28
-        self.up3 = UpSampling(512, 256)  # 128+128,56
-        self.up4 = UpSampling(256, 128)  # 64+64,112
-        self.up5 = nn.ConvTranspose2d(128, 64, 2, stride=2)  # 64, 224
-        self.conv = nn.Conv2d(64, output_size, 1)  # 20, 224
+        self.hidden_dim = hidden_dim
+        self.num_block = num_block
+        self.dropout_prob = dropout_prob
+        super().__init__(input_channel, output_size)
+
+        for layer in self.modules():
+            if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.ConvTranspose2d):
+                init_conv(layer)
+            elif isinstance(layer, nn.BatchNorm2d):
+                init_norm(layer)
+
+    def build_foot(self, input_channel, **kwargs):
+        self.foot = nn.Sequential(
+            nn.Conv2d(input_channel, self.hidden_dim, 4, 2, 1),
+        )
+
+    def build_blocks(self, **kwargs):
+        blocks = nn.Sequential()
+
+        d = self.hidden_dim
+        for _ in range(self.num_block):
+            d_prime = min(d * 2, self.hidden_dim * 8)
+            block = DownSampling(d, d_prime)
+            d = d_prime
+            blocks.append(block)
+        blocks.append(DownSampling(d, d, enable_in=False))
+
+        self.blocks = blocks
+
+    def build_neck(self, **kwargs):
+        neck = nn.ModuleList()
+
+        input_channels = [block.output_channel for block in self.blocks][::-1]
+        input_channels.append(self.hidden_dim)
+
+        in_c, out_c = input_channels[:2]
+        block = UpSampling(
+            in_c,
+            out_c,
+            dropout_prob=self.dropout_prob,
+        )
+        in_c = in_c + out_c
+        neck.append(block)
+        for i, out_c in enumerate(input_channels[2:]):
+            block = UpSampling(
+                in_c,
+                out_c,
+                dropout_prob=self.dropout_prob if i < 2 else 0,
+            )
+            in_c = 2 * out_c
+            neck.append(block)
+
+        self.neck = neck
+
+    def build_head(self, output_size, **kwargs):
+        self.head = nn.Sequential(
+            nn.ReLU(True),
+            nn.ConvTranspose2d(self.hidden_dim * 2, output_size, 4, 2, 1),
+            nn.Tanh(),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        d1 = self.down1(x)
-        d2 = self.down2(d1)
-        d3 = self.down3(d2)
-        d4 = self.down4(d3)
-        intermediate = self.expand(d4)
-        u1 = self.up1(intermediate, d4)
-        u2 = self.up2(u1, d3)
-        u3 = self.up3(u2, d2)
-        u4 = self.up4(u3, d1)
-        u5 = self.up5(u4)
-        y = self.conv(u5)
-        return y
+        y = self.foot(x)
+
+        features = [y]
+        for block in self.blocks[:-1]:
+            y = block(y)
+            features.append(y)
+
+        y = self.blocks[-1](y)
+        for neck in self.neck:
+            y = neck(y, features.pop())
+
+        return self.head(y)
