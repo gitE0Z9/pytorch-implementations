@@ -1,13 +1,11 @@
 import torch
 
-from ..models.neural_style_transfer import NeuralStyleTransfer, NeuralStyleTransferLoss
+from ..models.neural_style_transfer import NeuralStyleTransferLoss
 
 
 def run_neural_style_transfer(
-    model: NeuralStyleTransfer,
     criterion: NeuralStyleTransferLoss,
     content: torch.Tensor,
-    style: torch.Tensor,
     num_steps: int = 300,
     save_iter: int = 50,
 ):
@@ -25,24 +23,19 @@ def run_neural_style_transfer(
             # correct the values of updated input image
             output.data.clamp_(0, 1)
 
-            output_features = model(output, "style")
-            content_feature = model(content, "content")
-            style_features = model(style, "style")
-            loss, content_score, style_score = criterion(
-                content_feature[0], style_features, output_features
-            )
+            loss, content_score, style_score = criterion(output, content)
             loss.backward()
 
             nonlocal step
             step += 1
             if step % save_iter == 0:
-                print(f"run {step}:")
                 print(
+                    f"run {step}:",
                     f"Total Loss: {loss.item():4f}",
                     f"Content Loss: {content_score.item():4f}",
                     f"Style Loss : {style_score.item():4f}",
+                    "\n",
                 )
-                print()
 
             return loss
 

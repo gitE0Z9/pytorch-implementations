@@ -1,6 +1,10 @@
+from typing import Sequence
+
 import torch
 import torch.nn.functional as F
 from torch import nn
+
+from torchlake.common.models.feature_extractor_base import ExtractorBase
 
 
 def gram_matrix(x: torch.Tensor) -> torch.Tensor:
@@ -15,16 +19,26 @@ def gram_matrix(x: torch.Tensor) -> torch.Tensor:
 class NeuralStyleTransferLoss(nn.Module):
     def __init__(
         self,
-        content_layer_idx: int,
+        backbone: ExtractorBase,
+        content_layer_name: str,
+        style_layer_names: Sequence[str],
         content_weight: float,
         style_weight: float,
+        norm_generated: bool = True,
         return_all_loss: bool = False,
     ):
         super().__init__()
-        self.content_layer_idx = content_layer_idx
+        self.backbone = backbone
+        self.content_layer_name = content_layer_name
+        self.style_layer_names = style_layer_names
         self.content_weight = content_weight
         self.style_weight = style_weight
+        self.norm_generated = norm_generated
         self.return_all_loss = return_all_loss
+
+    def set_style_features(self, style: torch.Tensor):
+        with torch.inference_mode():
+            self.style_features = self.backbone(style, self.style_layer_names)
 
     def calc_style_loss(
         self,
@@ -42,15 +56,36 @@ class NeuralStyleTransferLoss(nn.Module):
 
     def forward(
         self,
-        content: torch.Tensor,
-        styles: list[torch.Tensor],
-        features: list[torch.Tensor],
+        yhat: torch.Tensor,
+        content: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor]:
-        content_loss = self.calc_content_loss(features[self.content_layer_idx], content)
+        features = self.backbone(
+            yhat,
+            self.style_layer_names,
+            normalization=self.norm_generated,
+        )
+
+        content_loss = 0
+        if content is not None:
+            if self.content_layer_name in self.style_layer_names:
+                feature_for_content = features[
+                    self.style_layer_names.index(self.content_layer_name)
+                ]
+            else:
+                feature_for_content = self.backbone(
+                    yhat, [self.content_layer_name]
+                ).pop()
+
+            content_feature = self.backbone(
+                # [:, :3] for texture net
+                content[:, :3],
+                [self.content_layer_name],
+            ).pop()
+            content_loss = self.calc_content_loss(feature_for_content, content_feature)
 
         style_loss = 0
-        for feature, style in zip(features, styles):
-            style_loss += self.calc_style_loss(feature, style)
+        for feature, style_feature in zip(features, self.style_features):
+            style_loss += self.calc_style_loss(feature, style_feature)
 
         total_loss = self.content_weight * content_loss + self.style_weight * style_loss
 

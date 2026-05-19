@@ -1,49 +1,47 @@
 import torch
+
 from torchlake.common.models import VGGFeatureExtractor
 
-from ..models.neural_style_transfer import NeuralStyleTransfer, NeuralStyleTransferLoss
+from ..models.neural_style_transfer import NeuralStyleTransferLoss
 
 BATCH_SIZE = 1
 INPUT_CHANNEL = 3
 IMAGE_SIZE = 224
-CONTENT_LAYER_NAMES = ["3_1"]
+CONTENT_WEIGHT = 1
+STYLE_WEIGHT = 1
+CONTENT_LAYER_NAME = "3_1"
 STYLE_LAYER_NAMES = ["1_1", "2_1", "3_1", "4_1", "5_1"]
 
 
-class TestModel:
-    def test_neural_style_transfer_forward_shape(self):
-        _input = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-
-        extractor = VGGFeatureExtractor("vgg19", "relu", trainable=False)
-        model = NeuralStyleTransfer(extractor, CONTENT_LAYER_NAMES, STYLE_LAYER_NAMES)
-
-        features = model(_input, "style")
-
-        assert len(features) == len(STYLE_LAYER_NAMES)
-        for i, dim in enumerate(extractor.feature_dims):
-            scale = 224 // 2**i
-            assert features.pop(0).shape == torch.Size((1, dim, scale, scale))
-
-
 class TestLoss:
-    def test_neural_style_transfer_loss_forward(self):
+    def setup_neural_style_transfer_loss(self):
         content = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-        style = torch.rand((5, BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-        output = torch.rand((5, BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-        criterion = NeuralStyleTransferLoss(2, 1, 1, return_all_loss=True)
+        style = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
+        output = torch.rand(
+            (BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE), requires_grad=True
+        )
 
-        loss, content_score, style_score = criterion(content, [*style], [*output])
+        backbone = VGGFeatureExtractor("vgg16", "relu", trainable=False)
+        criterion = NeuralStyleTransferLoss(
+            backbone,
+            CONTENT_LAYER_NAME,
+            STYLE_LAYER_NAMES,
+            CONTENT_WEIGHT,
+            STYLE_WEIGHT,
+            return_all_loss=True,
+        )
+        criterion.set_style_features(style)
+
+        return criterion(output, content)
+
+    def test_neural_style_transfer_loss_forward(self):
+        loss, content_score, style_score = self.setup_neural_style_transfer_loss()
+
         assert not torch.isnan(loss)
         assert not torch.isnan(content_score)
         assert not torch.isnan(style_score)
 
     def test_neural_style_transfer_loss_backward(self):
-        content = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-        style = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
-        output = torch.rand(
-            (BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
-        ).requires_grad_()
-        criterion = NeuralStyleTransferLoss(2, 1, 1, return_all_loss=True)
+        loss, _, _ = self.setup_neural_style_transfer_loss()
 
-        loss, _, _ = criterion(content, [style] * 5, [output] * 5)
         loss.backward()

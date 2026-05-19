@@ -24,7 +24,7 @@ class TestModel:
     def test_fast_style_transfer_forward_shape(self):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE))
 
-        model = FastStyleTransfer(3)
+        model = FastStyleTransfer(INPUT_CHANNEL)
 
         y = model(x)
 

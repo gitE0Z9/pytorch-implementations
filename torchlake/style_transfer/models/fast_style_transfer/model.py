@@ -10,7 +10,7 @@ from .network import ResidualBlock
 class FastStyleTransfer(ModelBase):
     def __init__(
         self,
-        input_channel: int,
+        input_channel: int = 3,
         hidden_dim: int = 32,
         num_block: int = 5,
     ):
