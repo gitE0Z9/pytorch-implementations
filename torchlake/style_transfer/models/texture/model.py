@@ -12,11 +12,13 @@ class TextureNet(ModelBase):
         input_channel: int = 3,
         output_size: int = 3,
         hidden_dim: int = 8,
+        noise_channel: int = 1,
         num_scale_factor: int = 5,
     ):
         self.hidden_dim = hidden_dim
+        self.noise_channel = noise_channel
         self.num_scale_factor = num_scale_factor
-        super().__init__(input_channel, output_size)
+        super().__init__(input_channel + self.noise_channel, output_size)
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
@@ -68,12 +70,36 @@ class TextureNet(ModelBase):
         )
 
     def forward(self, xs: list[torch.Tensor]) -> list[torch.Tensor]:
-        y = self.foot[0](xs.pop())
+        x = xs.pop()
+        z = torch.rand(
+            x.size(0),
+            self.noise_channel,
+            x.size(2),
+            x.size(3),
+            device=x.device,
+        )
+        x = torch.cat((x, z), 1)
+
+        y = self.foot[0](x)
         for i in range(1, self.num_scale_factor):
-            z = self.foot[i](xs.pop())
+            # shallow layer
+            x = xs.pop()
+            z = torch.rand(
+                x.size(0),
+                self.noise_channel,
+                x.size(2),
+                x.size(3),
+                device=x.device,
+            )
+            x = torch.cat((x, z), 1)
+            h = self.foot[i](x)
+
+            # deep layer
             y = F.interpolate(y, scale_factor=2)
             y = self.blocks[i - 1](y)
-            y = torch.cat((y, z), 1)
+
+            # concat and transform
+            y = torch.cat((y, h), 1)
             y = self.neck[i - 1](y)
 
         return self.head(y)

@@ -76,11 +76,7 @@ class NeuralStyleTransferLoss(nn.Module):
                     yhat, [self.content_layer_name]
                 ).pop()
 
-            content_feature = self.backbone(
-                # [:, :3] for texture net
-                content[:, :3],
-                [self.content_layer_name],
-            ).pop()
+            content_feature = self.backbone(content, [self.content_layer_name]).pop()
             content_loss = self.calc_content_loss(feature_for_content, content_feature)
 
         style_loss = 0
