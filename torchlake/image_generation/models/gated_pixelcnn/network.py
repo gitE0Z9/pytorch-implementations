@@ -48,7 +48,7 @@ class GatedLayer(nn.Module):
             (self._k, kernel),
             padding=(0, kernel // 2),
         )
-        self.conv_v_gate = nn.Conv2d(2 * hidden_dim, 2 * hidden_dim, 1, groups=2)
+        self.conv_v_gate = nn.Conv2d(2 * hidden_dim, 2 * hidden_dim, 1)
 
         # neck
         self.conv_v_h = nn.Conv2d(2 * hidden_dim, 2 * hidden_dim, 1)

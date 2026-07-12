@@ -19,7 +19,7 @@ class PixelCNNPredictor:
 
         model.eval()
         with torch.no_grad():
-            placeholder = torch.zeros(*output_shape).to(self.device)
+            placeholder = torch.zeros(*output_shape, device=self.device)
             for i, j, c in tqdm(product(range(H), range(W), range(C))):
                 if cond is None:
                     p = model(placeholder[:, :, : (i + 1), :])
