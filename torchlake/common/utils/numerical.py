@@ -130,8 +130,8 @@ def padded_mask(x: torch.Tensor, padding_idx: int) -> torch.Tensor:
     return x.eq(padding_idx)
 
 
-def causal_mask(*shape: int) -> torch.Tensor:
-    return torch.tril(torch.ones(shape))
+def causal_mask(*shape: int, device: torch.device = None) -> torch.Tensor:
+    return torch.tril(torch.ones(shape, dtype=torch.bool, device=device))
 
 
 def build_gaussian_heatmap(

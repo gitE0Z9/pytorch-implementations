@@ -131,7 +131,7 @@ class TransformerDecoder(ModelBase):
         y = self.foot["dropout"](y)
 
         if self.causal_mask and mask is None:
-            mask = causal_mask(1, seq_len, seq_len).to(x.device)
+            mask = causal_mask(1, seq_len, seq_len, device=x.device).bool()
 
         # encoder returned last layer representation
         # each layer of decoder receive same representation

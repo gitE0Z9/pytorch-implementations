@@ -8,12 +8,12 @@ from .network import (
 )
 
 __all__ = [
-    Transformer,
-    TransformerEncoder,
-    TransformerDecoder,
-    ScaledDotProductAttention,
-    SingleHeadAttention,
-    MultiHeadAttention,
-    TransformerEncoderBlock,
-    TransformerDecoderBlock,
+    "Transformer",
+    "TransformerEncoder",
+    "TransformerDecoder",
+    "ScaledDotProductAttention",
+    "SingleHeadAttention",
+    "MultiHeadAttention",
+    "TransformerEncoderBlock",
+    "TransformerDecoderBlock",
 ]
