@@ -133,7 +133,7 @@ class RNNGenerator(ModelBase):
             output, states = self.head(input_seq, ht, *states, context_vector=c)
             ht, states = states[0], states[1:]
             if output_state:
-                all_states.append(tuple(ht, *states))
+                all_states.append((ht, *states))
 
             # place predictions in a tensor holding predictions for each token
             # B, V
