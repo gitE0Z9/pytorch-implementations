@@ -2,7 +2,6 @@ import random
 
 import pytest
 import torch
-from torch.testing import assert_close
 
 from torchlake.common.models import ResNetFeatureExtractor
 from torchlake.image_classification.models.darknet19 import DarkNet19FeatureExtractor
@@ -14,6 +13,7 @@ from ..models.yolov2.loss import YOLOV2Loss
 from ..models.yolov2.model import YOLOV2
 
 BATCH_SIZE = 2
+INPUT_CHANNEL = 3
 IMAGE_SIZE = 416
 GRID_SIZE = 13
 MAX_OBJECT_SIZE = 10
@@ -43,7 +43,7 @@ class TestModel:
             passthrough_feature_dim=backbone.feature_dims[-2],
             neck_feature_dim=backbone.feature_dims[-1],
         )
-        x = torch.rand(BATCH_SIZE, 3, IMAGE_SIZE, IMAGE_SIZE)
+        x = torch.rand(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
 
         output: torch.Tensor = model(x)
         assert output.shape == torch.Size(

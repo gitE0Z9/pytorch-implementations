@@ -73,7 +73,7 @@ def average_precision(
     table: List[tuple],
     iou_thres: float = 0.5,
     interpolation: str = PRCurveInterpolation.ALL.value,
-) -> Tuple[List[float], List[float], float]:
+) -> Tuple[torch.Tensor, torch.Tensor, float]:
     """calculate AP"""
     total_gt_num = sum(gt_num for _, _, gt_num in table)
 
@@ -98,14 +98,12 @@ def average_precision(
         PRCurveInterpolation.COCO.value: 100,
     }
 
-    precision, recall, auc = interpolate_pr_curve(
+    return interpolate_pr_curve(
         precision,
         recall,
         mapping.get(interpolation),
         total_gt_num,
     )
-
-    return precision, recall, auc
 
 
 def interpolate_pr_curve(
@@ -113,7 +111,7 @@ def interpolate_pr_curve(
     raw_recall: torch.Tensor,
     num_points: int,
     gt_num: int = 0,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, float]:
     """convert raw pr curve to all interpolated one"""
     interpolated_precision = []
 
