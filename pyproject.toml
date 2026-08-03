@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "albumentations>=2.0.8",
-  # "datasets>=3.6.0",
   "lmdb>=1.6.2",
   "matplotlib>=3.10.3",
   "numpy>=2.2.6",
@@ -17,7 +16,7 @@ dependencies = [
   "tensorboardx>=2.6.4",
   "tqdm>=4.67.1",
   "torchmetrics>=1.7.1",
-  # "transformers>=4.52.4",
+  "torchtext",
 ]
 
 
@@ -38,7 +37,9 @@ cu126 = [
 ]
 notebook = [
   "av>=14.4.0",
+  "datasets>=5.0.1",
   "ipykernel>=6.29.5",
+  "ipython>=9.10.0",
   "scikit-learn>=1.6.1",
   "seaborn>=0.13.2",
   "torchinfo>=1.8.0",
@@ -81,6 +82,7 @@ torchvision = [
 # ]
 torch-tensorrt = [{ index = "torch-tensorrt-cu126" }]
 tensorrt = { path = "F:/TensorRT-10.7.0.23/python/tensorrt-10.7.0-cp311-none-win_amd64.whl" }
+torchtext = { path = "torchtext/dist/torchtext-0.0.3-cp311-cp311-win_amd64.whl" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
