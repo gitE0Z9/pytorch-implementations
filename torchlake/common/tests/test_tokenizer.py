@@ -1,10 +1,10 @@
 import unittest
 
-from torchtext.data.utils import get_tokenizer
+from torchlake.common.text.data.utils import get_tokenizer
 
 from ..helpers.tokenizer import CharNgramTokenizer
 from ..helpers.vocab import CharNgramVocab
-from ..schemas.nlp import NlpContext
+from ..schemas.nlp import NLPContext
 
 
 class TestNgramTokenizer(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestNgramTokenizer(unittest.TestCase):
         self.candidate = "word"
         self.tokenizer = CharNgramTokenizer(
             get_tokenizer("basic_english"),
-            CharNgramVocab(context=NlpContext(min_frequency=0)),
+            CharNgramVocab(context=NLPContext(min_frequency=0)),
             [2],
         )
 
