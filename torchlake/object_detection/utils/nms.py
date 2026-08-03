@@ -3,7 +3,7 @@ from typing import List
 import torch
 import torchvision
 from numpy import intersect1d
-from torchvision.ops.boxes import box_convert, box_iou, nms
+from torchvision.ops.boxes import box_convert, box_iou, nms, distance_box_iou
 
 from ..configs.schema import InferenceCfg
 
@@ -103,20 +103,22 @@ def diou_nms(
             continue
         best_index.append(sort_index[i].item())
         remove_index.append(i)
+
         other_b = tmp_bbox_xyxy[(i + 1) :]
-        box_c = torch.stack(
-            [
-                torch.minimum(b[0], other_b[:, 0]),
-                torch.minimum(b[1], other_b[:, 1]),
-                torch.maximum(b[2], other_b[:, 2]),
-                torch.maximum(b[3], other_b[:, 3]),
-            ],
-            1,
-        )
-        iou = box_iou(b.unsqueeze(0), other_b)[0]
-        d = (tmp_bbox[i, :2].unsqueeze(0) - tmp_bbox[(i + 1) :, :2]).pow(2).sum(1)
-        c = (box_c[:, 0] - box_c[:, 2]).pow(2) + (box_c[:, 1] - box_c[:, 3]).pow(2)
-        diou = iou - (d / c).pow(beta)
+        diou = distance_box_iou(b, other_b)[0]
+        # box_c = torch.stack(
+        #     [
+        #         torch.minimum(b[0], other_b[:, 0]),
+        #         torch.minimum(b[1], other_b[:, 1]),
+        #         torch.maximum(b[2], other_b[:, 2]),
+        #         torch.maximum(b[3], other_b[:, 3]),
+        #     ],
+        #     1,
+        # )
+        # iou = box_iou(b.unsqueeze(0), other_b)[0]
+        # d = (tmp_bbox[i, :2].unsqueeze(0) - tmp_bbox[(i + 1) :, :2]).pow(2).sum(1)
+        # c = (box_c[:, 0] - box_c[:, 2]).pow(2) + (box_c[:, 1] - box_c[:, 3]).pow(2)
+        # diou = iou - (d / c).pow(beta)
 
         over_index = diou.gt(nms_thres).nonzero().flatten().add(i + 1).tolist()
         remove_index.extend(over_index)
