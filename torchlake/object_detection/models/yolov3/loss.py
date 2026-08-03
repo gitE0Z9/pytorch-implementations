@@ -89,7 +89,7 @@ class YOLOV3Loss(nn.Module):
 
         # ?, A
         anchor_ious = wh_iou(
-            torch.Tensor(gt_wh, device=self.device),
+            torch.tensor(gt_wh, device=self.device),
             self.anchors[0, :, :, 0, 0],
         )
 
@@ -222,7 +222,7 @@ class YOLOV3Loss(nn.Module):
                         positive_target[:, 5] = iou_loss_method(
                             xyxy_preds[best_box_idx + i * num_bboxes],
                             xyxy_gt_batch[offset : offset + span][mask],
-                            reduction="sum",
+                            reduction="none",
                         )
                 else:
                     # area normalizer = 2 - area
@@ -336,6 +336,7 @@ class YOLOV3Loss(nn.Module):
         negative_mask = positivity_all.eq(0)
         # no object loss for lower than threshold
         noobj_loss = F.mse_loss(
+            # noobj_loss = F.binary_cross_entropy_with_logits(
             pred_all[negative_mask, 4],
             torch.zeros(negative_mask.sum(), device=self.device),
             reduction="sum",
@@ -347,18 +348,19 @@ class YOLOV3Loss(nn.Module):
 
         if self.loc_loss_type == "mse":
             coord_loss = (
-                positive_target_all[:, 5:6]  # area normalizer
-                * F.mse_loss(
+                F.mse_loss(
                     pred_all[best_indices, :4],
                     positive_target_all[:, :4],
                     reduction="none",
                 )
+                * positive_target_all[:, 5:6]  # area normalizer
             ).sum()
         elif self.loc_loss_type.endswith("iou"):
             # iou loss
             coord_loss = positive_target_all[:, 5].sum()
 
         obj_loss = F.mse_loss(
+            # obj_loss = F.binary_cross_entropy_with_logits(
             pred_all[best_indices, 4],
             torch.ones_like(best_indices).float(),
             reduction="sum",
