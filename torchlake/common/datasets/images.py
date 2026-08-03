@@ -1,31 +1,58 @@
 import random
 from glob import glob
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from torchvision.datasets import ImageFolder
 
 from ..utils.image import load_image
 
 
 class ImageDataset(Dataset):
-    def __init__(self, pattern: str, transform=None, debug_size: int = 0):
-        assert debug_size >= 0, "debug size must be non-negative"
-
-        self.path = tuple(glob(pattern))
-        self.transform = transform
+    def __init__(
+        self,
+        pattern: str,
+        transform=None,
+        debug_size: int = 0,
+        offset_size: int = 0,
+    ):
         self.debug_size = debug_size
+        self.offset_size = offset_size
+        self.paths = tuple(glob(pattern))
+        self.transform = transform
+
+        if debug_size > 0:
+            self.paths = self.paths[offset_size : offset_size + debug_size]
 
     def __len__(self) -> int:
-        return self.debug_size or len(self.path)
+        return len(self.paths)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        pic = load_image(self.path[idx])
+        pic = load_image(self.paths[idx])
         if self.transform:
             pic = self.transform(pic)
 
         return pic
+
+
+class SubsetImageFolder(ImageFolder):
+    """ImageFolder restricted to a chosen subset of class folders, so it never walks the rest of root."""
+
+    def __init__(self, root: str | Path, classes: Sequence[str], **kwargs):
+        self.classes_subset = set(classes)
+        super().__init__(root, **kwargs)
+
+    def find_classes(self, directory: str | Path) -> tuple[list[str], dict[str, int]]:
+        classes = sorted(c for c in self.classes_subset if (Path(directory) / c).is_dir())
+        if not classes:
+            raise FileNotFoundError(
+                f"None of {sorted(self.classes_subset)} found under {directory}"
+            )
+
+        return classes, {c: i for i, c in enumerate(classes)}
 
 
 class Pix2PixDataset(ImageDataset):
