@@ -36,6 +36,8 @@ class YOLOV3(ModelBase):
         self.foot: ExtractorBase = kwargs.pop("backbone")
 
     def build_blocks(self, **kwargs):
+        # h = min(self.hidden_dim_32x, 1024)
+        h = self.hidden_dim_32x
         self.blocks = nn.ModuleList(
             [
                 nn.Sequential(
@@ -49,29 +51,29 @@ class YOLOV3(ModelBase):
                     ),
                     Conv2dNormActivation(
                         self.hidden_dim_32x // 2,
-                        self.hidden_dim_32x,
+                        h,
                         3,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
                     ),
                     Conv2dNormActivation(
-                        self.hidden_dim_32x,
-                        self.hidden_dim_32x // 2,
+                        h,
+                        h // 2,
                         1,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
                     ),
                     # spp position
                     Conv2dNormActivation(
-                        self.hidden_dim_32x // 2,
-                        self.hidden_dim_32x,
+                        h // 2,
+                        h,
                         3,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
                     ),
                     Conv2dNormActivation(
-                        self.hidden_dim_32x,
-                        self.hidden_dim_32x // 2,
+                        h,
+                        h // 2,
                         1,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
                         inplace=None,
@@ -80,7 +82,7 @@ class YOLOV3(ModelBase):
                 nn.Sequential(
                     # from block 0
                     Conv2dNormActivation(
-                        self.hidden_dim_32x // 2,
+                        h // 2,
                         self.hidden_dim_16x // 2,
                         1,
                         activation_layer=lambda: nn.LeakyReLU(0.1),
@@ -108,8 +110,8 @@ class YOLOV3(ModelBase):
             self.blocks[0].insert(
                 4,
                 Conv2dNormActivation(
-                    (self.hidden_dim_32x // 2) * 4,
-                    self.hidden_dim_32x // 2,
+                    (h // 2) * 4,
+                    h // 2,
                     1,
                     activation_layer=lambda: nn.LeakyReLU(0.1),
                     inplace=None,
@@ -199,11 +201,14 @@ class YOLOV3(ModelBase):
         )
 
     def build_head(self, _):
+        # h = min(self.hidden_dim_32x, 1024)
+        h = self.hidden_dim_32x
+
         self.head = nn.ModuleList(
             [
                 # from block 0
                 RegHead(
-                    self.hidden_dim_32x // 2,
+                    h // 2,
                     self.context.num_anchors[0],
                     self.context.num_classes,
                 ),
@@ -233,9 +238,6 @@ class YOLOV3(ModelBase):
             y = neck(torch.cat([y, features.pop()], 1))
             # B, A*C, H, W
             outputs.append(head(y))
-
-        # from 8x to 32x
-        reversed(outputs)
 
         # 3 x (B, A*C, H, W)
         return outputs

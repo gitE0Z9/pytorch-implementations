@@ -183,7 +183,7 @@ class TestLoss:
         num_anchors = CONTEXT.num_anchors[0]
 
         criterion = YOLOV3Loss(self.anchors, CONTEXT, iou_threshold=0)
-        y, span = build_flatten_targets(
+        y, spans = build_flatten_targets(
             self.y,
             (self.grid_size, self.grid_size),
             delta_coord=True,
@@ -200,7 +200,7 @@ class TestLoss:
             best_prior_indices = criterion.match_anchor(self.y)
             target, positivity = criterion.match(
                 y,
-                span,
+                spans,
                 pred,
                 best_prior_indices,
                 self.grid_size,
@@ -209,7 +209,9 @@ class TestLoss:
             )
         # assert (iou - labels[:, :, 4:5, :, :]).sum() < 1e-2, "iou is too far away"
         assert len(target) == BATCH_SIZE
-        assert torch.cat(target).shape == torch.Size((sum(span), 7))
+        for i, it in enumerate(target):
+            assert it.shape[0] <= spans[i]
+            assert it.shape[1] == 7
         assert positivity.shape == torch.Size((BATCH_SIZE, NUM_BOXES[0]))
 
     @pytest.mark.parametrize("cls_loss_type", ["sigmoid", "softmax"])

@@ -67,7 +67,7 @@ class PriorBox:
             (group_indices.view(-1, 1) == torch.arange(na).view(1, -1)).sum(0).tolist(),
         )
 
-        return anchors
+        return anchors[anchors.prod(1).argsort(descending=True)]
 
     def load_anchors(self) -> torch.Tensor:
         if self.anchors_path.exists() and self.anchors_path.is_file():
