@@ -1,5 +1,5 @@
-from .nlp import NlpContext
+from .nlp import NLPContext
 
 __all__ = [
-    "NlpContext",
+    "NLPContext",
 ]

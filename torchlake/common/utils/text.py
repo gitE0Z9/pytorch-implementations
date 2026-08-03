@@ -5,10 +5,10 @@ from typing import Iterable
 import torch
 from torchtext.vocab import Vocab, build_vocab_from_iterator
 
-from ..schemas import NlpContext
+from ..schemas import NLPContext
 
 
-def build_vocab(data: Iterable, context: NlpContext = NlpContext()) -> Vocab:
+def build_vocab(data: Iterable, context: NLPContext) -> Vocab:
     vocab = build_vocab_from_iterator(
         data,
         specials=context.special_tokens,

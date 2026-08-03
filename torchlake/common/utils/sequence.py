@@ -1,7 +1,7 @@
 import torch
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence, pad_packed_sequence
 
-from ..schemas import NlpContext
+from ..schemas import NLPContext
 
 
 def pack_sequence(
@@ -33,6 +33,6 @@ def unpack_sequence(ot: PackedSequence, max_seq_len: int) -> torch.Tensor:
 
 def get_input_sequence(
     shape: tuple[int],
-    context: NlpContext = NlpContext(),
+    context: NLPContext = NLPContext(),
 ) -> torch.Tensor:
     return torch.full(shape, context.bos_idx).to(context.device)

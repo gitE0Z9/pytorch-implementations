@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class NlpContext(BaseModel):
+class NLPContext(BaseModel):
     device: str = "cuda:0"
     unk_idx: int = 0
     bos_idx: int = 1
