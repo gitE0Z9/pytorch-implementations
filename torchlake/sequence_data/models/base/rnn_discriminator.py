@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import pack_sequence, unpack_sequence
 
 from torchlake.common.models.model_base import ModelBase
@@ -19,7 +19,7 @@ class RNNDiscriminator(ModelBase):
         output_sequence: bool = False,
         enable_embed: bool = True,
         drop_fc: bool = False,
-        context: NlpContext | None = None,
+        context: NLPContext | None = None,
         model_class: nn.Module | None = None,
     ):
         """Wrapper for sequence model discriminator
@@ -35,12 +35,12 @@ class RNNDiscriminator(ModelBase):
             output_sequence (bool, optional): every position of a sequence has output. Defaults to False.
             enable_embed (bool, optional): need an embedding layer. Defaults to True.
             drop_fc (bool, optional): remove fully connected head. Defaults to False.
-            context (NlpContext, optional): nlp context. Defaults to None.
+            context (NlpContext, optional): NLP context. Defaults to None.
             model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
         """
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
         if context is None:
-            context = NlpContext()
+            context = NLPContext()
 
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim

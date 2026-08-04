@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 
 class GloVe(nn.Module):
@@ -10,16 +10,19 @@ class GloVe(nn.Module):
         self,
         vocab_size: int,
         embed_dim: int,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """GloVe: Global Vectors for Word Representation
 
         Args:
             vocab_size (int): size of vocabulary
             embed_dim (int): dimension of embedding vector
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
-        super(GloVe, self).__init__()
+        if context is None:
+            context = NLPContext()
+
+        super().__init__()
         self.word_embed = nn.Embedding(
             vocab_size,
             embed_dim,

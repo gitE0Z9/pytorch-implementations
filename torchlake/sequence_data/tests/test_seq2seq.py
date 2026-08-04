@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from ..models.base.rnn_generator import RNNGenerator
 from ..models.lstm.model import LSTMDiscriminator
@@ -13,7 +13,7 @@ SEQ_LEN = 16
 VOCAB_SIZE = 10
 EMBED_DIM = 8
 HIDDEN_DIM = 16
-CONTEXT = NlpContext(max_seq_len=SEQ_LEN, device="cpu")
+CONTEXT = NLPContext(max_seq_len=SEQ_LEN, device="cpu")
 CONTEXT_SIZE = 2
 WINDOW_SIZE = 5
 

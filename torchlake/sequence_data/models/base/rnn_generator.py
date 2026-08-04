@@ -2,7 +2,7 @@ from functools import partial
 
 import torch
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import get_input_sequence
 
 from .rnn_discriminator import RNNDiscriminator
@@ -94,7 +94,7 @@ class RNNGenerator(ModelBase):
             torch.Tensor: attention scores, in shape of (D, B, S, S')
             torch.Tensor: hidden states, list of tuple of tensor in shape of (D, B, dh)
         """
-        context: NlpContext = self.head.context
+        context: NLPContext = self.head.context
         batch_size = y.size(0)
         output_size = self.head.output_size
         max_seq_len = context.max_seq_len
@@ -188,7 +188,7 @@ class RNNGenerator(ModelBase):
         """
         assert topk >= 1, "Top k should be at least 1"
 
-        context: NlpContext = self.head.context
+        context: NLPContext = self.head.context
         max_seq_len = context.max_seq_len
         device = context.device
         output_size = self.head.output_size

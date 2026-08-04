@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchlake.common.models import ConvBNReLU
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from .network import CharQuantization
 
@@ -13,7 +13,7 @@ class CharCNN(ModelBase):
         char_size: int,
         output_size: int = 1,
         dropout_prob: float = 0.5,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """Character CNN in paper [1509.01626]
 
@@ -21,8 +21,11 @@ class CharCNN(ModelBase):
             char_size (int): size of characters
             output_size (int, optional): output size. Defaults to 1.
             dropout_prob (float, optional): dropout probability. Defaults to 0.5.
-            context (NlpContext, optional): . Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext()
+
         self.context = context
         self.dropout_prob = dropout_prob
         super().__init__(char_size, output_size)

@@ -1,7 +1,9 @@
 from typing import Literal
+
 import torch
 from torch import nn
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.language_model.constants.enum import LossType, Word2VecModelType
 
 
@@ -100,7 +102,7 @@ class Word2Vec(nn.Module):
         embed_dim: int,
         model_type: Word2VecModelType,
         loss_type: LossType = LossType.CROSS_ENTROPY,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """Word2Vec model
 
@@ -109,8 +111,11 @@ class Word2Vec(nn.Module):
             embed_dim (int): embedding dimension
             model_type (Word2VecModelType): model type, either CBOW or SkipGram
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CROSS_ENTROPY.
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext()
+
         super().__init__()
         self.context = context
         self.model_type = model_type
@@ -130,7 +135,7 @@ class Word2Vec(nn.Module):
         loss_type: LossType,
         vocab_size: int,
         embed_dim: int,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ) -> CBOW | SkipGram:
         """build model with options
 
@@ -139,7 +144,7 @@ class Word2Vec(nn.Module):
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax.
             vocab_size (int): vocabulary size
             embed_dim (int): embedding dimension
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
 
         Returns:
             Cbow | SkipGram: nn.Module

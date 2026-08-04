@@ -1,19 +1,17 @@
-from functools import partial
 import pytest
 import torch
 
-from torchlake.common.schemas.nlp import NlpContext
-
+from torchlake.common.models.vgg_feature_extractor import VGGFeatureExtractor
 from torchlake.sequence_data.models.base.rnn_generator import RNNGenerator
+from torchlake.sequence_data.models.lstm import LSTMDiscriminator
+
 from ..models.show_attend_tell import (
     DoublyStochasticAttentionLoss,
     HardAttention,
-    SoftAttention,
     ShowAttendTell,
+    SoftAttention,
 )
-from torchlake.sequence_data.models.lstm import LSTMDiscriminator
-from torchlake.common.models.vgg_feature_extractor import VGGFeatureExtractor
-from .constants import BATCH_SIZE, SEQ_LEN, VOCAB_SIZE, EMBED_DIM, CONTEXT
+from .constants import BATCH_SIZE, CONTEXT, EMBED_DIM, SEQ_LEN, VOCAB_SIZE
 
 ENCODE_DIM = 512
 DECODE_DIM = 8

@@ -33,6 +33,6 @@ def unpack_sequence(ot: PackedSequence, max_seq_len: int) -> torch.Tensor:
 
 def get_input_sequence(
     shape: tuple[int],
-    context: NLPContext = NLPContext(),
+    context: NLPContext,
 ) -> torch.Tensor:
     return torch.full(shape, context.bos_idx).to(context.device)

@@ -1,5 +1,6 @@
 import torch
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.sequence_data.models.base import RNNGenerator
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 
@@ -10,11 +11,11 @@ VOCAB_SIZE = 16
 MAX_SEQ_LEN = 16
 EMBED_SIZE = 8
 HIDDEN_DIM = 8
-CONTEXT = NlpContext(device="cpu", max_seq_len=MAX_SEQ_LEN)
+CONTEXT = NLPContext(device="cpu", max_seq_len=MAX_SEQ_LEN)
 
 
 class TestModel:
-    def test_forward_shape(self):
+    def test_rnnlm_forward_shape(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, MAX_SEQ_LEN))
 
         model = RNNLM(

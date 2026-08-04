@@ -1,9 +1,9 @@
-from unittest import TestCase
 import torch
-from torchlake.common.schemas.nlp import NlpContext
 
-from ..models.vlbl.model import VLBL, IVLBL
+from torchlake.common.schemas.nlp import NLPContext
+
 from ..models.vlbl.loss import NCE
+from ..models.vlbl.model import IVLBL, VLBL
 
 BATCH_SIZE = 2
 VOCAB_SIZE = 16
@@ -12,11 +12,11 @@ EMBED_SIZE = 8
 NEIGHBOR_SIZE = CONTEXT_SIZE - 1
 SUBSEQ_LEN = 256 - NEIGHBOR_SIZE
 NEGATIVE_RATIO = 5
-CONTEXT = NlpContext(device="cpu")
+CONTEXT = NLPContext(device="cpu")
 WORD_FREQS = torch.rand((VOCAB_SIZE))
 
 
-class TestVLBL(TestCase):
+class TestModel:
     def test_vlbl_forward_shape(self):
         gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
@@ -24,10 +24,7 @@ class TestVLBL(TestCase):
 
         y = model.forward(context, gram)
 
-        self.assertEqual(
-            y.shape,
-            torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN)),
-        )
+        assert y.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN))
 
     def test_ivlbl_forward_shape(self):
         gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
@@ -36,69 +33,66 @@ class TestVLBL(TestCase):
 
         y = model.forward(gram, context)
 
-        self.assertEqual(
-            y.shape,
-            torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN)),
-        )
+        assert y.shape == torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
 
-class TestNCE(TestCase):
-    def setUp(self) -> None:
-        self.criterion = NCE(WORD_FREQS, context=CONTEXT)
+class TestLoss:
+    def test_nce_get_distribution_shape(self):
+        criterion = NCE(WORD_FREQS, context=CONTEXT)
 
-    def test_get_distribution_shape(self):
-        self.assertEqual(
-            self.criterion.distribution.shape,
-            torch.Size((VOCAB_SIZE,)),
-        )
+        assert criterion.distribution.shape == torch.Size((VOCAB_SIZE,))
 
-    def test_sample_shape(self):
+    def test_nce_sample_shape(self):
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-        y = self.criterion.sample(context)
+        criterion = NCE(WORD_FREQS, context=CONTEXT)
+        y = criterion.sample(context)
 
-        self.assertEqual(
-            y.shape,
-            torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN * NEGATIVE_RATIO)),
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN * NEGATIVE_RATIO)
         )
 
-    def test_vlbl_forward(self):
+    def test_nce_vlbl_forward(self):
         gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = VLBL(VOCAB_SIZE, EMBED_SIZE, NEIGHBOR_SIZE, context=CONTEXT)
+        criterion = NCE(WORD_FREQS, context=CONTEXT)
 
         yhat = model.forward(context, gram)
-        loss = self.criterion.forward(model, context, gram, yhat)
+        loss = criterion.forward(model, context, gram, yhat)
 
         assert not torch.isnan(loss)
 
-    def test_ivlbel_forward(self):
+    def test_nce_ivlbl_forward(self):
         gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = IVLBL(VOCAB_SIZE, EMBED_SIZE, NEIGHBOR_SIZE, context=CONTEXT)
+        criterion = NCE(WORD_FREQS, context=CONTEXT)
 
         yhat = model.forward(gram, context)
-        loss = self.criterion.forward(model, gram, context, yhat)
+        loss = criterion.forward(model, gram, context, yhat)
 
         assert not torch.isnan(loss)
 
-    def test_vlbl_backward(self):
+    def test_nce_vlbl_backward(self):
         gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = VLBL(VOCAB_SIZE, EMBED_SIZE, NEIGHBOR_SIZE, context=CONTEXT)
+        criterion = NCE(WORD_FREQS, context=CONTEXT)
 
         yhat = model.forward(context, gram)
-        loss = self.criterion.forward(model, context, gram, yhat)
+        loss = criterion.forward(model, context, gram, yhat)
         loss.backward()
 
         assert not torch.isnan(model.word_embed.weight.grad).any()
 
-    def test_ivlbel_backward(self):
+    def test_nce_ivlbl_backward(self):
         gram = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = IVLBL(VOCAB_SIZE, EMBED_SIZE, NEIGHBOR_SIZE, context=CONTEXT)
+        criterion = NCE(WORD_FREQS, context=CONTEXT)
 
         yhat = model.forward(gram, context)
-        loss = self.criterion.forward(model, gram, context, yhat)
+        loss = criterion.forward(model, gram, context, yhat)
         loss.backward()
 
         assert not torch.isnan(model.context_embed.weight.grad).any()

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torchlake.common.models import FlattenFeature
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.sequence_data.models.base.wrapper import (
     SequenceModelFullFeatureExtractor,
 )
@@ -16,7 +16,7 @@ class RCNN(ModelBase):
         embed_dim: int,
         hidden_dim: int,
         output_size: int = 1,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """Recurrent convolution neural network in paper[9513-13-13041-1-2-20201228]
 
@@ -25,8 +25,11 @@ class RCNN(ModelBase):
             embed_dim (int): dimension of embedding vector
             hidden_dim (int): dimension of hidden layer
             output_size (int, optional): output size. Defaults to 1.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext()
+
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.context = context

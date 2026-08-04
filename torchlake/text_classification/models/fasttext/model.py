@@ -1,9 +1,10 @@
 import torch
 from torch import nn
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.models.model_base import ModelBase
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.language_model.constants.enum import LossType
 from torchlake.language_model.models.subword.network import SubwordEmbedding
-from torchlake.common.models.model_base import ModelBase
 
 
 class FastText(ModelBase):
@@ -13,7 +14,7 @@ class FastText(ModelBase):
         embed_dim: int,
         output_size: int,
         loss_type: LossType = LossType.CROSS_ENTROPY,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """FastText [1607.04606]
 
@@ -22,8 +23,11 @@ class FastText(ModelBase):
             embed_dim (int): embedding dimension
             output_size (int, optional): number of features of output. Defaults to 1.
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CE.
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext()
+
         self.embed_dim = embed_dim
         self.loss_type = loss_type
         self.context = context

@@ -2,17 +2,20 @@
 
 import torch
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import get_input_sequence
-from torchlake.sequence_data.models.base import RNNGenerator
+from torchlake.sequence_data.models.base import RNNGenerator, RNNDiscriminator
 
 
 class RNNLM(ModelBase):
     def __init__(
         self,
         backbone: RNNGenerator,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
+        if context is None:
+            context = NLPContext()
+
         self.context = context
         super().__init__(
             None,

@@ -1,7 +1,7 @@
 import torch
 from torch.testing import assert_close
 
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from ..utils.decode import viterbi_decode
 
@@ -11,7 +11,7 @@ VOCAB_SIZE = 10
 EMBED_DIM = 8
 HIDDEN_DIM = 8
 NUM_CLASS = 5
-CONTEXT = NlpContext(device="cpu", max_seq_len=SEQ_LEN)
+CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
 
 
 class TestViterbiDecode:

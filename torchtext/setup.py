@@ -3,8 +3,8 @@ from torch.utils.cpp_extension import BuildExtension, CppExtension
 
 setup(
     name="torchtext",
-    version="0.0.3",
-    packages=["torchtext", "torchtext.vocab"],
+    version="0.0.4",
+    packages=["torchtext", "torchtext.vocab", "torchtext.data"],
     ext_modules=[
         CppExtension(
             "torchtext.vocab._torchtext",

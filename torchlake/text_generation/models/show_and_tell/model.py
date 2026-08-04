@@ -4,7 +4,7 @@ from torch import nn
 from torchlake.common.models import FlattenFeature
 from torchlake.common.models.feature_extractor_base import ExtractorBase
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import get_input_sequence
 from torchlake.sequence_data.models.base import RNNGenerator
 
@@ -15,11 +15,11 @@ class NeuralImageCation(ModelBase):
         self,
         backbone: ExtractorBase,
         decoder: RNNGenerator,
-        context: NlpContext | None = None,
+        context: NLPContext | None = None,
         encode_dim: int | None = None,
     ):
         if context is None:
-            context = NlpContext()
+            context = NLPContext()
         self.context = context
 
         super().__init__(

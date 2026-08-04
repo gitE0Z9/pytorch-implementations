@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from ...utils.decode import viterbi_decode
 
@@ -10,17 +10,17 @@ class LinearCRF(nn.Module):
     def __init__(
         self,
         output_size: int,
-        context: NlpContext | None = None,
+        context: NLPContext | None = None,
     ):
         """CRF(conditional random field) layer
 
         Args:
             output_size (int): size of output
-            context (NlpContext, optional): nlp context. Defaults to None.
+            context (NlpContext, optional): NLP context. Defaults to None.
         """
         super().__init__()
         if context is None:
-            context = NlpContext()
+            context = NLPContext()
         self.context = context
 
         # transition matrix

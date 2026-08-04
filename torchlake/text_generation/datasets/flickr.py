@@ -1,9 +1,7 @@
 from pathlib import Path
 
 import lmdb
-import pandas as pd
-import PIL
-import PIL.Image
+import polars as pl
 from torch.utils.data import Dataset
 from torchlake.common.mixins.dataset import LMDBMixin
 from torchlake.common.utils.image import load_image
@@ -29,9 +27,9 @@ class Flickr8k(Dataset):
             text_transform (torchtext.transforms, optional): text transform. Defaults to None.
         """
         super().__init__()
-        self.caption_path = caption_path
+        self.caption_path = Path(caption_path)
         self.img_root = Path(img_root)
-        self.data = pd.read_csv(caption_path).to_dict(orient="split")["data"]
+        self.data = pl.read_csv(caption_path).rows()
         self.transform = transform
         self.text_transform = text_transform
 

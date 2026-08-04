@@ -1,8 +1,9 @@
 import torch
 from torch import nn
+
 from torchlake.common.models import FlattenFeature, TopKMaxPool1d
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from .network import Block
 
@@ -17,7 +18,7 @@ class VDCNN(ModelBase):
         topk: int = 8,
         depth_multipier: int = 1,
         enable_shortcut: bool = True,
-        context: NlpContext = NlpContext(max_seq_len=1024),
+        context: NLPContext | None = None,
     ):
         """Very deep convolution neural network in paper [1606.01781v2]
 
@@ -28,8 +29,11 @@ class VDCNN(ModelBase):
             topk (int, optional): top k of max pooling. Defaults to 8.
             depth_multipier (int, optional): depth multiplier, 1 means 9 layers, 2 means 17 layers, and so on. Defaults to 1.
             enable_shortcut (bool, optional): enable shortcut. Defaults to True.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext(max_seq_len=1024).
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext(max_seq_len=1024)
+
         self.embed_dim = embed_dim
         self.max_seq_len = context.max_seq_len
         self.topk = topk

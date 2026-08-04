@@ -1,9 +1,11 @@
+from operator import itemgetter
+
 import torch
 from torch import nn
 from torch.nn.functional import binary_cross_entropy_with_logits
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.tree import HuffmanNode, build_huffman_tree
-from operator import itemgetter
 
 
 class NegativeSampling(nn.Module):
@@ -14,7 +16,7 @@ class NegativeSampling(nn.Module):
         vocab_size: int,
         negative_ratio: int = 5,
         power: float = 0.75,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """negative sampling loss
 
@@ -24,8 +26,11 @@ class NegativeSampling(nn.Module):
             vocab_size (int): vocabulary size
             negative_ratio (int, optional): negative sample size compare to positive sample size. Defaults to 5.
             power (float, optional): power parameter. Defaults to 0.75.
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext()
+
         super().__init__()
         self.context = context
         self.negative_ratio = negative_ratio
@@ -123,7 +128,7 @@ class HierarchicalSoftmax(nn.Module):
         word_counts: torch.Tensor,
         embed_dim: int,
         vocab_size: int,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """hierarchical softmax loss
 
@@ -131,8 +136,11 @@ class HierarchicalSoftmax(nn.Module):
             word_counts (torch.Tensor): word counts
             embed_dim (int): embedding dimension
             vocab_size (int): vocabulary size
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
+        if context is None:
+            context = NLPContext()
+
         super().__init__()
         self.vocab_size = vocab_size
         self.context = context

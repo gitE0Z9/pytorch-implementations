@@ -2,7 +2,7 @@ from typing import Literal
 
 import torch
 from torch import nn
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from ...constants.enum import LossType, NgramCombinationMethod, Word2VecModelType
 from .network import SubwordEmbedding
@@ -19,7 +19,7 @@ class SubwordLM(nn.Module):
         loss_type: LossType = LossType.CROSS_ENTROPY,
         ngram_reduction: Literal["sum", "mean"] = "mean",
         combination: NgramCombinationMethod = NgramCombinationMethod.WORD_AND_NGRAM,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """Subword language model in paper [1607.04606] and extension in paper [1712.09405v1]
 
@@ -31,9 +31,12 @@ class SubwordLM(nn.Module):
             loss_type (LossType, optional): loss type, cross entropy, negative sampling, hierarchical softmax. Defaults to LossType.CROSS_ENTROPY.
             ngram_reduction (Literal["sum", "mean"], optional): redution mode of ngrams. Defaults to "mean".
             combination (NgramCombinationMethod, optional): combination method of word vector and ngrams vectors. Defaults to NgramCombinationMethod.WORD_AND_NGRAM.
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
-        super(SubwordLM, self).__init__()
+        if context is None:
+            context = NLPContext()
+
+        super().__init__()
         self.model_type = model_type
 
         self.embed: SubwordEmbedding = SubwordEmbedding(

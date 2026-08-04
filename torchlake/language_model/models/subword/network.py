@@ -3,7 +3,7 @@ from typing import Literal
 import torch
 from torch import nn
 from torch_scatter import scatter_add, scatter_mean
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from ...constants.enum import NgramCombinationMethod
 
@@ -16,7 +16,7 @@ class SubwordEmbedding(nn.Module):
         embed_dim: int,
         ngram_reduction: Literal["sum", "mean"] = "mean",
         combination: NgramCombinationMethod = NgramCombinationMethod.WORD_AND_NGRAM,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """ngram embedding
 
@@ -25,9 +25,12 @@ class SubwordEmbedding(nn.Module):
             embed_dim (int): embedding dimension
             ngram_reduction (Literal["sum", "mean"], optional): redution mode of ngrams. Defaults to "mean".
             combination (NgramCombinationMethod, optional): combination method of word vector and ngrams vectors. Defaults to NgramCombinationMethod.WORD_AND_NGRAM.
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
-        super(SubwordEmbedding, self).__init__()
+        if context is None:
+            context = NLPContext()
+
+        super().__init__()
         self.embeddings = nn.Embedding(bucket_size, embed_dim)
         self.special_tokens_embedding = nn.Embedding(
             len(context.special_tokens),

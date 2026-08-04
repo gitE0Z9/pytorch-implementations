@@ -1,23 +1,22 @@
-from unittest import TestCase
-
 import torch
-from torch.testing import assert_close
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.schemas.nlp import NLPContext
 
 from ..models.charcnn import CharCNN
 
+BATCH_SIZE = 10
+VOCAB_SIZE = 70
+OUTPUT_SIZE = 10
+MAX_SEQ_LEN = 27 * 10 + 96
+CONTEXT = NLPContext(device="cpu", max_seq_len=MAX_SEQ_LEN)
 
-class TestModel(TestCase):
-    def test_output_shape(self):
+
+class TestModel:
+    def test_charcnn_forward_shape(self):
         """test output shape"""
-        max_seq_len = 27 * 10 + 96
-        model = CharCNN(
-            70,
-            10,
-            context=NlpContext(device="cpu", max_seq_len=max_seq_len),
-        )
+        model = CharCNN(VOCAB_SIZE, OUTPUT_SIZE, context=CONTEXT)
 
-        x = torch.randint(0, 70, (1, max_seq_len))
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, MAX_SEQ_LEN))
         output = model(x)
 
-        assert_close(output.shape, torch.Size((1, 10)))
+        assert output.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

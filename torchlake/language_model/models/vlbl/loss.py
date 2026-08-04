@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torch.nn.functional import binary_cross_entropy_with_logits
 
 
@@ -11,7 +11,7 @@ class NCE(nn.Module):
         word_freqs: torch.Tensor,
         negative_ratio: int = 5,
         power: float = 0.75,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """noise contrastive estimation
 
@@ -19,9 +19,12 @@ class NCE(nn.Module):
             word_freqs (torch.Tensor): word frequency
             negative_ratio (int, optional): negative sample size compare to positive sample size. Defaults to 5.
             power (float, optional): power parameter. Defaults to 0.75.
-            context (NlpContext, optional): context object. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
-        super(NCE, self).__init__()
+        if context is None:
+            context = NLPContext()
+
+        super().__init__()
         self.context = context
         self.negative_ratio = negative_ratio
         self.power = power

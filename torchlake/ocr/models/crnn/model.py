@@ -3,7 +3,7 @@ from torch import nn
 from torchvision.ops import Conv2dNormActivation
 
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 
 
@@ -13,7 +13,7 @@ class CRNN(ModelBase):
         input_channel: int,
         hidden_dim: int,
         output_size: int,
-        context: NlpContext | None = None,
+        context: NLPContext | None = None,
     ):
         """Convolution recurrent neural network, arxiv [1507.05717]
 
@@ -21,9 +21,10 @@ class CRNN(ModelBase):
             input_channel (int): input channel
             hidden_dim (int): rnn hidden dimension
             output_size (int): output size
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
         if context is None:
-            context = NlpContext(padding_idx=None)
+            context = NLPContext(padding_idx=None)
 
         self.hidden_dim = hidden_dim
         self.context = context

@@ -1,6 +1,6 @@
 import pytest
 import torch
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import get_input_sequence
 
 from ..models.base import RNNGenerator
@@ -12,7 +12,7 @@ VOCAB_SIZE = 10
 SEQ_LEN = 16
 EMBED_DIM = 16
 HIDDEN_DIM = 8
-CONTEXT = NlpContext(device="cpu", max_seq_len=SEQ_LEN)
+CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
 
 
 class TestCell:

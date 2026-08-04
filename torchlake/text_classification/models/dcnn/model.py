@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchlake.common.models import FlattenFeature, TopKMaxPool1d
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 from .network import Block, Folding, WideConv1d
 
@@ -17,7 +17,7 @@ class DCNN(ModelBase):
         kernels: tuple[int] = (7, 5),
         hidden_dims: tuple[int] = (6, 14),
         topk: int = 4,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """Dynamic convolution neural network in paper [1404.2188v1]
 
@@ -28,11 +28,14 @@ class DCNN(ModelBase):
             kernels (tuple[int], optional): kernel size of convolution layers. Defaults to (7, 5).
             hidden_dims (tuple[int], optional): hidden dim of convolution layers. Defaults to (6, 14).
             topk (int, optional): top k to retain for final max pool. Defaults to 4.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
         assert len(hidden_dims) == len(
             kernels
         ), "kernels and hidden_dims should have same lengths."
+
+        if context is None:
+            context = NLPContext()
 
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim

@@ -1,7 +1,7 @@
 import torch
 
 from torchlake.common.models.model_base import ModelBase
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
 
 from .network import LinearCRF
@@ -15,7 +15,7 @@ class BiLSTMCRF(ModelBase):
         hidden_dim: int,
         output_size: int = 1,
         num_layers: int = 1,
-        context: NlpContext | None = None,
+        context: NLPContext | None = None,
     ) -> None:
         """BiLSTM-CRF [1508.01991]
 
@@ -25,10 +25,10 @@ class BiLSTMCRF(ModelBase):
             hidden_dim (int): dimension of hidden layer
             output_size (int, optional): output size. Defaults to 1.
             num_layers (int, optional): number of lstm layers. Defaults to 1.
-            context (NlpContext, optional): nlp context. Defaults to None.
+            context (NlpContext, optional): NLP context. Defaults to None.
         """
         if context is None:
-            context = NlpContext()
+            context = NLPContext()
 
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim

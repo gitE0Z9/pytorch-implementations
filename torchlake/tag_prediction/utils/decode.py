@@ -1,12 +1,12 @@
 import torch
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 
 def viterbi_decode(
     x: torch.Tensor,
     transition: torch.Tensor,
     mask: torch.Tensor | None = None,
-    context: NlpContext = NlpContext(),
+    context: NLPContext | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """forward backward algorithm
 
@@ -17,11 +17,14 @@ def viterbi_decode(
         x (torch.Tensor): predicted probability, shape is (batch_size, sequence_length, output_size)
         transition (torch.Tensor): transition matrix, shape is (output_size, output_size)
         mask (torch.Tensor | None, optional): mask for padding index, shape is (batch_size, sequence_length). Defaults to None.
-        context (NlpContext, optional): nlp context. Defaults to NlpContext().
+        context (NLPContext, optional): NLP context. Defaults to None.
 
     Returns:
         tuple[torch.Tensor, torch.Tensor]: score of path, path
     """
+    if context is None:
+        context = NLPContext()
+
     batch_size, seq_len, num_class = x.shape
     x = x.log_softmax(-1)
 

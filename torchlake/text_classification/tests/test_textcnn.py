@@ -1,17 +1,19 @@
-from unittest import TestCase
-
 import torch
-from torch.testing import assert_close
 
 from ..models.textcnn import TextCNN
 
+BATCH_SIZE = 4
+VOCAB_SIZE = 26
+EMBED_DIM = 8
+OUTPUT_SIZE = 10
+MAX_SEQ_LEN = 256
 
-class TestModel(TestCase):
-    def test_output_shape(self):
-        """test output shape"""
-        model = TextCNN(26, 8, output_size=10)
 
-        x = torch.randint(0, 26, (1, 5))
+class TestModel:
+    def test_textcnn_forward_shape(self):
+        model = TextCNN(VOCAB_SIZE, EMBED_DIM, output_size=OUTPUT_SIZE)
+
+        x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, MAX_SEQ_LEN))
         output = model(x)
 
-        assert_close(output.shape, torch.Size((1, 10)))
+        assert output.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

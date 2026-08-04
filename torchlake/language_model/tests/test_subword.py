@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import nn
 
-from ...common.schemas.nlp import NlpContext
+from ...common.schemas.nlp import NLPContext
 from ..constants.enum import LossType, NgramCombinationMethod, Word2VecModelType
 from ..models.subword.model import SubwordLM
 from ..models.subword.network import SubwordEmbedding
@@ -14,11 +14,11 @@ EMBED_DIM = 300
 NEIGHBOR_SIZE = 4
 VOCAB_SIZE = 100
 SUBSEQ_LEN = 256
-CONTEXT = NlpContext(max_seq_len=SUBSEQ_LEN, device="cpu")
+CONTEXT = NLPContext(max_seq_len=SUBSEQ_LEN, device="cpu")
 WORD_COUNTS = torch.randint(0, 5, (VOCAB_SIZE,))
 
 
-class TestSubwordEmbedding:
+class TestNetwork:
     @pytest.mark.parametrize(
         "combination",
         [
@@ -26,7 +26,7 @@ class TestSubwordEmbedding:
             NgramCombinationMethod.WORD_AND_NGRAM,
         ],
     )
-    def test_forward_shape(self, combination: int):
+    def test_subword_embedding_forward_shape(self, combination: int):
         ngram = [
             torch.randint(0, VOCAB_SIZE, (SUBSEQ_LEN * 2,)) for _ in range(BATCH_SIZE)
         ]
@@ -45,7 +45,7 @@ class TestSubwordEmbedding:
         assert y.shape == torch.Size((BATCH_SIZE, SUBSEQ_LEN, EMBED_DIM))
 
 
-class TestSubWordLM:
+class TestModel:
     def setUp(self):
         # gram
         self.gram_ngram = [
@@ -69,7 +69,7 @@ class TestSubWordLM:
             torch.ones_like(w) * 2 for w in self.context_word.view(-1, SUBSEQ_LEN)
         ]
 
-    def test_cb_ce_shape(self):
+    def test_ce_subword_lm_cbow_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -99,7 +99,7 @@ class TestSubWordLM:
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, VOCAB_SIZE))
         assert not torch.isnan(loss)
 
-    def test_sg_ce_shape(self):
+    def testce_subword_lm_sg_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -131,7 +131,7 @@ class TestSubWordLM:
         )
         assert not torch.isnan(loss)
 
-    def test_cb_ns_shape(self):
+    def test_ns_subword_lm_cbow_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -163,7 +163,7 @@ class TestSubWordLM:
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, EMBED_DIM))
         assert not torch.isnan(loss)
 
-    def test_sg_ns_shape(self):
+    def test_ns_subword_lm_sg_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -197,7 +197,7 @@ class TestSubWordLM:
         )
         assert not torch.isnan(loss)
 
-    def test_cb_hs_shape(self):
+    def test_hs_subword_lm_cbow_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -224,7 +224,7 @@ class TestSubWordLM:
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, EMBED_DIM))
         assert not torch.isnan(loss)
 
-    def test_sg_hs_shape(self):
+    def test_hs_subword_lm_sg_shape(self):
         self.setUp()
 
         model = SubwordLM(

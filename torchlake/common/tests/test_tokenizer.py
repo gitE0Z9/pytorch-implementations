@@ -1,6 +1,6 @@
 import unittest
 
-from torchlake.common.text.data.utils import get_tokenizer
+from torchtext.data.utils import get_tokenizer
 
 from ..helpers.tokenizer import CharNgramTokenizer
 from ..helpers.vocab import CharNgramVocab

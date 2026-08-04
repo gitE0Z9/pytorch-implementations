@@ -1,5 +1,6 @@
 import torch
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.tree import HuffmanNode
 
 from ..constants.enum import LossType, Word2VecModelType
@@ -13,13 +14,13 @@ EMBED_SIZE = 8
 NEIGHBOR_SIZE = CONTEXT_SIZE - 1
 SUBSEQ_LEN = 256 - NEIGHBOR_SIZE
 NEGATIVE_RATIO = 5
-CONTEXT = NlpContext(device="cpu")
+CONTEXT = NLPContext(device="cpu")
 TOP_WORD_COUNT = 10
 WORD_FREQS = torch.rand((VOCAB_SIZE))
 WORD_COUNTS = torch.randint(0, TOP_WORD_COUNT, (VOCAB_SIZE,))
 
 
-class TestWord2Vec:
+class TestModel:
     def test_cbow_forward_shape(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = Word2Vec(
@@ -54,7 +55,7 @@ class TestWord2Vec:
         assert y.shape == torch.Size((BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
 
-class TestNegativeSampling:
+class TestLoss:
     def test_ns_get_distribution_shape(self):
         criterion = NegativeSampling(
             WORD_FREQS,
@@ -108,7 +109,7 @@ class TestNegativeSampling:
 
         assert not torch.isnan(criterion.fc.grad).any()
 
-    def test_cbow_ns_forward(self):
+    def test_ns_cbow_forward(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         model = Word2Vec(
@@ -130,7 +131,7 @@ class TestNegativeSampling:
 
         assert not torch.isnan(loss)
 
-    def test_sg_ns_forward(self):
+    def test_ns_sg_forward(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = Word2Vec(
@@ -152,8 +153,6 @@ class TestNegativeSampling:
 
         assert not torch.isnan(loss)
 
-
-class TestHierarchicalSoftmax:
     def test_hs_build_tree(self):
         criterion = HierarchicalSoftmax(
             WORD_COUNTS,
@@ -214,7 +213,7 @@ class TestHierarchicalSoftmax:
 
         assert not torch.isnan(criterion.fc.grad).any()
 
-    def test_cbow_hs_forward(self):
+    def test_hs_cbow_forward(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         model = Word2Vec(
@@ -236,7 +235,7 @@ class TestHierarchicalSoftmax:
 
         assert not torch.isnan(loss)
 
-    def test_sg_hs_forward(self):
+    def test_hs_sg_forward(self):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = Word2Vec(

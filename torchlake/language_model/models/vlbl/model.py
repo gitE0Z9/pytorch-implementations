@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from torchlake.common.schemas.nlp import NlpContext
+from torchlake.common.schemas.nlp import NLPContext
 
 
 class VLBL(nn.Module):
@@ -11,7 +11,7 @@ class VLBL(nn.Module):
         vocab_size: int,
         embed_dim: int,
         neighbor_size: int,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """vector log bilinear model in paper [Learning word embeddings efficiently with noise-contrastive estimation]
 
@@ -19,9 +19,12 @@ class VLBL(nn.Module):
             vocab_size (int): size of vocabulary
             embed_dim (int): dimension of embedding vector
             neighbor_size (int): how many tokens around the gram, i.e. context size - 1. Defaults to 1.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
-        super(VLBL, self).__init__()
+        if context is None:
+            context = NLPContext()
+
+        super().__init__()
         self.word_embed = nn.Embedding(
             vocab_size,
             embed_dim,
@@ -64,7 +67,7 @@ class IVLBL(nn.Module):
         vocab_size: int,
         embed_dim: int,
         neighbor_size: int,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
     ):
         """inverse vector log bilinear model in paper [Learning word embeddings efficiently with noise-contrastive estimation]
 
@@ -72,7 +75,7 @@ class IVLBL(nn.Module):
             vocab_size (int): size of vocabulary
             embed_dim (int): dimension of embedding vector
             neighbor_size (int): how many tokens around the gram, i.e. context size - 1. Defaults to 1.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
         """
         super(IVLBL, self).__init__()
         self.word_embed = nn.Embedding(

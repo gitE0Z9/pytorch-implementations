@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from torch.nn.utils.rnn import PackedSequence
-from torchlake.common.schemas.nlp import NlpContext
+
+from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import pack_sequence, unpack_sequence
 
 
@@ -13,7 +14,7 @@ class SequenceModelFullFeatureExtractor(nn.Module):
         hidden_dim: int,
         num_layers: int = 1,
         bidirectional: bool = False,
-        context: NlpContext = NlpContext(),
+        context: NLPContext | None = None,
         model_class: nn.Module | None = None,
     ):
         """Full timestep and full layers feature extractor for sequence model
@@ -24,11 +25,14 @@ class SequenceModelFullFeatureExtractor(nn.Module):
             hidden_dim (int): dimension of hidden layer
             num_layers (int, optional): number of layers. Defaults to 1.
             bidirectional (bool, optional): is bidirectional layer. Defaults to False.
-            context (NlpContext, optional): nlp context. Defaults to NlpContext().
+            context (NLPContext, optional): NLP context. Defaults to None.
             model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
         """
         super(SequenceModelFullFeatureExtractor, self).__init__()
         assert issubclass(model_class, nn.Module), "model class is not a nn.module"
+
+        if context is None:
+            context = NLPContext()
 
         self.factor = 2 if bidirectional else 1
         self.context = context
