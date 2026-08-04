@@ -9,9 +9,8 @@ import polars as pl
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from torchlake.common.constants import VOC_CLASS_NAMES
-
 from ...utils.image import load_image
+from .constants import VOC_CLASS_NAMES
 from .types import YEARS
 
 
