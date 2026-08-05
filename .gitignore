@@ -4,8 +4,6 @@
 *.drawio
 *.pth
 artifacts
-# models
-data
 .data
 reference
 build
