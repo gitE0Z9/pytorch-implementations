@@ -3644,6 +3644,7 @@ dependencies = [
     { name = "opencv-python" },
     { name = "polars" },
     { name = "pydantic" },
+    { name = "seaborn" },
     { name = "tensorboardx" },
     { name = "torchmetrics" },
     { name = "torchtext" },
@@ -3674,8 +3675,8 @@ notebook = [
     { name = "ipykernel" },
     { name = "ipython", version = "9.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-9-torchlake-cpu' and extra == 'extra-9-torchlake-cu126')" },
     { name = "ipython", version = "9.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-9-torchlake-cpu' and extra == 'extra-9-torchlake-cu126')" },
+    { name = "pandas" },
     { name = "scikit-learn" },
-    { name = "seaborn" },
     { name = "torchinfo" },
 ]
 ocr = [
@@ -3710,10 +3711,11 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "opencv-contrib-python", specifier = ">=4.11.0.86" },
     { name = "opencv-python", specifier = ">=4.11.0.86" },
+    { name = "pandas", marker = "extra == 'notebook'", specifier = ">=3.0.1" },
     { name = "polars", specifier = ">=1.31.0" },
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "scikit-learn", marker = "extra == 'notebook'", specifier = ">=1.6.1" },
-    { name = "seaborn", marker = "extra == 'notebook'", specifier = ">=0.13.2" },
+    { name = "seaborn", specifier = ">=0.13.2" },
     { name = "tensorboardx", specifier = ">=2.6.4" },
     { name = "tokenizers", marker = "extra == 'text'", specifier = ">=0.21.1" },
     { name = "torch", marker = "extra == 'cpu'", specifier = "==2.8.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "torchlake", extra = "cpu" } },
@@ -3721,7 +3723,7 @@ requires-dist = [
     { name = "torch-geometric", marker = "extra == 'graph'", specifier = ">=2.7.0" },
     { name = "torchinfo", marker = "extra == 'notebook'", specifier = ">=1.8.0" },
     { name = "torchmetrics", specifier = ">=1.7.1" },
-    { name = "torchtext", path = "torchtext/dist/torchtext-0.0.3-cp311-cp311-win_amd64.whl" },
+    { name = "torchtext", path = "torchtext/dist/torchtext-0.0.4-cp311-cp311-win_amd64.whl" },
     { name = "torchvision", marker = "extra == 'cpu'", specifier = ">=0.21.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "torchlake", extra = "cpu" } },
     { name = "torchvision", marker = "extra == 'cu126'", specifier = ">=0.21.0", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "torchlake", extra = "cu126" } },
     { name = "tqdm", specifier = ">=4.67.1" },
@@ -3760,10 +3762,10 @@ wheels = [
 
 [[package]]
 name = "torchtext"
-version = "0.0.3"
-source = { path = "torchtext/dist/torchtext-0.0.3-cp311-cp311-win_amd64.whl" }
+version = "0.0.4"
+source = { path = "torchtext/dist/torchtext-0.0.4-cp311-cp311-win_amd64.whl" }
 wheels = [
-    { filename = "torchtext-0.0.3-cp311-cp311-win_amd64.whl", hash = "sha256:ed9c6cfc8a7f6f4c6ee748c36c9898dcd2945cd9f3a1bf7a74624c197b3fd2be" },
+    { filename = "torchtext-0.0.4-cp311-cp311-win_amd64.whl", hash = "sha256:8c2ef990820b805bf5e535827d8bbdf7a37a252ed7a9715617760c54cb1fd19d" },
 ]
 
 [[package]]

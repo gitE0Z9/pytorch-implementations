@@ -17,6 +17,7 @@ dependencies = [
   "tqdm>=4.67.1",
   "torchmetrics>=1.7.1",
   "torchtext",
+  "seaborn>=0.13.2",
 ]
 
 
@@ -40,8 +41,8 @@ notebook = [
   "datasets>=5.0.1",
   "ipykernel>=6.29.5",
   "ipython>=9.10.0",
+  "pandas>=3.0.1",
   "scikit-learn>=1.6.1",
-  "seaborn>=0.13.2",
   "torchinfo>=1.8.0",
 ]
 ocr = ["levenshtein>=0.27.1", "trdg>=0.1.1"]
@@ -82,7 +83,7 @@ torchvision = [
 # ]
 torch-tensorrt = [{ index = "torch-tensorrt-cu126" }]
 tensorrt = { path = "F:/TensorRT-10.7.0.23/python/tensorrt-10.7.0-cp311-none-win_amd64.whl" }
-torchtext = { path = "torchtext/dist/torchtext-0.0.3-cp311-cp311-win_amd64.whl" }
+torchtext = { path = "torchtext/dist/torchtext-0.0.4-cp311-cp311-win_amd64.whl" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
