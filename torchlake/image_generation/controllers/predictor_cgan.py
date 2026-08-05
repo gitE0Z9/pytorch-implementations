@@ -13,4 +13,4 @@ class CGANPredictor:
         with torch.no_grad():
             z = next(noise_generator).to(self.device)
             z = torch.cat((z, cond), 1)
-            return (model(z) + 1) / 2
+            return model(z)

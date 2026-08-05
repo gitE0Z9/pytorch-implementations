@@ -88,6 +88,9 @@ class GANTrainer:
         *args,
         **kwargs,
     ):
+        generator.train()
+        discriminator.train()
+
         # amp
         torch.set_autocast_enabled(scaler is not None)
         print(f"Enable AMP: {torch.is_autocast_enabled()}")
@@ -99,16 +102,19 @@ class GANTrainer:
                 recorder.calc_dataset_size(data)
 
         for e in range(recorder.current_epoch, recorder.total_epoch):
-            for batch_idx, batch in enumerate(tqdm(data)):
-                batch_size = recorder.calc_batch_size(batch)
-                noise = noise_generator(batch_size, self.device)
+            optimizer_d.zero_grad()
+            optimizer_g.zero_grad()
+            recorder.reset_running_loss()
 
-                optimizer_d.zero_grad()
-                optimizer_g.zero_grad()
-                discriminator.train()
-                generator.train()
+            for batch_idx, row in enumerate(tqdm(data)):
+                row_size = recorder.calc_batch_size(row)
+                if not recorder.is_static_dataset:
+                    recorder.increment_data_size(row_size)
+
+                noise = noise_generator(row_size, self.device)
+
                 d_loss = self.train_discriminator(
-                    batch,
+                    row,
                     next(noise),
                     generator,
                     discriminator,
@@ -118,13 +124,12 @@ class GANTrainer:
                 d_loss.backward()
                 optimizer_d.step()
 
+                optimizer_d.zero_grad()
+                optimizer_g.zero_grad()
+
                 if (batch_idx + 1) % self.discriminator_cycle == 0:
-                    optimizer_d.zero_grad()
-                    optimizer_g.zero_grad()
-                    generator.train()
-                    discriminator.train()
                     g_loss = self.train_generator(
-                        batch,
+                        row,
                         next(noise),
                         generator,
                         discriminator,
@@ -133,6 +138,9 @@ class GANTrainer:
                     assert not torch.isnan(g_loss), "Loss is singular"
                     g_loss.backward()
                     optimizer_g.step()
+
+                    optimizer_d.zero_grad()
+                    optimizer_g.zero_grad()
 
                     recorder.increment_running_loss(
                         *(loss.item() / recorder.data_size for loss in (d_loss, g_loss))

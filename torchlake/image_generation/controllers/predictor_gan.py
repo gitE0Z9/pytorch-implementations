@@ -12,4 +12,4 @@ class GANPredictor:
         model.eval()
         with torch.no_grad():
             z = next(noise_generator).to(self.device)
-            return (model(z) + 1) / 2
+            return model(z)
