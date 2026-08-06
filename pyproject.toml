@@ -26,15 +26,15 @@ cpu = [
   "torch==2.8.0",
   "torchvision>=0.21.0",
   # "tensorrt",
-  # "torch-scatter==2.8.0",
-  # "torch-sparse==2.8.0",
+  "torch-scatter==2.1.2",
+  "torch-sparse==0.6.18",
 ]
 cu126 = [
   "torch==2.8.0",
   "torchvision>=0.21.0",
   # "tensorrt",
-  # "torch-scatter==2.8.0",
-  # "torch-sparse==2.8.0",
+  "torch-scatter==2.1.2",
+  "torch-sparse==0.6.18",
 ]
 notebook = [
   "av>=14.4.0",
@@ -61,7 +61,6 @@ dev = [
 ]
 
 [tool.uv]
-no-build-isolation-package = ["torch-scatter"]
 conflicts = [[{ extra = "cpu" }, { extra = "cu126" }]]
 
 [tool.uv.sources]
@@ -73,14 +72,14 @@ torchvision = [
   { index = "pytorch-cpu", extra = "cpu" },
   { index = "pytorch-cu126", extra = "cu126" },
 ]
-# torch-scatter = [
-#   { index = "torch-scatter", extra = "cpu" },
-#   { index = "torch-scatter-cu126", extra = "cu126" },
-# ]
-# torch-sparse = [
-#   { index = "torch-sparse", extra = "cpu" },
-#   { index = "torch-sparse-cu126", extra = "cu126" },
-# ]
+torch-scatter = [
+  { index = "torch-scatter", extra = "cpu" },
+  { index = "torch-scatter-cu126", extra = "cu126" },
+]
+torch-sparse = [
+  { index = "torch-sparse", extra = "cpu" },
+  { index = "torch-sparse-cu126", extra = "cu126" },
+]
 torch-tensorrt = [{ index = "torch-tensorrt-cu126" }]
 tensorrt = { path = "F:/TensorRT-10.7.0.23/python/tensorrt-10.7.0-cp311-none-win_amd64.whl" }
 torchtext = { path = "torchtext/dist/torchtext-0.0.4-cp311-cp311-win_amd64.whl" }
@@ -98,21 +97,25 @@ explicit = true
 [[tool.uv.index]]
 name = "torch-scatter"
 url = "https://data.pyg.org/whl/torch-2.8.0+cpu.html"
+format = "flat"
 explicit = true
 
 [[tool.uv.index]]
 name = "torch-sparse"
 url = "https://data.pyg.org/whl/torch-2.8.0+cpu.html"
+format = "flat"
 explicit = true
 
 [[tool.uv.index]]
 name = "torch-scatter-cu126"
 url = "https://data.pyg.org/whl/torch-2.8.0+cu126.html"
+format = "flat"
 explicit = true
 
 [[tool.uv.index]]
 name = "torch-sparse-cu126"
 url = "https://data.pyg.org/whl/torch-2.8.0+cu126.html"
+format = "flat"
 explicit = true
 
 
