@@ -1,0 +1,8 @@
+[project]
+name = "torchtext"
+version = "0.0.4"
+
+
+dependencies = [
+    "setuptools"
+]
