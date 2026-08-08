@@ -25,6 +25,7 @@ class VLBL(nn.Module):
             context = NLPContext()
 
         super().__init__()
+        self.context = context
         self.word_embed = nn.Embedding(
             vocab_size,
             embed_dim,
@@ -35,9 +36,12 @@ class VLBL(nn.Module):
             embed_dim,
             padding_idx=context.padding_idx,
         )
-        # context_position_weights can also be average
-        # here we use conv to implement so no need to manager parameter
-        self.position_weights = nn.Conv2d(neighbor_size, 1, 1)
+
+        # Learning word embeddings efficiently with noise-contrastive estimation (page 3)
+        # context_position_weights can also be average, like a topic model
+
+        # here we use conv to implement, so no need to manage parameter
+        self.position_weights = nn.Conv2d(neighbor_size, 1, 1, bias=False)
 
         self.bias = nn.Parameter(torch.zeros((vocab_size,)))
 
@@ -45,8 +49,8 @@ class VLBL(nn.Module):
         """vLBL forward
 
         Args:
-            gram (torch.Tensor): center word
-            context (torch.Tensor): surrounding words
+            context (torch.Tensor): surrounding words, shape is (batch_size, neighbor_size, #subsequence)
+            gram (torch.Tensor): center word, shape is (batch_size, 1, #subsequence)
 
         Returns:
             torch.Tensor: similarity from context to gram
@@ -54,10 +58,9 @@ class VLBL(nn.Module):
         # b, 1, s, h / b, c-1, s, h
         w_e, c_e = self.word_embed(gram), self.context_embed(context)
         # (b, 1, s, h x b, 1, s, h) + b, 1, s => b, 1, s
-        return (
-            torch.einsum("bxsh,bxsh->bxs", w_e, self.position_weights(c_e))
-            + self.bias[gram]
-        )
+        return torch.einsum(
+            "bxsh,bxsh->bxs", w_e, self.position_weights(c_e)
+        ) + self.bias[gram].masked_fill_(gram == self.context.padding_idx, 0)
 
 
 class IVLBL(nn.Module):
@@ -77,7 +80,11 @@ class IVLBL(nn.Module):
             neighbor_size (int): how many tokens around the gram, i.e. context size - 1. Defaults to 1.
             context (NLPContext, optional): NLP context. Defaults to None.
         """
-        super(IVLBL, self).__init__()
+        if context is None:
+            context = NLPContext()
+
+        super().__init__()
+        self.context = context
         self.word_embed = nn.Embedding(
             vocab_size,
             embed_dim,
@@ -88,7 +95,10 @@ class IVLBL(nn.Module):
             embed_dim,
             padding_idx=context.padding_idx,
         )
-        self.position_weights = nn.Parameter(torch.zeros((neighbor_size,)))
+        # Learning word embeddings efficiently with noise-contrastive estimation (page 3)
+        # context_position_weights can also be average, like a topic model
+
+        self.position_weights = nn.Parameter(torch.ones((neighbor_size,)))
 
         self.bias = nn.Parameter(torch.zeros((vocab_size,)))
 
@@ -96,8 +106,8 @@ class IVLBL(nn.Module):
         """ivLBL forward
 
         Args:
-            gram (torch.Tensor): center word
-            context (torch.Tensor): surrounding words
+            gram (torch.Tensor): center word, shape is (batch_size, 1, #subsequence)
+            context (torch.Tensor): surrounding words, shape is (batch_size, neighbor_size, #subsequence)
 
         Returns:
             torch.Tensor: similarity from gram to context
@@ -107,4 +117,6 @@ class IVLBL(nn.Module):
         # b, 1, s, h * 1, c-1, 1, 1 => b, c-1, s,h
         w_e = w_e * self.position_weights.view(1, -1, 1, 1)
         # (b, c-1, s, h x b, c-1, s, h) + b, c-1, s => b, c-1, s
-        return torch.einsum("bxsh,bxsh->bxs", w_e, c_e) + self.bias[context]
+        return torch.einsum("bxsh,bxsh->bxs", w_e, c_e) + self.bias[
+            context
+        ].masked_fill_(context == self.context.padding_idx, 0)

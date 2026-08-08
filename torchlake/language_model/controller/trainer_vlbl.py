@@ -21,7 +21,7 @@ class IVLBLTrainer(TrainerBase):
 
         # XXX: hacky
         # batch, 1, subseq
-        return model.forward(gram, context), model
+        return model(gram, context), model
 
     def _calc_loss(
         self,
@@ -34,7 +34,7 @@ class IVLBLTrainer(TrainerBase):
         context = context.to(self.device)
 
         y_hat, model = output
-        return criterion.forward(model, gram, context, y_hat)
+        return criterion(model, gram, context, y_hat)
 
 
 class VLBLTrainer(TrainerBase):
@@ -51,7 +51,7 @@ class VLBLTrainer(TrainerBase):
 
         # XXX: hacky
         # batch, 1, subseq, embed
-        return model.forward(context, gram), model
+        return model(context, gram), model
 
     def _calc_loss(
         self,
@@ -64,4 +64,4 @@ class VLBLTrainer(TrainerBase):
         context = context.to(self.device)
 
         y_hat, model = output
-        return criterion.forward(model, context, gram, y_hat)
+        return criterion(model, context, gram, y_hat)

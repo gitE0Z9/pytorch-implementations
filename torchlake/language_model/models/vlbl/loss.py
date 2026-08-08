@@ -57,8 +57,6 @@ class NCE(nn.Module):
         n: int = target.numel()
         y = self.distribution.repeat(n, 1)
         # remove positive vocab
-        # TODO: skipgram use target view as well
-        # cbow could benefit from view but not skipgram
         y[torch.arange(n), target.reshape(-1)] = 0
 
         return (
