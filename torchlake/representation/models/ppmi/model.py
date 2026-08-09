@@ -29,7 +29,7 @@ class PPMI(nn.Module):
 
         norminator = corpus_total * pair_count
         denominator = vocab_counts[indices[0]] * torch.tensor(
-            itemgetter(*indices[1])(context_counts),
+            itemgetter(*indices[1].tolist())(context_counts),
             device=device,
         )
         ppmi = torch.log2(norminator / denominator)

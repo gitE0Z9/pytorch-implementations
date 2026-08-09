@@ -16,7 +16,7 @@ class CooccurrenceCounter(CooccurrenceCounter):
             neighbor_size (int): neighbor size
             padding_idx (int | None, optional): index of padding token. Defaults to None.
         """
-        super().__init__(vocab_size)
+        super().__init__(vocab_size, padding_idx)
         self.neighbor_size = neighbor_size
         self._offset = vocab_size * neighbor_size
         # counter key is gram * _offset + context
@@ -28,24 +28,31 @@ class CooccurrenceCounter(CooccurrenceCounter):
             gram (torch.Tensor): a center word, in shape of (batch*subseq_len, 1)
             context (torch.Tensor): context surround a center word, in shape of (batch*subseq_len, neighbor_size)
         """
-        neighbor_size = context.size(1)
+        n, neighbor_size = context.shape
 
         gram = gram.repeat_interleave(neighbor_size, 1).view(-1)
-        # position encoding
-        context = (
-            context
-            + torch.arange(neighbor_size, device=context.device).view(1, neighbor_size)
-            * self.vocab_size
-        ).view(-1)
+        context = context.view(-1)
+
+        position_encoding = (
+            torch.arange(neighbor_size, device=context.device)
+            .mul_(self.vocab_size)
+            .unsqueeze_(0)
+            .repeat(n, 1)
+            .view(-1)
+        )
 
         if self.padding_idx is not None:
             not_pad = torch.logical_and(
                 gram != self.padding_idx,
                 context != self.padding_idx,
             )
-            gram, context = gram[not_pad], context[not_pad]
+            gram, context, position_encoding = (
+                gram[not_pad],
+                context[not_pad],
+                position_encoding[not_pad],
+            )
 
-        self.counts.update((gram * self._offset + context).tolist())
+        self.counts.update((gram * self._offset + context + position_encoding).tolist())
 
     def get_tensor(self) -> torch.Tensor:
         """get word-context count tensor
