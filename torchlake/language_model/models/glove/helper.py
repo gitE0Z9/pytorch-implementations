@@ -6,17 +6,29 @@ import torch
 
 class CoOccurrenceCounter:
 
-    def __init__(self, vocab_size: int, padding_idx: int | None = None):
+    def __init__(
+        self,
+        vocab_size: int,
+        padding_idx: int | None = None,
+        enable_distance_weighting: bool = False,
+    ):
         """word-context co-occurrence counter
 
         Args:
             vocab_size (int): size of vocabulary
             padding_idx (int | None, optional): index of padding token. Defaults to None.
+            enable_distance_weighting (bool, optional): enable distance weighting on page 7. Defaults to False.
         """
-        super(CoOccurrenceCounter, self).__init__()
+
         self.vocab_size = vocab_size
         self.padding_idx = padding_idx
-        self.counts: Counter[tuple[int, int]] = Counter()
+        self.enable_distance_weighting = enable_distance_weighting
+
+        # key is gram * vocab_size + context
+        if self.enable_distance_weighting:
+            self.counts = defaultdict(float)
+        else:
+            self.counts = Counter()
 
     def update_counts(self, gram: torch.Tensor, context: torch.Tensor):
         """update counts of (word, context)
@@ -25,15 +37,38 @@ class CoOccurrenceCounter:
             gram (torch.Tensor): a center word, in shape of (batch*subseq_len, 1)
             context (torch.Tensor): context surround a center word, in shape of (batch*subseq_len, neighbor_size)
         """
+        n, neighbor_size = context.shape
+        side_length = neighbor_size // 2
+        gram = gram.repeat_interleave(neighbor_size, 1).view(-1)
+        context = context.view(-1)
+
+        if self.enable_distance_weighting:
+            weights = 1 / torch.arange(1, side_length + 1)
+            # neighbor_size => batch*subseq_len, neighbor_size => batch*subseq_len*neighbor_size
+            weights = torch.cat((weights.flip(0), weights)).repeat(n, 1).view(-1)
+
         if self.padding_idx is not None:
-            filter_idx = (gram != self.padding_idx)[:, 0]
-            gram = gram[filter_idx]
-            context = context[filter_idx]
+            not_pad = torch.logical_and(
+                gram != self.padding_idx,
+                context != self.padding_idx,
+            )
+            gram, context = gram[not_pad], context[not_pad]
+            if self.enable_distance_weighting:
+                weights = weights[not_pad]
 
-        gram = gram.repeat_interleave(context.size(1), 1).view(-1).tolist()
-        context = context.view(-1).tolist()
+        if self.enable_distance_weighting:
+            key, inverse = torch.unique(
+                gram * self.vocab_size + context,
+                return_inverse=True,
+            )
+            counts = torch.zeros(key.size(0), dtype=weights.dtype).scatter_add_(
+                0, inverse, weights
+            )
 
-        self.counts.update(zip(gram, context))
+            for i, c in zip(key.tolist(), counts.tolist()):
+                self.counts[i] += c
+        else:
+            self.counts.update((gram * self.vocab_size + context).tolist())
 
     def get_context_counts(self) -> dict[int, int]:
         """get context-as-key counts dict, count represent how many times a word occurred in context
@@ -43,8 +78,8 @@ class CoOccurrenceCounter:
         """
         output = Counter()
 
-        for (_, c), count in self.counts.items():
-            output.update({c: count})
+        for i, count in self.counts.items():
+            output.update({i % self.vocab_size: count})
 
         return output
 
@@ -70,7 +105,8 @@ class CoOccurrenceCounter:
         if key_by not in ["gram", "context"]:
             return output
 
-        for (gram, context), count in self.counts.items():
+        for i, count in self.counts.items():
+            gram, context = i // self.vocab_size, i % self.vocab_size
             if key_by == "gram":
                 output[gram][context] = count
             elif key_by == "context":
@@ -86,14 +122,14 @@ class CoOccurrenceCounter:
         """
         row_indices, col_indices, values = [], [], []
 
-        for (w, c), count in self.counts.items():
-            row_indices.append(w)
-            col_indices.append(c)
+        for i, count in self.counts.items():
+            row_indices.append(i // self.vocab_size)
+            col_indices.append(i % self.vocab_size)
             values.append(count)
 
         return torch.sparse_coo_tensor(
             [row_indices, col_indices],
             values,
-            dtype=torch.long,
+            dtype=torch.float32 if self.enable_distance_weighting else torch.long,
             size=(self.vocab_size, self.vocab_size),
         )

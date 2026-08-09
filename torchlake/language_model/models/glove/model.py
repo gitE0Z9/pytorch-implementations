@@ -23,6 +23,7 @@ class GloVe(nn.Module):
             context = NLPContext()
 
         super().__init__()
+        self.context = context
         self.word_embed = nn.Embedding(
             vocab_size,
             embed_dim,
@@ -51,6 +52,8 @@ class GloVe(nn.Module):
         # b*seq, neighbor_size + b*seq, 1 + b*seq, neighbor_size => b*seq, neighbor_size
         return (
             torch.einsum("sxh,syh->sy", w_e, c_e)
-            + self.word_bias[gram]
-            + self.context_bias[context]
+            + self.word_bias[gram].masked_fill_(gram == self.context.padding_idx, 0)
+            + self.context_bias[context].masked_fill_(
+                context == self.context.padding_idx, 0
+            )
         )

@@ -21,7 +21,6 @@ WORD_FREQS = torch.rand((VOCAB_SIZE))
 
 class TestHelper:
     def setUp(self) -> None:
-        self.vocab_size = 6
         self.gram = torch.LongTensor(
             [
                 [1],
@@ -32,62 +31,175 @@ class TestHelper:
 
         self.context = torch.LongTensor(
             [
-                [2, 3, 4],
-                [2, 3, 4],
-                [3, 4, 5],
+                [2, 3, 4, 3],
+                [2, 3, 4, 1],
+                [3, 4, 5, 1],
             ]
         )
 
-        self.counter = CoOccurrenceCounter(self.vocab_size)
-        self.counter.update_counts(self.gram, self.context)
-
-    def test_cooccurrence_counter_update_counts(self):
+    @pytest.mark.parametrize(
+        "enable_distance_weighting,expected",
+        (
+            (
+                True,
+                {
+                    1 * VOCAB_SIZE + 1: 0.5,
+                    1 * VOCAB_SIZE + 2: 0.5 + 0.5,
+                    1 * VOCAB_SIZE + 3: 1 + 0.5 + 1,
+                    1 * VOCAB_SIZE + 4: 1 + 1,
+                    2 * VOCAB_SIZE + 1: 0.5,
+                    2 * VOCAB_SIZE + 3: 0.5,
+                    2 * VOCAB_SIZE + 4: 1,
+                    2 * VOCAB_SIZE + 5: 1,
+                },
+            ),
+            (
+                False,
+                {
+                    1 * VOCAB_SIZE + 1: 1,
+                    1 * VOCAB_SIZE + 2: 2,
+                    1 * VOCAB_SIZE + 3: 3,
+                    1 * VOCAB_SIZE + 4: 2,
+                    2 * VOCAB_SIZE + 1: 1,
+                    2 * VOCAB_SIZE + 3: 1,
+                    2 * VOCAB_SIZE + 4: 1,
+                    2 * VOCAB_SIZE + 5: 1,
+                },
+            ),
+        ),
+    )
+    def test_cooccurrence_counter_update_counts(
+        self,
+        enable_distance_weighting: bool,
+        expected: dict[int, int | float],
+    ):
         self.setUp()
 
-        assert self.counter.counts == {
-            (1, 2): 2,
-            (1, 3): 2,
-            (1, 4): 2,
-            (2, 3): 1,
-            (2, 4): 1,
-            (2, 5): 1,
-        }
+        counter = CoOccurrenceCounter(
+            VOCAB_SIZE,
+            enable_distance_weighting=enable_distance_weighting,
+        )
+        counter.update_counts(self.gram, self.context)
 
-    def test_get_context_counts(self):
-        self.setUp()
-
-        assert self.counter.get_context_counts() == {
-            2: 2,
-            3: 3,
-            4: 3,
-            5: 1,
-        }
+        assert counter.counts == expected
 
     @pytest.mark.parametrize(
-        "name,key_by,expected",
+        "enable_distance_weighting,expected",
+        (
+            (
+                True,
+                {
+                    1: 1,
+                    2: 1,
+                    3: 3,
+                    4: 3,
+                    5: 1,
+                },
+            ),
+            (
+                False,
+                {
+                    1: 2,
+                    2: 2,
+                    3: 4,
+                    4: 3,
+                    5: 1,
+                },
+            ),
+        ),
+    )
+    def test_get_context_counts(
+        self,
+        enable_distance_weighting: bool,
+        expected: dict[int, int | float],
+    ):
+        self.setUp()
+
+        counter = CoOccurrenceCounter(
+            VOCAB_SIZE,
+            enable_distance_weighting=enable_distance_weighting,
+        )
+        counter.update_counts(self.gram, self.context)
+
+        assert counter.get_context_counts() == expected
+
+    @pytest.mark.parametrize(
+        "name,key_by,enable_distance_weighting,expected",
         [
             (
                 "key_by_none",
                 None,
+                True,
                 {
-                    (1, 2): 2,
-                    (1, 3): 2,
-                    (1, 4): 2,
-                    (2, 3): 1,
-                    (2, 4): 1,
-                    (2, 5): 1,
+                    1 * VOCAB_SIZE + 1: 0.5,
+                    1 * VOCAB_SIZE + 2: 1,
+                    1 * VOCAB_SIZE + 3: 2.5,
+                    1 * VOCAB_SIZE + 4: 2,
+                    2 * VOCAB_SIZE + 1: 0.5,
+                    2 * VOCAB_SIZE + 3: 0.5,
+                    2 * VOCAB_SIZE + 4: 1,
+                    2 * VOCAB_SIZE + 5: 1,
                 },
             ),
             (
                 "key_by_gram",
                 "gram",
+                True,
                 {
                     1: {
-                        2: 2,
-                        3: 2,
+                        1: 0.5,
+                        2: 1,
+                        3: 2.5,
                         4: 2,
                     },
                     2: {
+                        1: 0.5,
+                        3: 0.5,
+                        4: 1,
+                        5: 1,
+                    },
+                },
+            ),
+            (
+                "key_by_context",
+                "context",
+                True,
+                {
+                    1: {1: 0.5, 2: 0.5},
+                    2: {1: 1},
+                    3: {1: 2.5, 2: 0.5},
+                    4: {1: 2, 2: 1},
+                    5: {2: 1},
+                },
+            ),
+            (
+                "key_by_none",
+                None,
+                False,
+                {
+                    1 * VOCAB_SIZE + 1: 1,
+                    1 * VOCAB_SIZE + 2: 2,
+                    1 * VOCAB_SIZE + 3: 3,
+                    1 * VOCAB_SIZE + 4: 2,
+                    2 * VOCAB_SIZE + 1: 1,
+                    2 * VOCAB_SIZE + 3: 1,
+                    2 * VOCAB_SIZE + 4: 1,
+                    2 * VOCAB_SIZE + 5: 1,
+                },
+            ),
+            (
+                "key_by_gram",
+                "gram",
+                False,
+                {
+                    1: {
+                        1: 1,
+                        2: 2,
+                        3: 3,
+                        4: 2,
+                    },
+                    2: {
+                        1: 1,
                         3: 1,
                         4: 1,
                         5: 1,
@@ -97,9 +209,11 @@ class TestHelper:
             (
                 "key_by_context",
                 "context",
+                False,
                 {
+                    1: {1: 1, 2: 1},
                     2: {1: 2},
-                    3: {1: 2, 2: 1},
+                    3: {1: 3, 2: 1},
                     4: {1: 2, 2: 1},
                     5: {2: 1},
                 },
@@ -110,23 +224,54 @@ class TestHelper:
         self,
         name: str,
         key_by: str | None,
+        enable_distance_weighting: bool,
         expected: dict[tuple[int, int], int],
     ):
         self.setUp()
 
-        assert self.counter.get_pair_counts(key_by=key_by) == expected
+        counter = CoOccurrenceCounter(
+            VOCAB_SIZE,
+            enable_distance_weighting=enable_distance_weighting,
+        )
+        counter.update_counts(self.gram, self.context)
 
-    def test_get_tensor(self):
+        assert counter.get_pair_counts(key_by=key_by) == expected
+
+    @pytest.mark.parametrize(
+        "enable_distance_weighting,expected",
+        (
+            (
+                True,
+                torch.sparse_coo_tensor(
+                    [[1, 1, 1, 1, 2, 2, 2, 2], [1, 2, 3, 4, 1, 3, 4, 5]],
+                    [0.5, 1, 2.5, 2, 0.5, 0.5, 1, 1],
+                    size=(VOCAB_SIZE, VOCAB_SIZE),
+                ),
+            ),
+            (
+                False,
+                torch.sparse_coo_tensor(
+                    [[1, 1, 1, 1, 2, 2, 2, 2], [1, 2, 3, 4, 1, 3, 4, 5]],
+                    [1, 2, 3, 2, 1, 1, 1, 1],
+                    size=(VOCAB_SIZE, VOCAB_SIZE),
+                ),
+            ),
+        ),
+    )
+    def test_get_tensor(
+        self,
+        enable_distance_weighting: bool,
+        expected: dict[int, int | float],
+    ):
         self.setUp()
 
-        assert_close(
-            self.counter.get_tensor(),
-            torch.sparse_coo_tensor(
-                [[1, 1, 1, 2, 2, 2], [2, 3, 4, 3, 4, 5]],
-                [2, 2, 2, 1, 1, 1],
-                size=(self.vocab_size, self.vocab_size),
-            ),
+        counter = CoOccurrenceCounter(
+            VOCAB_SIZE,
+            enable_distance_weighting=enable_distance_weighting,
         )
+        counter.update_counts(self.gram, self.context)
+
+        assert_close(counter.get_tensor().coalesce(), expected)
 
 
 class TestModel:
@@ -148,27 +293,37 @@ class TestLoss:
         self.context = torch.randint(
             0, VOCAB_SIZE, (BATCH_SIZE * SUBSEQ_LEN, NEIGHBOR_SIZE)
         )
-        counter = CoOccurrenceCounter(VOCAB_SIZE)
-        counter.update_counts(self.gram, self.context)
-        self.counts = counter.get_tensor()
 
     def test_glove_loss_build_weighted_prob_shape(self):
         self.setUp()
 
-        criterion = GloVeLoss(self.counts, maximum_count=1)
+        counter = CoOccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
+        criterion = GloVeLoss(counter.get_tensor(), maximum_count=5)
 
         assert criterion.weighted_prob.shape == torch.Size((VOCAB_SIZE, VOCAB_SIZE))
 
     def test_glove_loss_index_sparse_tensor_shape(self):
         self.setUp()
 
-        criterion = GloVeLoss(self.counts, maximum_count=1)
+        counter = CoOccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
+
+        criterion = GloVeLoss(counter.get_tensor(), maximum_count=5)
 
         pred = self.pred.view(-1)
-        gram = self.gram.repeat_interleave(self.context.size(1), 1).view(-1)
-        context = self.context.view(-1)
+        index = torch.stack(
+            (
+                self.gram.repeat_interleave(self.context.size(1), 1).view(-1),
+                self.context.view(-1),
+            ),
+            1,
+        )
 
-        y = criterion.index_sparse_tensor(self.counts, gram, context, pred.shape)
+        y = criterion._index_sparse_tensor(
+            criterion.co_occurrence_counts, index, pred.shape
+        )
 
         assert y.shape == torch.Size((BATCH_SIZE * SUBSEQ_LEN * NEIGHBOR_SIZE,))
 
@@ -176,9 +331,11 @@ class TestLoss:
         self.setUp()
 
         model = GloVe(VOCAB_SIZE, EMBED_SIZE, CONTEXT)
-        criterion = GloVeLoss(self.counts, maximum_count=1)
+        counter = CoOccurrenceCounter(VOCAB_SIZE)
+        counter.update_counts(self.gram, self.context)
 
-        pred = model.forward(self.gram, self.context)
-        y: torch.Tensor = criterion.forward(self.gram, self.context, pred)
+        criterion = GloVeLoss(counter.get_tensor(), maximum_count=5)
+        pred = model(self.gram, self.context)
+        y: torch.Tensor = criterion(self.gram, self.context, pred)
 
         assert not y.isnan()
