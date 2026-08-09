@@ -34,8 +34,10 @@ class GloVeLoss(nn.Module):
             torch.Tensor: the weighted probability, a sparse coo tensor, shape is (vocab_size, vocab_size)
         """
         v = self.co_occurrence_counts.values()
-        values = torch.ones_like(v, dtype=torch.float).masked_fill_(
-            v < maximum_count, (v / maximum_count) ** alpha
+        values = torch.where(
+            v < maximum_count,
+            (v / maximum_count) ** alpha,
+            torch.ones_like(v, dtype=torch.float),
         )
 
         return torch.sparse_coo_tensor(
