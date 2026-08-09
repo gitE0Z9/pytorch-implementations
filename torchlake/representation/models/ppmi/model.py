@@ -1,8 +1,7 @@
-from functools import cached_property
+from operator import itemgetter
 
 import torch
 from torch import nn
-from tqdm import tqdm
 
 from .helper import CooccurrenceCounter
 
@@ -13,45 +12,36 @@ class PPMI(nn.Module):
         super().__init__()
         self.vocab_size = vocab_size
         self.context_size = context_size
-        self.row_indices = []
-        self.col_indices = []
-        self.values = []
+        self.embedding = None
 
     @property
     def embed_dim(self) -> int:
         return (self.context_size - 1) * self.vocab_size
 
-    @cached_property
-    def embedding(self) -> torch.Tensor:
-        return nn.Parameter(
+    def fit(self, counter: CooccurrenceCounter, vocab_counts: torch.LongTensor):
+        device = vocab_counts.device
+
+        corpus_total = vocab_counts.sum()
+        context_counts = counter.get_context_counts()
+
+        count_source: torch.Tensor = counter.get_tensor().coalesce().to(device)
+        indices, pair_count = count_source.indices(), count_source.values()
+
+        norminator = corpus_total * pair_count
+        denominator = vocab_counts[indices[0]] * torch.tensor(
+            itemgetter(*indices[1])(context_counts),
+            device=device,
+        )
+        ppmi = torch.log2(norminator / denominator)
+
+        self.embedding = nn.Parameter(
             torch.sparse_coo_tensor(
-                [self.row_indices, self.col_indices],
-                self.values,
+                indices,
+                ppmi.clip(0, 1000),
                 (self.vocab_size, self.embed_dim),
             ).to_sparse_csr(),
             requires_grad=False,
         )
-
-    def fit(
-        self,
-        co_occurrence: CooccurrenceCounter,
-        vocab_counts: torch.LongTensor,
-        show_progress: bool = True,
-    ):
-        corpus_total = vocab_counts.sum()
-        context_counts = co_occurrence.get_context_counts()
-
-        count_source = co_occurrence.get_pair_counts().items()
-        if show_progress:
-            count_source = tqdm(count_source)
-        for (gram, context), pair_count in count_source:
-            self.row_indices.append(gram)
-            self.col_indices.append(context)
-
-            ppmi = torch.log2(
-                corpus_total * pair_count / context_counts[context] / vocab_counts[gram]
-            )
-            self.values.append(ppmi.clip(0).item())
 
     def transform(self, tokens: list[int]) -> torch.Tensor:
         if self.embedding is None:

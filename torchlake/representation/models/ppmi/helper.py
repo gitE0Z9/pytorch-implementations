@@ -1,22 +1,25 @@
-from collections import Counter, defaultdict
-from typing import Literal
+from collections import Counter
 
 import torch
 
+from torchlake.common.helpers.counter import CooccurrenceCounter
 
-class CooccurrenceCounter:
 
-    def __init__(self, vocab_size: int, padding_idx: int | None = None):
+class CooccurrenceCounter(CooccurrenceCounter):
+    def __init__(
+        self, vocab_size: int, neighbor_size: int, padding_idx: int | None = None
+    ):
         """word-context co-occurrence counter
 
         Args:
-            vocab_size (int): size of vocabulary
+            vocab_size (int): vocabulary size
+            neighbor_size (int): neighbor size
             padding_idx (int | None, optional): index of padding token. Defaults to None.
         """
-        super().__init__()
-        self.vocab_size = vocab_size
-        self.padding_idx = padding_idx
-        self.counts: Counter[tuple[int, int]] = Counter()
+        super().__init__(vocab_size)
+        self.neighbor_size = neighbor_size
+        self._offset = vocab_size * neighbor_size
+        # counter key is gram * _offset + context
 
     def update_counts(self, gram: torch.Tensor, context: torch.Tensor):
         """update counts of (word, context)
@@ -25,57 +28,41 @@ class CooccurrenceCounter:
             gram (torch.Tensor): a center word, in shape of (batch*subseq_len, 1)
             context (torch.Tensor): context surround a center word, in shape of (batch*subseq_len, neighbor_size)
         """
-        if self.padding_idx is not None:
-            filter_idx = (gram != self.padding_idx)[:, 0]
-            gram = gram[filter_idx]
-            context = context[filter_idx]
+        neighbor_size = context.size(1)
 
+        gram = gram.repeat_interleave(neighbor_size, 1).view(-1)
         # position encoding
-        context += torch.arange(0, context.size(1)).view(1, -1) * self.vocab_size
-        gram = gram.repeat_interleave(context.size(1), 1).view(-1).tolist()
-        context = context.view(-1).tolist()
+        context = (
+            context
+            + torch.arange(neighbor_size, device=context.device).view(1, neighbor_size)
+            * self.vocab_size
+        ).view(-1)
 
-        self.counts.update(zip(gram, context))
+        if self.padding_idx is not None:
+            not_pad = torch.logical_and(
+                gram != self.padding_idx,
+                context != self.padding_idx,
+            )
+            gram, context = gram[not_pad], context[not_pad]
 
-    def get_context_counts(self) -> dict[int, int]:
-        """get context-as-key counts dict, count represent how many times a word occurred in context
+        self.counts.update((gram * self._offset + context).tolist())
 
-        Returns:
-            dict[int, int]: context-as-key counts dict
-        """
-        output = Counter()
-
-        for (_, c), count in self.counts.items():
-            output.update({c: count})
-
-        return output
-
-    def get_pair_counts(
-        self,
-        key_by: Literal["gram", "context"] | None = None,
-    ) -> dict[tuple[int, int], int] | dict[int, dict[int, int]]:
-        """get multiple key counts dict, the hierarchy depends on `key_by`
-
-        Args:
-            key_by (Literal["gram", "context"] | None, optional): None returned flatten tuple level, `gram` returned gram->context levl, `context` returned context->gram levl. Defaults to None.
+    def get_tensor(self) -> torch.Tensor:
+        """get word-context count tensor
 
         Returns:
-            dict[tuple[int, int], int] | dict[int, dict[int, int]]: count dict with flatten tuple level key or multilevel key
+            torch.Tensor: word-context count tensor
         """
+        row_indices, col_indices, values = [], [], []
 
-        if key_by is None:
-            return self.counts
+        for i, count in self.counts.items():
+            row_indices.append(i // self._offset)
+            col_indices.append(i % self._offset)
+            values.append(count)
 
-        output = defaultdict(dict)
-
-        # early return to prevent iterate over counts
-        if key_by not in ["gram", "context"]:
-            return output
-
-        for (gram, context), count in self.counts.items():
-            if key_by == "gram":
-                output[gram][context] = count
-            elif key_by == "context":
-                output[context][gram] = count
-
-        return output
+        return torch.sparse_coo_tensor(
+            [row_indices, col_indices],
+            values,
+            dtype=torch.long,
+            size=(self.vocab_size, self._offset),
+        )

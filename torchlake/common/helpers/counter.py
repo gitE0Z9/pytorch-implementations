@@ -16,7 +16,9 @@ class CooccurrenceCounter:
         super().__init__()
         self.vocab_size = vocab_size
         self.padding_idx = padding_idx
-        self.counts: Counter[tuple[int, int]] = Counter()
+        self._offset = vocab_size
+        # key is gram * vocab_size + context
+        self.counts: Counter[int] = Counter()
 
     def update_counts(self, gram: torch.Tensor, context: torch.Tensor):
         """update counts of (word, context)
@@ -25,15 +27,17 @@ class CooccurrenceCounter:
             gram (torch.Tensor): a center word, in shape of (batch*subseq_len, 1)
             context (torch.Tensor): context surround a center word, in shape of (batch*subseq_len, neighbor_size)
         """
+        gram = gram.repeat_interleave(context.size(1), 1).view(-1)
+        context = context.view(-1)
+
         if self.padding_idx is not None:
-            filter_idx = (gram != self.padding_idx)[:, 0]
-            gram = gram[filter_idx]
-            context = context[filter_idx]
+            not_pad = torch.logical_and(
+                gram != self.padding_idx,
+                context != self.padding_idx,
+            )
+            gram, context = gram[not_pad], context[not_pad]
 
-        gram = gram.repeat_interleave(context.size(1), 1).view(-1).tolist()
-        context = context.view(-1).tolist()
-
-        self.counts.update(zip(gram, context))
+        self.counts.update((gram * self._offset + context).tolist())
 
     def get_context_counts(self) -> dict[int, int]:
         """get context-as-key counts dict, count represent how many times a word occurred in context
@@ -43,8 +47,8 @@ class CooccurrenceCounter:
         """
         output = Counter()
 
-        for (_, c), count in self.counts.items():
-            output.update({c: count})
+        for i, count in self.counts.items():
+            output.update({i % self._offset: count})
 
         return output
 
@@ -70,7 +74,8 @@ class CooccurrenceCounter:
         if key_by not in ["gram", "context"]:
             return output
 
-        for (gram, context), count in self.counts.items():
+        for i, count in self.counts.items():
+            gram, context = i // self._offset, i % self._offset
             if key_by == "gram":
                 output[gram][context] = count
             elif key_by == "context":
@@ -86,9 +91,9 @@ class CooccurrenceCounter:
         """
         row_indices, col_indices, values = [], [], []
 
-        for (w, c), count in self.counts.items():
-            row_indices.append(w)
-            col_indices.append(c)
+        for i, count in self.counts.items():
+            row_indices.append(i // self._offset)
+            col_indices.append(i % self._offset)
             values.append(count)
 
         return torch.sparse_coo_tensor(

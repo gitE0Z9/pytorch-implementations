@@ -1,10 +1,11 @@
 from collections import Counter, defaultdict
-from typing import Literal
 
 import torch
 
+from torchlake.common.helpers.counter import CooccurrenceCounter
 
-class CoOccurrenceCounter:
+
+class CoOccurrenceCounter(CooccurrenceCounter):
 
     def __init__(
         self,
@@ -19,10 +20,10 @@ class CoOccurrenceCounter:
             padding_idx (int | None, optional): index of padding token. Defaults to None.
             enable_distance_weighting (bool, optional): enable distance weighting on page 7. Defaults to False.
         """
-
         self.vocab_size = vocab_size
         self.padding_idx = padding_idx
         self.enable_distance_weighting = enable_distance_weighting
+        self._offset = vocab_size
 
         # key is gram * vocab_size + context
         if self.enable_distance_weighting:
@@ -58,7 +59,7 @@ class CoOccurrenceCounter:
 
         if self.enable_distance_weighting:
             key, inverse = torch.unique(
-                gram * self.vocab_size + context,
+                gram * self._offset + context,
                 return_inverse=True,
             )
             counts = torch.zeros(key.size(0), dtype=weights.dtype).scatter_add_(
@@ -68,51 +69,7 @@ class CoOccurrenceCounter:
             for i, c in zip(key.tolist(), counts.tolist()):
                 self.counts[i] += c
         else:
-            self.counts.update((gram * self.vocab_size + context).tolist())
-
-    def get_context_counts(self) -> dict[int, int]:
-        """get context-as-key counts dict, count represent how many times a word occurred in context
-
-        Returns:
-            dict[int, int]: context-as-key counts dict
-        """
-        output = Counter()
-
-        for i, count in self.counts.items():
-            output.update({i % self.vocab_size: count})
-
-        return output
-
-    def get_pair_counts(
-        self,
-        key_by: Literal["gram", "context"] | None = None,
-    ) -> dict[tuple[int, int], int] | dict[int, dict[int, int]]:
-        """get multiple key counts dict, the hierarchy depends on `key_by`
-
-        Args:
-            key_by (Literal["gram", "context"] | None, optional): None returned flatten tuple level, `gram` returned gram->context levl, `context` returned context->gram levl. Defaults to None.
-
-        Returns:
-            dict[tuple[int, int], int] | dict[int, dict[int, int]]: count dict with flatten tuple level key or multilevel key
-        """
-
-        if key_by is None:
-            return self.counts
-
-        output = defaultdict(dict)
-
-        # early return to prevent iterate over counts
-        if key_by not in ["gram", "context"]:
-            return output
-
-        for i, count in self.counts.items():
-            gram, context = i // self.vocab_size, i % self.vocab_size
-            if key_by == "gram":
-                output[gram][context] = count
-            elif key_by == "context":
-                output[context][gram] = count
-
-        return output
+            self.counts.update((gram * self._offset + context).tolist())
 
     def get_tensor(self) -> torch.Tensor:
         """get word-context count tensor
@@ -123,8 +80,8 @@ class CoOccurrenceCounter:
         row_indices, col_indices, values = [], [], []
 
         for i, count in self.counts.items():
-            row_indices.append(i // self.vocab_size)
-            col_indices.append(i % self.vocab_size)
+            row_indices.append(i // self._offset)
+            col_indices.append(i % self._offset)
             values.append(count)
 
         return torch.sparse_coo_tensor(
