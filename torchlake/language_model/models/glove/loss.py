@@ -35,7 +35,7 @@ class GloVeLoss(nn.Module):
         """
         v = self.co_occurrence_counts.values()
         values = torch.ones_like(v, dtype=torch.float).masked_fill_(
-            v < maximum_count, (1 / maximum_count) ** alpha
+            v < maximum_count, (v / maximum_count) ** alpha
         )
 
         return torch.sparse_coo_tensor(
