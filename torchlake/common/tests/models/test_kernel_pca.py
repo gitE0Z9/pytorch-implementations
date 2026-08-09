@@ -4,6 +4,11 @@ import pytest
 from ...models import KernelPCA
 from ...models.kernel_pca import KernelEnum
 
+BATCH_SIZE = 8
+VOCAB_SIZE = 100
+SEQ_LEN = 10
+LATENT_DIM = 2
+
 
 class TestKernelPCA:
     @pytest.mark.parametrize(
@@ -24,16 +29,16 @@ class TestKernelPCA:
         ],
     )
     def test_output_shape(self, name: str, kernel: str):
-        x = torch.randn(8, 10)
+        x = torch.randn(BATCH_SIZE, SEQ_LEN)
         kernel_params = {}
 
         if kernel == KernelEnum.HELLINGER:
-            x = torch.randint(0, 100, (8, 10)).float()
+            x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN)).float()
             kernel_params["is_normalized"] = False
 
-        model = KernelPCA(2, kernel, kernel_params)
+        model = KernelPCA(LATENT_DIM, kernel, kernel_params)
 
         model.fit(x)
 
-        assert model.eigenvalues.shape == torch.Size((2,))
-        assert model.eigenvectors.shape == torch.Size((8, 2))
+        assert model.eigenvalues.shape == torch.Size((LATENT_DIM,))
+        assert model.eigenvectors.shape == torch.Size((BATCH_SIZE, LATENT_DIM))

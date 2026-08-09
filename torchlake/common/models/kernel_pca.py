@@ -25,50 +25,84 @@ def rbf_kernel(x: torch.Tensor, gamma: float = 1.0) -> torch.Tensor:
 def hellinger_kernel(x: torch.Tensor, is_normalized: bool = True) -> torch.Tensor:
     if not is_normalized:
         x = F.normalize(x, 1, 1)
-    x = x.sqrt()
-    return torch.cdist(x, x, p=2) / sqrt(2)
+
+    return torch.cdist(x.sqrt(), x, p=2) / sqrt(2)
+
+
+def linear_kernel_transform(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    return x @ y
+
+
+def rbf_kernel_transform(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    gamma: float = 1.0,
+) -> torch.Tensor:
+    z = torch.cdist(x, y, p=2)
+    return torch.exp(-gamma * z**2)
+
+
+def hellinger_kernel_transform(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    is_normalized: bool = True,
+) -> torch.Tensor:
+    if not is_normalized:
+        x = F.normalize(x, 1, 1)
+
+    return torch.cdist(x.sqrt(), y, p=2) / sqrt(2)
 
 
 def center_kernel(K: torch.Tensor) -> torch.Tensor:
-    N = K.shape[0]
-    row_mean = K.mean(1, keepdim=True) / N
-    col_mean = K.mean(0, keepdim=True) / N
+    row_mean = K.mean(1, keepdim=True)
+    col_mean = K.mean(0, keepdim=True)
     total_mean = row_mean.mean()
     K_centered = K - row_mean - col_mean + total_mean
     return K_centered
+
+
+KernelFuncPair = tuple[
+    Callable[[torch.Tensor], torch.Tensor],  # fit
+    Callable[[torch.Tensor, torch.Tensor], torch.Tensor],  # transform
+]
 
 
 class KernelPCA(nn.Module):
     def __init__(
         self,
         n_components: int,
-        kernel: str | KernelEnum | Callable[[torch.Tensor], torch.Tensor],
+        kernel: str | KernelEnum | KernelFuncPair,
         kernel_params: dict = {},
     ):
-        super(KernelPCA, self).__init__()
+        super().__init__()
         self.n_components = n_components
-        self.kernel = (
-            kernel
-            if isinstance(kernel, Callable)
-            else self.kernel_mapping[KernelEnum(kernel)]
-        )
+
+        if isinstance(kernel, str) | isinstance(kernel, KernelEnum):
+            self.kernel, self.kernel_transform = self.kernel_mapping[KernelEnum(kernel)]
+        else:
+            assert (
+                len(kernel) == 2
+            ), "should provide the kernel function for fit and transform"
+            self.kernel, self.kernel_transform = kernel
+
         self.kernel_params = kernel_params
 
     @property
     def kernel_mapping(self):
         return {
-            KernelEnum.LINEAR: linear_kernel,
-            KernelEnum.RBF: rbf_kernel,
-            KernelEnum.HELLINGER: hellinger_kernel,
+            KernelEnum.LINEAR: (linear_kernel, linear_kernel_transform),
+            KernelEnum.RBF: (rbf_kernel, rbf_kernel_transform),
+            KernelEnum.HELLINGER: (hellinger_kernel, hellinger_kernel_transform),
         }
 
     def fit(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        self.x_fit = x
-
+        print("1. kernel computation")
         K = self.kernel(x, **self.kernel_params)
 
+        print("2. centering")
         K_centered = center_kernel(K)
 
+        print("3. svd")
         # eigvals, eigvecs = torch.linalg.eigh(K_centered)
         eigvecs, eigvals, _ = torch.linalg.svd(K_centered)
 
@@ -76,9 +110,10 @@ class KernelPCA(nn.Module):
 
         self.eigenvectors: torch.Tensor = eigvecs[:, : self.n_components]
         self.eigenvalues: torch.Tensor = eigvals[: self.n_components]
+        self.x_fit = x
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        K_new: torch.Tensor = self.kernel(x, self.x_fit, **self.kernel_params)
+        K_new: torch.Tensor = self.kernel_transform(x, self.x_fit, **self.kernel_params)
 
         K_new_centered = (
             K_new

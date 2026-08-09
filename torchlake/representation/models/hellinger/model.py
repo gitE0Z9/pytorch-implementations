@@ -4,10 +4,10 @@ import joblib
 import torch
 import torch.nn.functional as F
 from torch import nn
+
+from torchlake.common.helpers.counter import CooccurrenceCounter
 from torchlake.common.models import KernelPCA
 from torchlake.common.models.kernel_pca import KernelEnum
-
-from .helper import CooccurrenceCounter
 
 
 class HellingerPCA(nn.Module):
@@ -29,25 +29,12 @@ class HellingerPCA(nn.Module):
     def embedding(self) -> torch.Tensor:
         return self.model.eigenvectors
 
-    def fit(self, co_occurrence: CooccurrenceCounter, vocab_counts: torch.LongTensor):
-        # build co-occurrence matrix
-        count_source = co_occurrence.get_pair_counts().items()
-        row_indices = []
-        col_indices = []
-        values = []
-        for (gram, context), count in count_source:
-            row_indices.append(gram)
-            col_indices.append(context)
-            values.append(count)
-        counts = torch.sparse_coo_tensor(
-            [row_indices, col_indices],
-            values,
-            size=(self.vocab_size, self.vocab_size),
-        ).to(vocab_counts.device)
+    def fit(self, counter: CooccurrenceCounter, vocab_counts: torch.LongTensor):
+        counts = counter.get_tensor().coalesce().to(vocab_counts.device)
 
-        # select most significant context words
         most_significant_context = vocab_counts.topk(self.maximum_context_size).indices
         counts: torch.Tensor = counts.index_select(1, most_significant_context)
+        # vocab_size, maximum_context_size
         prob = counts.to_dense().float()
         self.model.fit(F.normalize(prob, 1, 1))
 
