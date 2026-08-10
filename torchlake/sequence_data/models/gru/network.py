@@ -33,7 +33,8 @@ class GRULayer(nn.Module):
 
     def forward(self, x: torch.Tensor, h: torch.Tensor | None = None) -> torch.Tensor:
         if h is None:
-            h = torch.zeros((1, 1, self.latent_dim))
+            batch_size = x.size(0) if self.batch_first else x.size(1)
+            h = torch.zeros((batch_size, self.latent_dim), device=x.device)
 
         # recurrent network is suitable on cpu not gpu for sequential operation
         # loop over in the shape of max_seq_len, batch, latent_dim
@@ -45,6 +46,7 @@ class GRULayer(nn.Module):
             h = self.cell(x_t, h)
             hidden_states.append(h)
 
+        # S x (B, h) => S, B, h
         hidden_states = torch.stack(hidden_states, 0)
         if self.batch_first:
             hidden_states = hidden_states.transpose(0, 1)

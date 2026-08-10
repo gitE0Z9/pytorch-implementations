@@ -43,10 +43,11 @@ class LSTMLayer(nn.Module):
         h: torch.Tensor | None = None,
         c: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        batch_size = x.size(0) if self.batch_first else x.size(1)
         if h is None:
-            h = torch.zeros((1, 1, self.latent_dim))
+            h = torch.zeros((batch_size, self.latent_dim), device=x.device)
         if c is None:
-            c = torch.zeros((1, 1, self.latent_dim))
+            c = torch.zeros((batch_size, self.latent_dim), device=x.device)
 
         # recurrent network is suitable on cpu not gpu for sequential operation
         # loop over in the shape of max_seq_len, batch, latent_dim
@@ -60,6 +61,7 @@ class LSTMLayer(nn.Module):
             hidden_states.append(h)
             cell_states.append(c)
 
+        # S x (B, h) => S, B, h
         hidden_states = torch.stack(hidden_states, 0)
         cell_states = torch.stack(cell_states, 0)
         if self.batch_first:

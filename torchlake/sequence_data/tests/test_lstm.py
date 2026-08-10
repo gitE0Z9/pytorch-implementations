@@ -15,8 +15,8 @@ HIDDEN_DIM = 8
 CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
 
 
-class TestCell:
-    def test_forward_shape(self):
+class TestNetwork:
+    def test_lstm_cell_forward_shape(self):
         x = torch.randn(BATCH_SIZE, EMBED_DIM)
         h = torch.randn(BATCH_SIZE, HIDDEN_DIM)
         c = torch.randn(BATCH_SIZE, HIDDEN_DIM)
@@ -28,12 +28,21 @@ class TestCell:
         assert h.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
         assert c.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
 
-
-class TestLayer:
-    def test_forward_shape(self):
+    @pytest.mark.parametrize(
+        "h,c",
+        (
+            (None, None),
+            (torch.randn(BATCH_SIZE, HIDDEN_DIM), None),
+            (None, torch.randn(BATCH_SIZE, HIDDEN_DIM)),
+            (torch.randn(BATCH_SIZE, HIDDEN_DIM), torch.randn(BATCH_SIZE, HIDDEN_DIM)),
+        ),
+    )
+    def test_lstm_layer_forward_shape(
+        self,
+        h: torch.Tensor | None,
+        c: torch.Tensor | None,
+    ):
         x = torch.randn(BATCH_SIZE, SEQ_LEN, EMBED_DIM)
-        h = torch.randn(BATCH_SIZE, HIDDEN_DIM)
-        c = torch.randn(BATCH_SIZE, HIDDEN_DIM)
 
         model = LSTMLayer(EMBED_DIM, HIDDEN_DIM)
 
@@ -43,7 +52,7 @@ class TestLayer:
         assert c.shape == torch.Size((BATCH_SIZE, SEQ_LEN, HIDDEN_DIM))
 
 
-class TestDiscriminator:
+class TestModel:
     @pytest.mark.parametrize(
         "name,label_size,target_shape,num_layers,bidirectional,output_sequence",
         [
@@ -121,7 +130,7 @@ class TestDiscriminator:
             ),
         ],
     )
-    def test_forward_shape(
+    def test_lstm_discriminator_forward_shape(
         self,
         name: str,
         label_size: int,
@@ -146,11 +155,9 @@ class TestDiscriminator:
 
         assert y.shape == target_shape
 
-
-class TestGenerator:
     @pytest.mark.parametrize("bidirectional", [True, False])
     @pytest.mark.parametrize("num_layers", [1, 2])
-    def test_forward_shape_during_train(
+    def test_lstm_generator_forward_shape_during_train(
         self,
         num_layers: int,
         bidirectional: bool,
@@ -179,7 +186,7 @@ class TestGenerator:
     @pytest.mark.parametrize("bidirectional", [True, False])
     @pytest.mark.parametrize("num_layers", [1, 2])
     @pytest.mark.parametrize("topk", [1, 3])
-    def test_forward_shape_during_predict(
+    def test_lstm_generator_forward_shape_during_predict(
         self,
         num_layers: int,
         bidirectional: bool,
