@@ -14,9 +14,9 @@ class AutoEncoder(ModelBase):
             nn.Sigmoid(),
         )
 
-    def build_head(self, input_channel: int, **kwargs):
+    def build_head(self, output_size: int, **kwargs):
         self.head = nn.Sequential(
-            nn.Linear(self.latent_dim, input_channel),
+            nn.Linear(self.latent_dim, output_size),
         )
 
     def forward(self, x: torch.Tensor, output_latent: bool = False) -> torch.Tensor:
