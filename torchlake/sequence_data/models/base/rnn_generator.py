@@ -205,13 +205,13 @@ class RNNGenerator(ModelBase):
 
         # context vector for attention
         c = None
-        # (B, 1, V), (D, B, h)
+        # (B, 1, O), (D, B, h)
         # attention
         if self.neck is not None:
             c, attention_weight = self.attend(ht, ot)
         # store attention score
         if output_attention:
-            attention_weights.append(attention_weight)
+            attention_weights.append(attention_weight.repeat(topk, 1))
         output, states = self.head(input_seq, ht, *states, context_vector=c)
         # D, topk*B, h
         states = tuple(state.repeat(1, topk, 1) for state in states)
@@ -227,31 +227,36 @@ class RNNGenerator(ModelBase):
         # B, topk
         probs: torch.Tensor = topk_values.squeeze_(1)
         # beam search forward
-        for t in range(1, max_seq_len, 1):
+        for _ in range(2, max_seq_len):
             # attention
             if self.neck is not None:
                 c, attention_weight = self.attend(ht, ot)
             # store attention score
             if output_attention:
+                # t x (topk*B, S)
                 attention_weights.append(attention_weight)
 
+            # topk*B, O
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
             output, states = self.head(
-                paths.flatten(0, -2)[:, -1].unsqueeze_(-1),
-                # paths.reshape(-1, paths.size(-1)),
+                paths[:, :, -1].reshape(-1, 1),
                 ht,
                 *states,
                 context_vector=c,
             )
             ht, states = states[0], states[1:]
 
-            # topk, B, V
-            # output: torch.Tensor = output.view(topk, batch_size, 1 + t, -1)[:, :, -1]
-            output: torch.Tensor = output.view(topk, batch_size, -1)
             # B, topk
             topk_values, topk_indices = (
-                output.permute(1, 0, 2).reshape(batch_size, -1).topk(topk, dim=-1)
+                # topk, B, O
+                output.view(topk, batch_size, -1)
+                # B, topk, O
+                .transpose(0, 1)
+                # B, topk*O
+                .reshape(batch_size, -1)
+                # B, topk
+                .topk(topk, dim=-1)
             )
             # B, topk
             parents = topk_indices // output_size
@@ -264,7 +269,7 @@ class RNNGenerator(ModelBase):
                 -1,
             )
             probs[
-                torch.arange(batch_size).unsqueeze_(-1).to(device),
+                torch.arange(batch_size, device=device)[:, None],
                 parents,
             ] += topk_values
 
@@ -276,10 +281,24 @@ class RNNGenerator(ModelBase):
                 break
 
         # B, S
-        outputs = paths[probs.argmax(-1), torch.arange(batch_size).to(device)]
+        outputs = paths[probs.argmax(-1), torch.arange(batch_size, device=device)]
 
         if output_attention:
-            # B, S, V # D, B, S, S'
-            return outputs, torch.stack(attention_weights, -1)
+            # B, topk, S, S'
+            attention_weights = (
+                # topk*B, S, S'
+                torch.stack(attention_weights, -1)
+                # topk, B, S, S'
+                .unflatten(0, (topk, batch_size))
+            )
+            # B, S, S'
+            attention_weights = attention_weights[
+                probs.argmax(-1),
+                torch.arange(batch_size, device=device),
+            ]
+
+            # B, S, # B, S, S'
+            return (outputs, attention_weights)
         else:
+            # B, S
             return outputs
