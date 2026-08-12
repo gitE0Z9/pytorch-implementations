@@ -54,7 +54,7 @@ class BiSeNet(ModelBase):
         self.neck = nn.ModuleList(
             # from high to low
             [
-                nn.Identity(),
+                # nn.Identity(),
                 nn.Sequential(
                     nn.Upsample(
                         scale_factor=2,
@@ -82,8 +82,11 @@ class BiSeNet(ModelBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features: list[torch.Tensor] = self.foot(x)
 
+        # global feature
         y = features.pop()[:, :, None, None]
-        for block, neck in zip(self.blocks["context_path"], self.neck):
+        z = self.blocks["context_path"][0](features.pop())
+        y = y + z
+        for block, neck in zip(self.blocks["context_path"][1:], self.neck):
             y = neck(y)
             z: torch.Tensor = block(features.pop())
             cropper = CenterCrop(z.shape[2:])
