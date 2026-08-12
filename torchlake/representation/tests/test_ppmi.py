@@ -14,7 +14,7 @@ LATENT_DIM = VOCAB_SIZE * NEIGHBOR_SIZE
 
 
 class TestModel:
-    def setup_ppmi(self) -> None:
+    def setUp(self) -> None:
         self.gram = torch.LongTensor(
             [
                 [1],
@@ -34,7 +34,7 @@ class TestModel:
         self.vocab_counts = torch.LongTensor([0, 2, 3, 0, 0, 0])
 
     def test_ppmi_get_embedding(self):
-        self.setup_ppmi()
+        self.setUp()
 
         counter = CooccurrenceCounter(VOCAB_SIZE, NEIGHBOR_SIZE)
         counter.update_counts(self.gram, self.context)
@@ -52,7 +52,7 @@ class TestModel:
         assert get_sparsity(embedding) == 1 - 4 / math.prod(embedding.shape)
 
     def test_ppmi_fit(self):
-        self.setup_ppmi()
+        self.setUp()
 
         counter = CooccurrenceCounter(VOCAB_SIZE, NEIGHBOR_SIZE)
         counter.update_counts(self.gram, self.context)
@@ -64,7 +64,7 @@ class TestModel:
         assert model.embedding.is_sparse_csr
 
     def test_ppmi_transform(self):
-        self.setup_ppmi()
+        self.setUp()
 
         counter = CooccurrenceCounter(VOCAB_SIZE, NEIGHBOR_SIZE)
         counter.update_counts(self.gram, self.context)
