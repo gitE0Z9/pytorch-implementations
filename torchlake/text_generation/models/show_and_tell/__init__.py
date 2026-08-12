@@ -1,5 +1,5 @@
-from .model import NeuralImageCation
+from .model import NeuralImageCaption
 
 __all__ = [
-    "NeuralImageCation",
+    "NeuralImageCaption",
 ]

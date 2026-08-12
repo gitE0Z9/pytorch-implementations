@@ -47,7 +47,7 @@ class DCNN(ModelBase):
 
     @property
     def feature_dim(self) -> int:
-        return self.topk * self.hidden_dims[-1] // 2
+        return self.topk * (self.hidden_dims[-1] // 2)
 
     def build_foot(self, input_channel: int):
         self.foot = nn.Embedding(

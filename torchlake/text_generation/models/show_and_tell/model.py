@@ -9,8 +9,7 @@ from torchlake.common.utils.sequence import get_input_sequence
 from torchlake.sequence_data.models.base import RNNGenerator
 
 
-class NeuralImageCation(ModelBase):
-
+class NeuralImageCaption(ModelBase):
     def __init__(
         self,
         backbone: ExtractorBase,
@@ -54,14 +53,8 @@ class NeuralImageCation(ModelBase):
 
     def train(self, mode=True):
         result = super().train(mode)
-        result.head.train()
-        result.forward = self.loss_forward
-        return result
-
-    def eval(self):
-        result = super().eval()
-        result.head.eval()
-        result.forward = self.predict
+        result.head.train(mode)
+        result.forward = self.loss_forward if mode else self.predict
         return result
 
     def encode(
