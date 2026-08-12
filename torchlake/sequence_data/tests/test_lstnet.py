@@ -14,7 +14,7 @@ KERNEL = 6
 
 
 class TestNetwork:
-    def test_forward_shape_skiprnn(self):
+    def test_skiprnn_forward_shape(self):
         c = torch.rand((BATCH_SIZE, HIDDEN_DIM, SEQ_LEN - KERNEL + 1))
         r = torch.rand((BATCH_SIZE, HIDDEN_DIM))
 
@@ -24,17 +24,17 @@ class TestNetwork:
 
         assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM + 5 * 24))
 
-    def test_forward_shape_temporal_attention(self):
+    def test_temporal_attention_forward_shape(self):
         c = torch.rand((BATCH_SIZE, HIDDEN_DIM, SEQ_LEN - KERNEL + 1))
         r = torch.rand((BATCH_SIZE, HIDDEN_DIM))
 
-        model = TemporalAttention()
+        model = TemporalAttention(HIDDEN_DIM, HIDDEN_DIM)
 
         y = model(c, r)
 
         assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
 
-    def test_forward_shape_highway(self):
+    def test_highway_forward_shape(self):
         x = torch.rand(BATCH_SIZE, 1, WINDOW_SIZE, OUTPUT_SIZE)
         z = torch.rand(BATCH_SIZE, OUTPUT_SIZE)
 

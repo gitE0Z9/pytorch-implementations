@@ -21,6 +21,21 @@ class LSTNet(ModelBase):
         dropout_prob: float = 0.2,
         activation: nn.Module | None = None,
     ):
+        """LSTNet [PDF](https://arxiv.org/abs/1703.07015)
+
+        Args:
+            hidden_dim_c (int, optional): hidden dimension of cnn. Defaults to 100.
+            hidden_dim_r (int, optional): hidden dimension of rnn. Defaults to 100.
+            hidden_dim_skip (int, optional): hidden dimension of skip rnn. Defaults to 5.
+            output_size (int, optional): output size. Defaults to 1.
+            kernel (int, optional): kernel size of cnn, represents short term memory. Defaults to 6.
+            window_size (int, optional): the length of the last end of the short term memory, at most (sequence length - kernel + 1). Defaults to 24*7.
+            highway_window_size (int, optional): the length of the last end of the input. Defaults to 24.
+            skip_window_size (int, optional): window size of skip rnn, represents middle term memory. Defaults to 24.
+            attention (bool, optional): enable temporal attention. Defaults to False.
+            dropout_prob (float, optional): dropout prob. Defaults to 0.5.
+            activation (nn.Module | None, optional): activation function. Defaults to None.
+        """
         self.hidden_dim_c = hidden_dim_c
         self.hidden_dim_r = hidden_dim_r
         self.hidden_dim_skip = hidden_dim_skip
@@ -35,12 +50,12 @@ class LSTNet(ModelBase):
 
     @property
     def feature_dim(self) -> int:
-        hidden_dim = self.hidden_dim_r
-
-        if self.skip_window_size > 0 and not self.attention:
-            return hidden_dim + self.skip_window_size * self.hidden_dim_skip
-
-        return hidden_dim
+        if self.attention:
+            return self.hidden_dim_c
+        elif self.skip_window_size > 0:
+            return self.hidden_dim_r + self.skip_window_size * self.hidden_dim_skip
+        else:
+            return self.hidden_dim_r
 
     def build_foot(self, input_channel, **kwargs):
         self.foot = nn.Sequential(
@@ -65,7 +80,7 @@ class LSTNet(ModelBase):
         self.neck = None
 
         if self.attention:
-            self.neck = TemporalAttention()
+            self.neck = TemporalAttention(self.hidden_dim_c, self.hidden_dim_r)
         elif self.skip_window_size > 0:
             self.neck = SkipRNN(
                 self.hidden_dim_c,
@@ -88,7 +103,7 @@ class LSTNet(ModelBase):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # shape of x: B, S, C => B, 1, S, C
-        x = x.unsqueeze_(1)
+        x = x.unsqueeze(1)
 
         # B, hc, S-k+1, 1
         c = self.foot(x)
