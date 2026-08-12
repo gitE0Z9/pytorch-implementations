@@ -1,33 +1,88 @@
-import torch
+from itertools import pairwise
+from typing import Sequence
+
 from torch import nn
 
-from .network import BottleneckBlock
+from torchlake.common.models.model_base import ModelBase
+from torchlake.common.models.residual import ResBlock
+
+from .network import BottleNeck
 
 
-class Tcn(nn.Module):
+class TCN(ModelBase):
     def __init__(
         self,
-        input_dim: int,
-        num_channels: int,
-        kernel_size: int = 5,
-        dropout: float = 0.2,
+        input_channel: int,
+        hidden_dim: int | Sequence[int],
+        output_size: int,
+        kernel: int | Sequence[int] = 2,
+        num_block: int = 1,
+        dropout_prob: float = 0.2,
     ):
-        super(Tcn, self).__init__()
+        if not isinstance(hidden_dim, Sequence):
+            hidden_dim = [hidden_dim] * num_block
+        if not isinstance(kernel, Sequence):
+            kernel = [kernel] * num_block
 
-        self.layers = nn.Sequential(
+        assert len(hidden_dim) == len(
+            kernel
+        ), "the number of hidden dims has to be the same as the number of kernels"
+
+        self.hidden_dims = hidden_dim
+        self.kernels = kernel
+        self.num_block = num_block
+        self.dropout_prob = dropout_prob
+        super().__init__(input_channel, output_size)
+
+        for _, module in self.named_modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.normal_(module.weight.data)
+                if module.bias is not None:
+                    nn.init.normal_(module.bias.data)
+
+    @property
+    def feature_dim(self) -> int:
+        return self.hidden_dims[-1]
+
+    def build_foot(self, input_channel, **kwargs):
+        self.foot = nn.Sequential(
+            ResBlock(
+                input_channel,
+                self.hidden_dims[0],
+                BottleNeck(
+                    input_channel,
+                    self.hidden_dims[0],
+                    self.kernels[0],
+                    padding=self.kernels[0] - 1,
+                    dropout=self.dropout_prob,
+                ),
+                dimension="1d",
+            )
+        )
+
+    def build_blocks(self, **kwargs):
+        self.blocks = nn.Sequential(
             *[
-                BottleneckBlock(
-                    input_dim if i == 0 else num_channels[i - 1],
-                    num_channels[i],
-                    kernel_size,
-                    stride=1,
-                    padding=(kernel_size - 1) * 2**i,
-                    dilation=2**i,
-                    dropout=dropout,
+                ResBlock(
+                    prev_dim,
+                    next_dim,
+                    block=BottleNeck(
+                        prev_dim,
+                        next_dim,
+                        self.kernels[i],
+                        padding=(self.kernels[i] - 1) * 2**i,
+                        dilation=2**i,
+                        dropout=self.dropout_prob,
+                    ),
+                    dimension="1d",
                 )
-                for i in range(len(num_channels))
+                for i, (prev_dim, next_dim) in enumerate(
+                    pairwise(self.hidden_dims), start=1
+                )
             ]
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layers(x)
+    def build_head(self, output_size: int, **kwargs):
+        self.head = nn.Sequential(
+            nn.Conv1d(self.feature_dim, output_size, 1),
+        )

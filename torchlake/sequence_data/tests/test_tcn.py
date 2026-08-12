@@ -1,11 +1,35 @@
 import torch
 
-from ..models.tcn.model import Tcn
+from ..models.tcn.model import TCN
+from ..models.tcn.network import BottleNeck, CausalConv1d
+
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+HIDDEN_DIM = 8
+SEQ_LEN = 1024
+OUTPUT_SIZE = 10
 
 
-def test_forward_shape_model():
-    x = torch.rand((2, 3, 1024))
-    model = Tcn(3, num_channels=[1, 32, 64, 128, 1])
-    y = model(x)
+class TestNetwork:
+    def test_causal_conv_1d_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, HIDDEN_DIM, SEQ_LEN))
+        model = CausalConv1d(HIDDEN_DIM, HIDDEN_DIM + 2, 2, padding=1)
+        y = model(x)
 
-    assert y.shape == torch.Size((2, 1, 1024))
+        assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM + 2, SEQ_LEN))
+
+    def test_bottleneck_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, HIDDEN_DIM, SEQ_LEN))
+        model = BottleNeck(HIDDEN_DIM, HIDDEN_DIM + 2, 2, padding=1)
+        y = model(x)
+
+        assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM + 2, SEQ_LEN))
+
+
+class TestModel:
+    def test_tcn_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, SEQ_LEN))
+        model = TCN(INPUT_CHANNEL, [32, 64, 128], OUTPUT_SIZE, num_block=3)
+        y = model(x)
+
+        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE, SEQ_LEN))
