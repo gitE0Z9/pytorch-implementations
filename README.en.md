@@ -170,7 +170,7 @@ package name: `sequence_data`
 | Bidirectional LSTM (BiLSTM)        | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-bilstm-92d8e01d488e)                                      | ``lstm``        |
 | Gated recurrent unit (GRU)         | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gru-8510d5bf3261)                                          | ``gru``         |
 | Temporal convolution network (TCN) | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-12-temporal-convolutional-network-799a243ffa2d) | ``tcn``         |
-| LSTNet                             | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-lstnet-4cd561f114a3d)                                     | ``lstnet``      |
+| LSTNet                             | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-lstnet-4cd561f114a3)                                      | ``lstnet``      |
 | Seq2Seq                            | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AD-sequence-to-sequence-327886dafa4)     | ``seq2seq``     |
 | Transformer                        | -                                                                                                                                                      | ``transformer`` |
 
@@ -270,68 +270,66 @@ package name: `reinforcement_learning`
 
 1. Clone the project
 
-    ```sh
-    git clone https://github.com/gitE0Z9/pytorch-implementations --depth 1
-    
-    cd pytorch-implementations
-    ```
+   ```sh
+   git clone https://github.com/gitE0Z9/pytorch-implementations --depth 1
 
+   cd pytorch-implementations
+   ```
 2. Install dependencies
 
-    - cpu
+   - cpu
 
-    ```sh
-    # main
-    uv sync --extra cpu
+   ```sh
+   # main
+   uv sync --extra cpu
 
-    # torch-scatter torch-sparse
-    uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
-    ```
+   # torch-scatter torch-sparse
+   uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+   ```
 
-    - cuda 12.6
+   - cuda 12.6
 
-    ```sh
-    # main
-    uv sync --extra cu126
+   ```sh
+   # main
+   uv sync --extra cu126
 
-    # torch-scatter torch-sparse
-    uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cu126.html
-    ```
+   # torch-scatter torch-sparse
+   uv pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.8.0+cu126.html
+   ```
 
-    - Extra dependencies
+   - Extra dependencies
 
-    1. `ocr`: OCR, for synthetic data generation
-    2. `text`: text domain, tokenizers and datasets
-    3. `notebook`: dependencies used in `notebooks`, e.g. ipykernel and UI packages
-    4. `graph`: graph datasets and visualization
-    5. `3d`: 3D，data processing and visualization
-    6. `dev`: development kits, pytest and its extensions
+   1. `ocr`: OCR, for synthetic data generation
+   2. `text`: text domain, tokenizers and datasets
+   3. `notebook`: dependencies used in `notebooks`, e.g. ipykernel and UI packages
+   4. `graph`: graph datasets and visualization
+   5. `3d`: 3D，data processing and visualization
+   6. `dev`: development kits, pytest and its extensions
 
-    example commands
+   example commands
 
-    ```sh
-    # OCR
-    uv sync --extra ocr --extra cu126
+   ```sh
+   # OCR
+   uv sync --extra ocr --extra cu126
 
-    # text
-    uv sync --extra text --extra cu126
+   # text
+   uv sync --extra text --extra cu126
 
-    # notebook
-    uv sync --extra notebook --extra cu126
+   # notebook
+   uv sync --extra notebook --extra cu126
 
-    # graph
-    uv sync --extra graph --extra cu126
+   # graph
+   uv sync --extra graph --extra cu126
 
-    # 3D
-    uv sync --extra 3d --extra cu126
+   # 3D
+   uv sync --extra 3d --extra cu126
 
-    # dev
-    uv sync --extra dev --extra cu126
-    ```
-
+   # dev
+   uv sync --extra dev --extra cu126
+   ```
 3. Install torchlake
 
-    `uv build && uv pip install .`
+   `uv build && uv pip install .`
 
 ### PIP
 
@@ -351,7 +349,7 @@ the same as the uv section
 
 In general, each domain will have a structure similar to the following:
 
-``` lang=sh
+```lang=sh
 ├───adapter
 ├───artifacts
 │   └───model_name
