@@ -24,9 +24,9 @@ class TCN(ModelBase):
         if not isinstance(kernel, Sequence):
             kernel = [kernel] * num_block
 
-        assert len(hidden_dim) == len(
-            kernel
-        ), "the number of hidden dims has to be the same as the number of kernels"
+        assert (
+            len(hidden_dim) == len(kernel) == num_block
+        ), f"hidden_dim, kernel, and num_block must all agree in length (got {len(hidden_dim)}, {len(kernel)}, {num_block})"
 
         self.hidden_dims = hidden_dim
         self.kernels = kernel
