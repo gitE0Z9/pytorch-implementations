@@ -2,6 +2,7 @@ from itertools import pairwise
 from typing import Sequence
 
 from torch import nn
+import torch
 
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.models.residual import ResBlock
@@ -18,6 +19,7 @@ class TCN(ModelBase):
         kernel: int | Sequence[int] = 2,
         num_block: int = 1,
         dropout_prob: float = 0.2,
+        output_sequence: bool = True,
     ):
         if not isinstance(hidden_dim, Sequence):
             hidden_dim = [hidden_dim] * num_block
@@ -32,6 +34,7 @@ class TCN(ModelBase):
         self.kernels = kernel
         self.num_block = num_block
         self.dropout_prob = dropout_prob
+        self.output_sequence = output_sequence
         super().__init__(input_channel, output_size)
 
         for _, module in self.named_modules():
@@ -86,3 +89,12 @@ class TCN(ModelBase):
         self.head = nn.Sequential(
             nn.Conv1d(self.feature_dim, output_size, 1),
         )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.foot(x)
+        y = self.blocks(y)
+
+        if not self.output_sequence:
+            y = y[:, -1]
+
+        return self.head(y)
