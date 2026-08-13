@@ -1,4 +1,5 @@
 import torch
+import pytest
 
 from torchlake.common.schemas.nlp import NLPContext
 
@@ -42,9 +43,10 @@ class TestLoss:
 
         assert criterion.distribution.shape == torch.Size((VOCAB_SIZE,))
 
-    def test_nce_sample_shape(self):
+    @pytest.mark.parametrize("replacement", (True, False))
+    def test_nce_sample_shape(self, replacement: bool):
         context = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
-        criterion = NCE(WORD_FREQS, context=CONTEXT)
+        criterion = NCE(WORD_FREQS, replacement=replacement, context=CONTEXT)
         y = criterion.sample(context)
 
         assert y.shape == torch.Size(
