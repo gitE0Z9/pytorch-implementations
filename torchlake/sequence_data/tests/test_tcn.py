@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from ..models.tcn.model import TCN
@@ -27,9 +28,22 @@ class TestNetwork:
 
 
 class TestModel:
-    def test_tcn_forward_shape(self):
+    @pytest.mark.parametrize(
+        "output_sequence,expected",
+        (
+            (True, (BATCH_SIZE, OUTPUT_SIZE, SEQ_LEN)),
+            (False, (BATCH_SIZE, OUTPUT_SIZE)),
+        ),
+    )
+    def test_tcn_forward_shape(self, output_sequence: bool, expected: tuple[int]):
         x = torch.rand((BATCH_SIZE, INPUT_CHANNEL, SEQ_LEN))
-        model = TCN(INPUT_CHANNEL, [32, 64, 128], OUTPUT_SIZE, num_block=3)
+        model = TCN(
+            INPUT_CHANNEL,
+            [32, 64, 128],
+            OUTPUT_SIZE,
+            num_block=3,
+            output_sequence=output_sequence,
+        )
         y = model(x)
 
-        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE, SEQ_LEN))
+        assert y.shape == torch.Size(expected)
