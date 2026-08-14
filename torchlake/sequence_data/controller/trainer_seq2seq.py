@@ -2,7 +2,9 @@ from typing import Iterable
 
 import torch
 from torch import nn
+
 from torchlake.common.controller.trainer import ClassificationTrainer
+
 from ..mixins.curriculum import CurriculumMixin
 
 
@@ -22,7 +24,7 @@ class Seq2SeqTrainer(CurriculumMixin, ClassificationTrainer):
             teacher_forcing_ratio = kwargs.pop("teacher_forcing_ratio")
         else:
             teacher_forcing_ratio = self.teacher_forcing_raio
-        output = model.forward(
+        output = model(
             x,
             y,
             teacher_forcing_ratio=teacher_forcing_ratio,

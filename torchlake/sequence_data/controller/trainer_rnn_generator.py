@@ -2,6 +2,7 @@ from typing import Iterable
 
 import torch
 from torch import nn
+
 from torchlake.common.controller.trainer import ClassificationTrainer
 
 from ..mixins.curriculum import CurriculumMixin
