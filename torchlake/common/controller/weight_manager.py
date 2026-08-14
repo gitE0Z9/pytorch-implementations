@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, overload
 
 import torch
+from torch import nn
 
 from ..utils.platform import get_file_size
 
@@ -25,6 +26,29 @@ class WeightManager:
             filename = Path(filename)
 
         torch.save(state_dict, filename)
+
+        if verbose:
+            print(
+                "Save weight to %s, model size is %s"
+                % (filename, get_file_size(filename))
+            )
+
+    def save_onnx_weight(
+        self,
+        module: nn.Module,
+        filename: str | Path,
+        args: tuple[Any, ...] = (),
+        verbose: bool = True,
+    ):
+        try:
+            import onnx
+        except (ImportError, ModuleNotFoundError):
+            raise ImportError("please install onnx first.")
+
+        if isinstance(filename, str):
+            filename = Path(filename)
+
+        torch.onnx.export(module, args, filename)
 
         if verbose:
             print(
