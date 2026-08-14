@@ -66,10 +66,12 @@ class NegativeSampling(nn.Module):
         n: int = target.numel()
 
         if self.replacement:
+            # TODO: skipgram use target view as well
+            # cbow could benefit from view but not skipgram
             # (n, #neg)
             y = self.distribution.multinomial(
                 n * self.negative_ratio, replacement=True
-            ).view(n, self.negative_ratio)
+            ).reshape(n, self.negative_ratio)
 
             collision = y == target.view(-1, 1)
             while collision.any():
@@ -235,9 +237,11 @@ class HierarchicalSoftmax(nn.Module):
         # (N = B * c * #subseq), h
         embedding = embedding.view(-1, embedding.size(-1))
 
+        # TODO: skipgram use target view as well
+        # cbow could benefit from view but not skipgram
         # target mapping and concat
         # N
-        y = target.view(-1).tolist()
+        y = target.reshape(-1).tolist()
         path_indices = itemgetter(*y)(self.path_indices)
         path_codes = itemgetter(*y)(self.path_codes)
 

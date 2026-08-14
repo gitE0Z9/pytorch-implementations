@@ -22,7 +22,7 @@ class SkipGramTrainer(ClassificationTrainer):
         yhat = model(gram, neighbor_size, *args, **kwargs)
 
         if self.feature_last:
-            yhat = yhat.permute(0, -1, *yhat.shape[1:-1])
+            yhat = yhat.permute(0, -1, *range(1, len(yhat.shape) - 1))
 
         return yhat
 
@@ -42,7 +42,7 @@ class CBOWTrainer(ClassificationTrainer):
         yhat = model(context, *args, **kwargs)
 
         if self.feature_last:
-            yhat = yhat.permute(0, -1, *yhat.shape[1:-1])
+            yhat = yhat.permute(0, -1, *range(1, len(yhat.shape) - 1))
 
         return yhat
 

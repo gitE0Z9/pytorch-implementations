@@ -83,7 +83,8 @@ class TestLoss:
             (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, NEGATIVE_RATIO)
         )
 
-    def test_ns_forward(self):
+    @pytest.mark.parametrize("replacement", (True, False))
+    def test_ns_forward(self, replacement: bool):
         x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
@@ -91,13 +92,15 @@ class TestLoss:
             WORD_FREQS,
             EMBED_SIZE,
             VOCAB_SIZE,
+            replacement=replacement,
             context=CONTEXT,
         )
         loss = criterion(x, y)
 
         assert not torch.isnan(loss)
 
-    def test_ns_backward(self):
+    @pytest.mark.parametrize("replacement", (True, False))
+    def test_ns_backward(self, replacement: bool):
         x = torch.randn(BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN, EMBED_SIZE)
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
 
@@ -105,6 +108,7 @@ class TestLoss:
             WORD_FREQS,
             EMBED_SIZE,
             VOCAB_SIZE,
+            replacement=replacement,
             context=CONTEXT,
         )
         loss = criterion(x, y)
@@ -112,7 +116,8 @@ class TestLoss:
 
         assert not torch.isnan(criterion.fc.grad).any()
 
-    def test_ns_cbow_forward(self):
+    @pytest.mark.parametrize("replacement", (True, False))
+    def test_ns_cbow_forward(self, replacement: bool):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         model = Word2Vec(
@@ -128,13 +133,15 @@ class TestLoss:
             WORD_FREQS,
             EMBED_SIZE,
             VOCAB_SIZE,
+            replacement=replacement,
             context=CONTEXT,
         )
         loss = criterion(yhat, y)
 
         assert not torch.isnan(loss)
 
-    def test_ns_sg_forward(self):
+    @pytest.mark.parametrize("replacement", (True, False))
+    def test_ns_sg_forward(self, replacement: bool):
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, 1, SUBSEQ_LEN))
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         model = Word2Vec(
@@ -150,6 +157,7 @@ class TestLoss:
             WORD_FREQS,
             EMBED_SIZE,
             VOCAB_SIZE,
+            replacement=replacement,
             context=CONTEXT,
         )
         loss = criterion(yhat, y)
