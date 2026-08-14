@@ -16,6 +16,7 @@ class NegativeSampling(nn.Module):
         vocab_size: int,
         negative_ratio: int = 5,
         power: float = 0.75,
+        replacement: bool = True,
         context: NLPContext | None = None,
     ):
         """negative sampling loss
@@ -26,8 +27,11 @@ class NegativeSampling(nn.Module):
             vocab_size (int): vocabulary size
             negative_ratio (int, optional): negative sample size compare to positive sample size. Defaults to 5.
             power (float, optional): power parameter. Defaults to 0.75.
+            replacement (bool, optional): enable replacement for faster sampling. Defaluts to True.
             context (NLPContext, optional): NLP context. Defaults to None.
         """
+        assert negative_ratio > 0, "negative ratio should be higher than 0"
+
         if context is None:
             context = NLPContext()
 
@@ -38,9 +42,8 @@ class NegativeSampling(nn.Module):
         self.word_freqs = word_freqs
         self.distribution = self.get_distribution().to(context.device)
         self.vocab_size = self.distribution.numel()
+        self.replacement = replacement
         self.fc = nn.Parameter(torch.rand((vocab_size, embed_dim)))
-
-        assert negative_ratio > 0, "negative ratio should be higher than 0"
 
     def get_distribution(self) -> torch.Tensor:
         """1310.4546 p.4
@@ -55,48 +58,65 @@ class NegativeSampling(nn.Module):
         """negative sampling by noise distribution
 
         Args:
-            target (torch.Tensor): shape(batch_size, 1 or neighbor_size, #subsequence)
+            target (torch.Tensor): shape(batch_size, 1 or neighbor_size, subseq)
 
         Returns:
-            torch.Tensor: sampled token by noise distribution, shape is (B, context-1, subseq, #neg)
+            torch.Tensor: sampled token by noise distribution, shape is (batch_size, 1 or neighbor_size, subseq, #neg)
         """
         n: int = target.numel()
-        y = self.distribution.repeat(n, 1)
-        # remove positive vocab
-        # TODO: skipgram use target view as well
-        # cbow could benefit from view but not skipgram
-        y[torch.arange(n), target.reshape(-1)] = 0
 
-        return (
-            y
-            # only 2 dim supported
-            .multinomial(self.negative_ratio)
-            # (B, context-1, subseq, neg)
-            .view(*target.shape, self.negative_ratio)
-        )
+        if self.replacement:
+            # (n, #neg)
+            y = self.distribution.multinomial(
+                n * self.negative_ratio, replacement=True
+            ).view(n, self.negative_ratio)
+
+            collision = y == target.view(-1, 1)
+            while collision.any():
+                y[collision] = self.distribution.multinomial(
+                    collision.sum().item(), replacement=True
+                )
+                collision = y == target.view(-1, 1)
+
+            # (B, neighbor_size, subseq, #neg)
+            return y.view(*target.shape, self.negative_ratio)
+        else:
+            y = self.distribution.repeat(n, 1)
+            # remove positive vocab
+            # TODO: skipgram use target view as well
+            # cbow could benefit from view but not skipgram
+            y[torch.arange(n), target.reshape(-1)] = 0
+
+            return (
+                y
+                # only 2 dim supported
+                .multinomial(self.negative_ratio)
+                # (B, context-1, subseq, neg)
+                .view(*target.shape, self.negative_ratio)
+            )
 
     def forward(self, embedding: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """compute negative sampling loss
 
         Args:
-            embedding (torch.Tensor): shape(batch_size, 1 or neighbor_size, #subsequence, embed_dim)
-            target (torch.Tensor): shape(batch_size, 1 or neighbor_size, #subsequence)
+            embedding (torch.Tensor): shape(batch_size, 1 or neighbor_size, subseq, embed_dim)
+            target (torch.Tensor): shape(batch_size, 1 or neighbor_size, subseq)
 
         Returns:
             torch.Tensor: float
         """
-        # B, context-1, subseq, h x B, context-1, subseq, h
-        # => B, context-1, subseq
+        # (B, neighbor_size, subseq, h) x (B, neighbor_size, subseq, h)
+        # => (B, neighbor_size, subseq)
         positive_logits = torch.einsum(
             "bcsh, bcsh -> bcs",
             embedding,
             self.fc[target],
         )
 
-        # B, context-1, subseq, #negative
+        # (B, neighbor_size, subseq, #negative)
         negative_sample = self.sample(target)
-        # B, context-1, subseq, 1, h x B, context-1, subseq, h, #negative
-        # => B, context-1, subseq, 1, #negative
+        # (B, neighbor_size, subseq, 1, h) x (B, neighbor_size, subseq, h, #negative)
+        # => (B, neighbor_size, subseq, 1, #negative)
         negative_logits = torch.einsum(
             "bcsh, bcsnh -> bcsn",
             embedding,
@@ -109,14 +129,10 @@ class NegativeSampling(nn.Module):
             reduction="sum",
         )
 
-        batch_size = embedding.size(0)
-        negative_loss = (
-            binary_cross_entropy_with_logits(
-                negative_logits,
-                torch.zeros_like(negative_logits),
-                reduction="sum",
-            )
-            / batch_size
+        negative_loss = binary_cross_entropy_with_logits(
+            negative_logits,
+            torch.zeros_like(negative_logits),
+            reduction="sum",
         )
 
         return positive_loss + negative_loss

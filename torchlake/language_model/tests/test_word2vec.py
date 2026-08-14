@@ -1,4 +1,5 @@
 import torch
+import pytest
 
 from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.tree import HuffmanNode
@@ -66,12 +67,14 @@ class TestLoss:
 
         assert criterion.distribution.shape == torch.Size((VOCAB_SIZE,))
 
-    def test_ns_sample_shape(self):
+    @pytest.mark.parametrize("replacement", (True, False))
+    def test_ns_sample_shape(self, replacement: bool):
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, NEIGHBOR_SIZE, SUBSEQ_LEN))
         criterion = NegativeSampling(
             WORD_FREQS,
             EMBED_SIZE,
             VOCAB_SIZE,
+            replacement=replacement,
             context=CONTEXT,
         )
         y = criterion.sample(y)

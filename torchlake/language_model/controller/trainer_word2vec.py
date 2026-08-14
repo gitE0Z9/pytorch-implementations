@@ -19,7 +19,12 @@ class SkipGramTrainer(ClassificationTrainer):
         # batch, context-1, subseq, embed
         neighbor_size = context.size(1)
 
-        return model(gram, neighbor_size, *args, **kwargs)
+        yhat = model(gram, neighbor_size, *args, **kwargs)
+
+        if self.feature_last:
+            yhat = yhat.permute(0, -1, *yhat.shape[1:-1])
+
+        return yhat
 
 
 class CBOWTrainer(ClassificationTrainer):
@@ -34,7 +39,12 @@ class CBOWTrainer(ClassificationTrainer):
         context = context.to(self.device)
 
         # batch, 1, subseq, embed
-        return model(context, *args, **kwargs)
+        yhat = model(context, *args, **kwargs)
+
+        if self.feature_last:
+            yhat = yhat.permute(0, -1, *yhat.shape[1:-1])
+
+        return yhat
 
     def _calc_loss(
         self,

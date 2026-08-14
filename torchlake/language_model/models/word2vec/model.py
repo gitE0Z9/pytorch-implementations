@@ -183,7 +183,7 @@ class Word2Vec(nn.Module):
         Returns:
             torch.Tensor: subsampled one-hot vector of tokens, shape is (batch_size, neighbor_size, #subsequence)
         """
-        return x.masked_fill_(~subsampling_probs[x].bernoulli().bool(), unk_idx)
+        return x.masked_fill(subsampling_probs[x].bernoulli().bool(), unk_idx)
 
     def forward(
         self,
