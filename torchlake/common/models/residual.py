@@ -66,7 +66,6 @@ class ResBlock(nn.Module):
                 output_channel,
                 1,
                 stride=stride,
-                enable_bn=None,
                 activation=None,
                 dimension=dimension,
             )
