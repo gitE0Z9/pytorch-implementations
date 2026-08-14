@@ -65,6 +65,9 @@ class Pix2PixTrainer(GANTrainer):
         *args,
         **kwargs,
     ):
+        generator.train()
+        discriminator.train()
+
         # amp
         torch.set_autocast_enabled(scaler is not None)
         print(f"Enable AMP: {torch.is_autocast_enabled()}")
@@ -76,12 +79,11 @@ class Pix2PixTrainer(GANTrainer):
                 recorder.calc_dataset_size(data)
 
         for e in range(recorder.current_epoch, recorder.total_epoch):
-            for batch_idx, batch in enumerate(tqdm(data)):
-                optimizer_d.zero_grad()
-                optimizer_g.zero_grad()
-                discriminator.train()
-                generator.train()
+            optimizer_d.zero_grad()
+            optimizer_g.zero_grad()
+            recorder.reset_running_loss()
 
+            for batch_idx, batch in enumerate(tqdm(data)):
                 d_loss = self.train_discriminator(
                     batch,
                     generator,
@@ -92,12 +94,10 @@ class Pix2PixTrainer(GANTrainer):
                 d_loss.backward()
                 optimizer_d.step()
 
-                if (batch_idx + 1) % self.discriminator_cycle == 0:
-                    optimizer_d.zero_grad()
-                    optimizer_g.zero_grad()
-                    generator.train()
-                    discriminator.train()
+                optimizer_d.zero_grad()
+                optimizer_g.zero_grad()
 
+                if (batch_idx + 1) % self.discriminator_cycle == 0:
                     g_loss = self.train_generator(
                         batch,
                         generator,
@@ -107,6 +107,9 @@ class Pix2PixTrainer(GANTrainer):
                     assert not torch.isnan(g_loss), "Loss is singular"
                     g_loss.backward()
                     optimizer_g.step()
+
+                    optimizer_d.zero_grad()
+                    optimizer_g.zero_grad()
 
                     recorder.increment_running_loss(
                         *(loss.item() / recorder.data_size for loss in (d_loss, g_loss))
