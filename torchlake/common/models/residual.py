@@ -1,9 +1,6 @@
-from typing import Literal
-
 import torch
 from torch import nn
-
-from torchlake.common.models.conv import ConvBNReLU
+from torchvision.ops import Conv2dNormActivation
 
 
 class ResBlock(nn.Module):
@@ -15,7 +12,6 @@ class ResBlock(nn.Module):
         stride: int = 1,
         activation: nn.Module | None = nn.ReLU(True),
         shortcut: nn.Module | None = None,
-        dimension: Literal["1d", "2d", "3d"] = "2d",
     ):
         """residual block
         skip connection is 1x1 conv shortcut if input_channel != output_channel
@@ -27,7 +23,6 @@ class ResBlock(nn.Module):
             stride (int, optional): stride of identity mapping. Defaults to 1.
             activation (tuple[nn.Module  |  None], optional): activation of residual output. Defaults to nn.ReLU(True).
             shortcut (nn.Module, optional): shortcut class. Defaults to None.
-            dimension (Literal["1d"] | Literal["2d"] | Literal["3d"], optional): 1d, 2d or 3d. Defaults to "2d".
         """
         super().__init__()
         self.activation = activation
@@ -38,7 +33,6 @@ class ResBlock(nn.Module):
             input_channel,
             output_channel,
             stride,
-            dimension,
         )
 
     def build_shortcut(
@@ -46,7 +40,6 @@ class ResBlock(nn.Module):
         input_channel: int,
         output_channel: int,
         stride: int = 1,
-        dimension: Literal["1d", "2d", "3d"] = "2d",
     ) -> nn.Module:
         """build shortcut
 
@@ -61,13 +54,12 @@ class ResBlock(nn.Module):
             return nn.Identity()
 
         layer = nn.Sequential(
-            ConvBNReLU(
+            Conv2dNormActivation(
                 input_channel,
                 output_channel,
                 1,
                 stride=stride,
-                activation=None,
-                dimension=dimension,
+                activation_layer=None,
             )
         )
 

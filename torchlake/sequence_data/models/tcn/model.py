@@ -52,14 +52,18 @@ class TCN(ModelBase):
             ResBlock(
                 input_channel,
                 self.hidden_dims[0],
-                BottleNeck(
+                block=BottleNeck(
                     input_channel,
                     self.hidden_dims[0],
                     self.kernels[0],
                     padding=self.kernels[0] - 1,
                     dropout=self.dropout_prob,
                 ),
-                dimension="1d",
+                shortcut=(
+                    nn.Conv1d(input_channel, self.hidden_dims[0], 1)
+                    if input_channel != self.hidden_dims[0]
+                    else nn.Identity()
+                ),
             )
         )
 
@@ -77,7 +81,11 @@ class TCN(ModelBase):
                         dilation=2**i,
                         dropout=self.dropout_prob,
                     ),
-                    dimension="1d",
+                    shortcut=(
+                        nn.Conv1d(prev_dim, next_dim, 1)
+                        if prev_dim != next_dim
+                        else nn.Identity()
+                    ),
                 )
                 for i, (prev_dim, next_dim) in enumerate(
                     pairwise(self.hidden_dims), start=1
