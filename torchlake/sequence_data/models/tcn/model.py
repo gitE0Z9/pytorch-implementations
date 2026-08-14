@@ -95,7 +95,7 @@ class TCN(ModelBase):
         y = self.blocks(y)
 
         if not self.output_sequence:
-            y = y[:, :, -1].unsqueeze_(-1)
+            y = y[:, :, -1].unsqueeze(-1)
 
         y = self.head(y)
 
