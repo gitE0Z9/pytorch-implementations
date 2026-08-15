@@ -2,21 +2,30 @@ import pytest
 import torch
 
 from ..models.dcnn import DCNN, DynamicKmaxPool1d
-from ..models.dcnn.network import Block, Folding, WideConv1d
+from ..models.dcnn.network import Block, Folding, WideConv1d, Nonlinearity
 
 BATCH_SIZE = 4
 MAX_SEQ_LEN = 256
 VOCAB_SIZE = 10
+HIDDEN_DIM = 8
 
 
 class TestNetwork:
-    def test_wide_conv_forward_shape(self):
+    def test_wide_conv_1d_forward_shape(self):
         model = WideConv1d(2, 1, 5)
 
         x = torch.rand((BATCH_SIZE, 2, 7))
         output = model(x)
 
         assert output.shape == torch.Size((BATCH_SIZE, 1, 11))
+
+    def test_nonlinearity_forward_shape(self):
+        model = Nonlinearity(HIDDEN_DIM)
+
+        x = torch.rand((BATCH_SIZE, HIDDEN_DIM, MAX_SEQ_LEN))
+        output = model(x)
+
+        assert output.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM, MAX_SEQ_LEN))
 
     @pytest.mark.parametrize("conv_layer_idx,expected", [[1, 12], [2, 6], [3, 3]])
     def test_dynamic_max_pool_forward_shape(self, conv_layer_idx: int, expected: int):

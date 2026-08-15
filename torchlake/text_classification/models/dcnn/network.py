@@ -45,6 +45,27 @@ class DynamicKmaxPool1d(TopKMaxPool1d):
         super().__init__(self.topk)
 
 
+class Nonlinearity(nn.Module):
+    def __init__(self, input_channel: int):
+        super().__init__()
+        self.bias = nn.Parameter(torch.zeros((1, input_channel, 1)))
+        self.activation = nn.Tanh()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = x + self.bias
+        return self.activation(y)
+
+
+class Folding(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, c, s = x.shape
+        return x.reshape(b, c // 2, 2, s).sum(2)
+
+
 class Block(nn.Module):
 
     def __init__(
@@ -62,20 +83,8 @@ class Block(nn.Module):
             WideConv1d(input_channel, output_channel, kernel),
             DynamicKmaxPool1d(topk, seq_len, conv_layer_idx, conv_layer_total),
         )
-        self.bias = nn.Parameter(torch.zeros((1, output_channel, 1)))
-        self.activation = nn.Tanh()
+        self.nonlinearity = Nonlinearity(output_channel)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.block(x)
-        y += self.bias
-        return self.activation(y)
-
-
-class Folding(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, c, s = x.shape
-        return x.reshape(b, c // 2, 2, s).sum(2)
+        return self.nonlinearity(y)

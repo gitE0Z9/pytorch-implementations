@@ -4,7 +4,7 @@ from torchlake.common.models import FlattenFeature, TopKMaxPool1d
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NLPContext
 
-from .network import Block, Folding, WideConv1d
+from .network import Block, Folding, WideConv1d, Nonlinearity
 
 
 class DCNN(ModelBase):
@@ -17,6 +17,7 @@ class DCNN(ModelBase):
         kernels: tuple[int] = (7, 5),
         hidden_dims: tuple[int] = (6, 14),
         topk: int = 4,
+        dropout_prob: float = 0.5,
         context: NLPContext | None = None,
     ):
         """Dynamic convolution neural network in paper [1404.2188v1]
@@ -28,6 +29,7 @@ class DCNN(ModelBase):
             kernels (tuple[int], optional): kernel size of convolution layers. Defaults to (7, 5).
             hidden_dims (tuple[int], optional): hidden dim of convolution layers. Defaults to (6, 14).
             topk (int, optional): top k to retain for final max pool. Defaults to 4.
+            dropout_prob (float, optional): dropout probability. Defaults to 0.5.
             context (NLPContext, optional): NLP context. Defaults to None.
         """
         assert len(hidden_dims) == len(
@@ -42,6 +44,7 @@ class DCNN(ModelBase):
         self.kernels = kernels
         self.hidden_dims = hidden_dims
         self.topk = topk
+        self.dropout_prob = dropout_prob
         self.context = context
         super().__init__(1, output_size)
 
@@ -77,25 +80,17 @@ class DCNN(ModelBase):
                     )
                 )
             ],
-            Folding(),
-            TopKMaxPool1d(self.topk),
-        )
-
-        self.blocks.insert(
-            num_conv - 1,
             WideConv1d(
                 self.hidden_dims[-2] if num_conv >= 2 else self.embed_dim,
                 self.hidden_dims[-1],
                 self.kernels[-1],
             ),
+            Folding(),
+            TopKMaxPool1d(self.topk),
+            Nonlinearity(self.hidden_dims[-1] // 2),
+            # penultimate layer has a dropout
+            nn.Dropout(self.dropout_prob),
         )
-
-        # penultimate layer has a dropout
-        if num_conv >= 2:
-            self.blocks.insert(
-                num_conv - 1,
-                nn.Dropout(),
-            )
 
     def build_head(self, output_size: int):
         self.head = nn.Sequential(

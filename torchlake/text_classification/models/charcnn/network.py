@@ -13,7 +13,8 @@ class CharQuantization(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = F.one_hot(x, self.char_size)
 
-        # zero out unknown index
-        y[self.context.unk_idx] = 0
+        # page 2 stated that zero out any character not in the alphabet table
+        # but instead we only zero out uninformative tokens
+        y[:, :, [self.context.unk_idx, self.context.padding_idx]] = 0
 
         return y

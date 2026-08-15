@@ -9,4 +9,4 @@ class TopKMaxPool1d(nn.Module):
         self.topk = topk
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x.topk(self.topk, -1)[0]
+        return x.topk(self.topk, -1).values
