@@ -67,7 +67,7 @@ class BottleNeck(nn.Module):
                 dilation=dilation,
             ),
             nn.ReLU(True),
-            nn.Dropout(dropout),
+            nn.Dropout1d(dropout),
         )
 
         if dropout == 0:
