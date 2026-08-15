@@ -1,11 +1,29 @@
 import torch
+import torch.nn.functional as F
 from torch import nn
+
 from torchlake.common.models import FlattenFeature
+from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NLPContext
 from torchlake.sequence_data.models.base.wrapper import (
     SequenceModelFullFeatureExtractor,
 )
-from torchlake.common.models.model_base import ModelBase
+
+
+def pad_on_left(x: torch.Tensor, offset: int):
+    return F.pad(x, (0, 0, offset, 0))
+
+
+def pad_on_right(x: torch.Tensor, offset: int):
+    return F.pad(x, (0, 0, 0, offset))
+
+
+def shift_leftward(x: torch.Tensor, offset: int):
+    return pad_on_right(x, offset)[:, offset:, :]
+
+
+def shift_rightward(x: torch.Tensor, offset: int):
+    return pad_on_left(x, offset)[:, :-offset, :]
 
 
 class RCNN(ModelBase):
@@ -61,11 +79,17 @@ class RCNN(ModelBase):
         # b, s, e
         embedded = self.foot.embed(x)
         # b, s, 2*h
-        # XXX: computed twice
         context, _ = self.foot(x)
         left_context, right_context = context.chunk(2, -1)
         # b, s, 2*h + e
-        y = torch.cat([left_context, embedded, right_context], -1)
+        y = torch.cat(
+            [
+                shift_rightward(left_context, 1),
+                embedded,
+                shift_leftward(right_context, 1),
+            ],
+            -1,
+        )
         # b, 2*h + e, s
         y = y.transpose(-1, -2)
         # b, h, s
