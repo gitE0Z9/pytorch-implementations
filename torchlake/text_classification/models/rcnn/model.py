@@ -10,22 +10,6 @@ from torchlake.sequence_data.models.base.wrapper import (
 )
 
 
-def pad_on_left(x: torch.Tensor, offset: int):
-    return F.pad(x, (0, 0, offset, 0))
-
-
-def pad_on_right(x: torch.Tensor, offset: int):
-    return F.pad(x, (0, 0, 0, offset))
-
-
-def shift_leftward(x: torch.Tensor, offset: int):
-    return pad_on_right(x, offset)[:, offset:, :]
-
-
-def shift_rightward(x: torch.Tensor, offset: int):
-    return pad_on_left(x, offset)[:, :-offset, :]
-
-
 class RCNN(ModelBase):
 
     def __init__(
@@ -66,7 +50,17 @@ class RCNN(ModelBase):
 
     def build_blocks(self):
         self.blocks = nn.Conv1d(
-            2 * self.hidden_dim + self.embed_dim, self.hidden_dim, 1
+            2 * self.hidden_dim + self.embed_dim,
+            self.hidden_dim,
+            1,
+        )
+
+    def build_neck(self, **kwargs):
+        self.neck = nn.ParameterDict(
+            {
+                "bos": nn.Parameter(torch.zeros(self.hidden_dim)),
+                "eos": nn.Parameter(torch.zeros(self.hidden_dim)),
+            }
         )
 
     def build_head(self, output_size: int):
@@ -76,17 +70,20 @@ class RCNN(ModelBase):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, _ = x.shape
+
         # b, s, e
         embedded = self.foot.embed(x)
+        # computed twice embedding
         # b, s, 2*h
         context, _ = self.foot(x)
         left_context, right_context = context.chunk(2, -1)
         # b, s, 2*h + e
         y = torch.cat(
             [
-                shift_rightward(left_context, 1),
+                torch.cat((self.neck["bos"].repeat(b, 1, 1), left_context[:, :-1]), 1),
                 embedded,
-                shift_leftward(right_context, 1),
+                torch.cat((right_context[:, 1:], self.neck["eos"].repeat(b, 1, 1)), 1),
             ],
             -1,
         )
