@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from torchlake.common.utils.sparse import eye_matrix
+from torch_sparse import spspmm
 
 
 class GCNLayer(nn.Module):
@@ -12,15 +13,39 @@ class GCNLayer(nn.Module):
     def get_topology_transform(self, a: torch.Tensor) -> torch.Tensor:
         node_size, _ = a.shape
 
-        a_tilde = (eye_matrix(node_size).to(a.device) + a).float()
+        a_tilde = eye_matrix(node_size, dtype=torch.float32, device=a.device) + a
+        a_tilde = a_tilde.coalesce()
         d_tilde = a_tilde.sum(dim=-1).float()  # pow need input type float
-        D = torch.sparse_coo_tensor(
+        d = torch.sparse_coo_tensor(
             torch.arange(node_size).repeat(2, 1).to(a.device),
             d_tilde.pow(-0.5).to_dense(),
-        )
-        a_hat = D * a_tilde * D
+            size=a.shape,
+        ).coalesce()
 
-        return a_hat
+        indexC, valueC = spspmm(
+            d.indices(),
+            d.values(),
+            a_tilde.indices(),
+            a_tilde.values(),
+            node_size,
+            node_size,
+            node_size,
+        )
+        indexC, valueC = spspmm(
+            indexC,
+            valueC,
+            d.indices(),
+            d.values(),
+            node_size,
+            node_size,
+            node_size,
+        )
+        return torch.sparse_coo_tensor(
+            indexC,
+            valueC,
+            device=a.device,
+            size=(node_size, node_size),
+        )
 
     def forward(self, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
         """Applies a Graph Convolutional Network (GCN) layer.

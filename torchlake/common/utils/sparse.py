@@ -2,9 +2,18 @@ import torch
 from math import prod
 
 
-def eye_matrix(rank: int) -> torch.Tensor:
+def eye_matrix(
+    rank: int,
+    dtype: torch.dtype | None = None,
+    device: torch.device | None = None,
+) -> torch.Tensor:
     indices = torch.arange(rank)
-    return torch.sparse_coo_tensor(indices.repeat(2, 1), torch.ones_like(indices))
+    return torch.sparse_coo_tensor(
+        indices.repeat(2, 1),
+        torch.ones_like(indices),
+        dtype=dtype,
+        device=device,
+    )
 
 
 def ones_tensor(indices: torch.Tensor, size: torch.Size | None = None) -> torch.Tensor:
