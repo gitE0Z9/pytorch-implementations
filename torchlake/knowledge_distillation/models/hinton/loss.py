@@ -20,7 +20,8 @@ class KLDLoss(nn.Module):
         s_loss = F.cross_entropy(pred, gt)
         t_loss = F.kl_div(
             F.log_softmax(pred / self.temp, dim=-1),
-            t_pred / self.temp,
+            F.log_softmax(t_pred / self.temp, dim=-1),
             reduction="batchmean",
+            log_target=True,
         )
         return (1 - self.alpha) * s_loss + self.alpha * (self.temp**2) * t_loss
