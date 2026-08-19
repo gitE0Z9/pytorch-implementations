@@ -164,7 +164,7 @@ class Block(nn.Module):
         dropout_prob: float,
         version: 1 | 2,
     ):
-        """The layer of Graph attention network v2
+        """The block of Graph attention network
 
         Args:
             input_channel (int): input dimension
