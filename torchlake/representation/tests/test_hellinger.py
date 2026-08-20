@@ -38,7 +38,7 @@ class TestModel:
 
         model.fit(counter, self.vocab_counts)
 
-        assert hasattr(model.model, "eigenvectors")
+        assert model.embedding is not None
 
     def test_embedding_hellinger_pca(self):
         self.setup_hellinger_pca()

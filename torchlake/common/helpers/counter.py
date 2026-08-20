@@ -83,7 +83,7 @@ class CooccurrenceCounter:
 
         return output
 
-    def get_tensor(self) -> torch.Tensor:
+    def get_tensor(self, device: torch.device | None = None) -> torch.Tensor:
         """get word-context count tensor
 
         Returns:
@@ -100,5 +100,6 @@ class CooccurrenceCounter:
             [row_indices, col_indices],
             values,
             dtype=torch.long,
+            device=device,
             size=(self.vocab_size, self.vocab_size),
         )
