@@ -7,6 +7,7 @@ def viterbi_decode(
     transition: torch.Tensor,
     mask: torch.Tensor | None = None,
     context: NLPContext | None = None,
+    output_score: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """forward backward algorithm
 
@@ -18,6 +19,7 @@ def viterbi_decode(
         transition (torch.Tensor): transition matrix, shape is (output_size, output_size)
         mask (torch.Tensor | None, optional): mask for padding index, shape is (batch_size, sequence_length). Defaults to None.
         context (NLPContext, optional): NLP context. Defaults to None.
+        output_score (bool, optional): return score of viterbi path. Defaults to False.
 
     Returns:
         tuple[torch.Tensor, torch.Tensor]: score of path, path
@@ -51,10 +53,10 @@ def viterbi_decode(
         # P(Y2|Y1) * P(Y1, Y0 | x)
         posterior_t = alpha + transition_score + x[:, t, None, :]
 
-        # find most likely next tag
+        # find the most likely "from" state for each "to" state since we are gathering backpointers
         # B, O
         # P(Y2, Y1=y1, Y0 | x)
-        posterior_t, bkptr_t = posterior_t.max(dim=-1)
+        posterior_t, bkptr_t = posterior_t.max(dim=1)
         # debug
         # print(posterior_t.softmax(-1), bkptr_t)
         # P(Y2|x) * P(Y2, Y1=y1, Y0 | x)
@@ -67,7 +69,7 @@ def viterbi_decode(
             # B, 1, 1
             mask_t = mask[:, t : t + 1, None].int()
         else:
-            mask_t = torch.zeros((batch_size, 1, 1)).to(x.device)
+            mask_t = torch.zeros((batch_size, 1, 1), device=x.device)
 
         # B, O, 1
         alpha = posterior_t.unsqueeze(-1) * (1 - mask_t) + alpha * mask_t
@@ -89,17 +91,23 @@ def viterbi_decode(
     # 1 x (B,1)
     best_path = [best_path]
 
-    for t in range(backpointers.size(1) - 2, -1, -1):
+    for t in range(backpointers.size(1) - 1, 0, -1):
         # B, O
         bkptr_t = backpointers[:, t, :]
         best_path.append(bkptr_t.gather(-1, best_path[-1]))
 
     # S-1 x (B, 1)
     best_path.reverse()
-    best_path.insert(0, torch.full((batch_size, 1), context.bos_idx).to(x.device))
+    # force the first token to be bos
+    best_path.insert(0, torch.full((batch_size, 1), context.bos_idx, device=x.device))
+    # force the last token to be eos
     # best_path.append(torch.full((batch_size, 1), context.eos_idx).to(x.device))
     # B, S
     best_path = torch.cat(best_path, -1)
 
-    # B,S, # B
-    return best_path, best_score
+    if output_score:
+        # B,S, # B
+        return best_path, best_score
+    else:
+        # B,S
+        return best_path

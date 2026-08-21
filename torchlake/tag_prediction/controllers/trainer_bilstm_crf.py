@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import torch
+
 from torchlake.common.controller.trainer import ClassificationTrainer
 
 from ..models.bilstm_crf import BiLSTMCRF, LinearCRFLoss
@@ -32,4 +33,4 @@ class BiLSTMCRFTrainer(ClassificationTrainer):
 
         output, transition = output
 
-        return criterion.forward(output, y, transition)
+        return criterion(output, y, transition)

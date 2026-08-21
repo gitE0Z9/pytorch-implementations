@@ -63,14 +63,13 @@ class BiLSTMCRF(ModelBase):
             output_score (bool, optional): return score of viterbi path. Defaults to False.
 
         Returns:
-            tuple[torch.Tensor] | torch.Tensor: lstm output when training, crf paths when inference
+            tuple[torch.Tensor, torch.Tensor] | torch.Tensor: lstm output when training, crf paths when inference
         """
-        mask = x.eq(self.context.padding_idx).int()
-
         # B, S, O
         y = self.foot(x)
 
-        if not self.training:
-            y = self.head(y, mask, output_score)
+        if self.training:
+            return y
 
-        return y
+        # B, S
+        return self.head(y, x.eq(self.context.padding_idx).int(), output_score)

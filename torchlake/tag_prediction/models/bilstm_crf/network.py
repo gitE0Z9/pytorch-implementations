@@ -49,12 +49,14 @@ class LinearCRF(nn.Module):
         # must not transfer to bos
         self.transition.data[:, context.bos_idx] = MUST_NOT
 
-        # never transfer from any to pad
+        # never transfer from any to pad except eos, pad
         self.transition.data[:, context.padding_idx] = MUST_NOT
-        # must absorb into pad
-        self.transition.data[context.eos_idx, context.padding_idx] = MUST_HAPPEN
-        # must absorb into pad
-        self.transition.data[context.padding_idx, context.padding_idx] = MUST_HAPPEN
+        # must not transfer from eos or pad to anything except pad
+        self.transition.data[context.eos_idx, :] = MUST_NOT
+        self.transition.data[context.padding_idx, :] = MUST_NOT
+        self.transition.data[
+            [context.eos_idx, context.padding_idx], context.padding_idx
+        ] = MUST_HAPPEN
 
     def forward(
         self,
@@ -72,9 +74,10 @@ class LinearCRF(nn.Module):
         Returns:
             tuple[torch.Tensor] | torch.Tensor: crf paths and score if `output_score` is `True`
         """
-        path, score = viterbi_decode(x, self.transition, mask, self.context)
-
-        if output_score:
-            return path, score
-        else:
-            return path
+        return viterbi_decode(
+            x,
+            self.transition,
+            mask,
+            self.context,
+            output_score=output_score,
+        )
