@@ -76,11 +76,14 @@ class CRNN(ModelBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y: torch.Tensor
 
+        # b, 1, h, w => b, c, h=1, w=w//4-1
         y = self.foot(x)
+        # b, c, h=1, w
         y = self.blocks(y)
         _, _, h, _ = y.shape
         assert h == 1, "the height of conv must be 1"
 
         # b, w, c
         y = y.squeeze(2).transpose(1, 2)
+        # b, w, o => w, b, o
         return self.head(y).transpose(0, 1)

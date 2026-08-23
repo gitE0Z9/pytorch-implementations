@@ -19,4 +19,4 @@ class TestModel:
         model = CRNN(INPUT_CHANNEL, HIDDEN_DIM, VOCAB_SIZE, context=CONTEXT)
         output = model(x)
 
-        assert output.shape == torch.Size((WIDTH // 4 - 1, 1, VOCAB_SIZE))
+        assert output.shape == torch.Size((WIDTH // 4 - 1, BATCH_SIZE, VOCAB_SIZE))
