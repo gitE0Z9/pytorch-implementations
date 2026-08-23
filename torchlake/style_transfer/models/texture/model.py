@@ -22,9 +22,9 @@ class TextureNet(ModelBase):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                nn.init.xavier_uniform_(module.weight)
+                nn.init.xavier_uniform_(module.weight.data)
                 if module.bias is not None:
-                    nn.init.xavier_uniform_(module.bias)
+                    nn.init.zeros_(module.bias.data)
 
     def build_foot(self, input_channel: int, **kwargs):
         # upsampling
@@ -43,9 +43,6 @@ class TextureNet(ModelBase):
         self.blocks = nn.ModuleList(
             [
                 nn.Sequential(
-                    nn.BatchNorm2d(self.hidden_dim * l),
-                    nn.BatchNorm2d(self.hidden_dim * l),
-                    nn.BatchNorm2d(self.hidden_dim * l),
                     nn.BatchNorm2d(self.hidden_dim * l),
                 )
                 for l in range(1, self.num_scale_factor)
