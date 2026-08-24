@@ -64,7 +64,6 @@ class LinearCRFLoss(nn.Module):
         # unnormalized log P(from)
         # B, O, 1
         alpha = x[:, 0, :, None]
-        # early stopping
         for t in range(1, seq_len):
             # this is "to" state, a.k.a. node potential
             # unnormalized log P(to)

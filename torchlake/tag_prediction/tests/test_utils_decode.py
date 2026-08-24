@@ -1,3 +1,4 @@
+import pytest
 import torch
 from torch.testing import assert_close
 
@@ -15,16 +16,27 @@ CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
 
 
 class TestViterbiDecode:
-    def test_shape(self):
+    @pytest.mark.parametrize("output_score", (True, False))
+    def test_shape(self, output_score: bool):
         x = torch.rand(BATCH_SIZE, SEQ_LEN, NUM_CLASS)
         transition_matrix = torch.rand(NUM_CLASS, NUM_CLASS)
 
-        path, score = viterbi_decode(x, transition_matrix, context=CONTEXT)
+        output = viterbi_decode(
+            x,
+            transition_matrix,
+            context=CONTEXT,
+            output_score=output_score,
+        )
+        if output_score:
+            path, score = output
+            assert score.shape == torch.Size((BATCH_SIZE,))
+        else:
+            path = output
 
         assert path.shape == torch.Size((BATCH_SIZE, SEQ_LEN))
-        assert score.shape == torch.Size((BATCH_SIZE,))
 
-    def test_example(self):
+    @pytest.mark.parametrize("output_score", (True, False))
+    def test_example(self, output_score: bool):
         batch_size = 1
         max_seq_len = 4
         CONTEXT.max_seq_len = max_seq_len
@@ -53,7 +65,17 @@ class TestViterbiDecode:
                 [-10, -10, 10, -10, -10, -10],
             ]
         )
-        best_path, best_score = viterbi_decode(x, t, context=CONTEXT)
-        assert best_path.shape == torch.Size((batch_size, max_seq_len))
-        assert best_score.shape == torch.Size((batch_size,))
-        assert_close(best_path, torch.LongTensor([[1, 4, 5, 2]]))
+        output = viterbi_decode(
+            x,
+            t,
+            context=CONTEXT,
+            output_score=output_score,
+        )
+        if output_score:
+            path, score = output
+            assert score.shape == torch.Size((batch_size,))
+        else:
+            path = output
+
+        assert path.shape == torch.Size((batch_size, max_seq_len))
+        assert_close(path, torch.LongTensor([[1, 4, 5, 2]]))
