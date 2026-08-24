@@ -13,6 +13,7 @@ class NCE(nn.Module):
         negative_ratio: int = 5,
         power: float = 0.75,
         replacement: bool = True,
+        exclude_padding: bool = False,
         context: NLPContext | None = None,
     ):
         """noise contrastive estimation
@@ -22,6 +23,7 @@ class NCE(nn.Module):
             negative_ratio (int, optional): negative sample size compare to positive sample size. Defaults to 5.
             power (float, optional): power parameter. Defaults to 0.75.
             replacement (bool, optional): enable replacement for faster sampling. Defaluts to True.
+            exclude_padding (bool, optional): remove padding from positive sample. Defaluts to False.
             context (NLPContext, optional): NLP context. Defaults to None.
         """
         assert negative_ratio > 0, "negative ratio should be higher than 0"
@@ -36,6 +38,7 @@ class NCE(nn.Module):
         self.distribution = self.get_distribution(word_freqs).to(context.device)
         self.vocab_size = self.distribution.numel()
         self.replacement = replacement
+        self.exclude_padding = exclude_padding
 
     def get_distribution(self, word_freqs: torch.Tensor) -> torch.Tensor:
         """1310.4546 p.4
@@ -120,18 +123,23 @@ class NCE(nn.Module):
         # B, neighbor_size or 1, subseq * #negative
         negative_pred = model(negative_x_indices, negative_y_indices)
 
-        positive_p = self.distribution[y_indices]
-        positive_p = torch.where(positive_p > 0, positive_p.log(), positive_p)
         positive_loss = binary_cross_entropy_with_logits(
-            pred - self.negative_ratio * positive_p,
+            pred - self.negative_ratio * self.distribution[y_indices].log(),
             torch.ones_like(pred),
+            reduction=(
+                "mean"
+                if not self.exclude_padding and self.context.padding_idx is None
+                else "none"
+            ),
         )
 
-        negative_p = self.distribution[negative_y_indices]
-        negative_p = torch.where(negative_p > 0, negative_p.log(), negative_p)
         negative_loss = binary_cross_entropy_with_logits(
-            negative_pred - self.negative_ratio * negative_p,
+            negative_pred
+            - self.negative_ratio * self.distribution[negative_y_indices].log(),
             torch.zeros_like(negative_pred),
         )
+
+        if self.exclude_padding and self.context.padding_idx is not None:
+            positive_loss = positive_loss[y_indices != self.context.padding_idx].mean()
 
         return positive_loss + self.negative_ratio * negative_loss
