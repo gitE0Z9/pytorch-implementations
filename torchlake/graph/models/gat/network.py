@@ -98,6 +98,7 @@ class GATLayer(nn.Module):
         node_indices = edges[:, 0]
 
         # #head, #edge
+        # TODO: scatter dropout
         attention_weight = self.get_attention_weight(h_concat, node_indices)
 
         # #head, #edge, 1 x  #head, #edge, hidden_dim => #head, #edge, hidden_dim
