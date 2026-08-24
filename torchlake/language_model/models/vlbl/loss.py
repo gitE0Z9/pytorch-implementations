@@ -120,14 +120,17 @@ class NCE(nn.Module):
         # B, neighbor_size or 1, subseq * #negative
         negative_pred = model(negative_x_indices, negative_y_indices)
 
+        positive_p = self.distribution[y_indices]
+        positive_p = torch.where(positive_p > 0, positive_p.log(), positive_p)
         positive_loss = binary_cross_entropy_with_logits(
-            pred - self.negative_ratio * self.distribution[y_indices].log(),
+            pred - self.negative_ratio * positive_p,
             torch.ones_like(pred),
         )
 
+        negative_p = self.distribution[negative_y_indices]
+        negative_p = torch.where(negative_p > 0, negative_p.log(), negative_p)
         negative_loss = binary_cross_entropy_with_logits(
-            negative_pred
-            - self.negative_ratio * self.distribution[negative_y_indices].log(),
+            negative_pred - self.negative_ratio * negative_p,
             torch.zeros_like(negative_pred),
         )
 
