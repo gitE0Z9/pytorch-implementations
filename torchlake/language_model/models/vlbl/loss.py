@@ -128,7 +128,7 @@ class NCE(nn.Module):
             torch.ones_like(pred),
             reduction=(
                 "mean"
-                if not self.exclude_padding and self.context.padding_idx is None
+                if not self.exclude_padding or self.context.padding_idx is None
                 else "none"
             ),
         )
