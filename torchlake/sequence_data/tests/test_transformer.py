@@ -84,7 +84,11 @@ class TestNetwork:
 class TestModel:
     def test_transformer_encoder_forward_shape(self):
         x = torch.randint(0, INPUT_VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
-        model = TransformerEncoder(INPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
+        model = TransformerEncoder(
+            INPUT_VOCAB_SIZE,
+            hidden_dim=HIDDEN_DIM,
+            max_seq_len=SEQ_LEN,
+        )
 
         y = model(x)
 
@@ -103,6 +107,7 @@ class TestModel:
             OUTPUT_VOCAB_SIZE,
             OUTPUT_VOCAB_SIZE,
             hidden_dim=HIDDEN_DIM,
+            max_seq_len=SEQ_LEN,
             causal_mask=causal_mask,
         )
 
@@ -113,11 +118,16 @@ class TestModel:
     def test_transformer_forward_shape(self):
         x = torch.randint(0, INPUT_VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
         y = torch.randint(0, INPUT_VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
-        encoder = TransformerEncoder(INPUT_VOCAB_SIZE, hidden_dim=HIDDEN_DIM)
+        encoder = TransformerEncoder(
+            INPUT_VOCAB_SIZE,
+            hidden_dim=HIDDEN_DIM,
+            max_seq_len=SEQ_LEN,
+        )
         decoder = TransformerDecoder(
             OUTPUT_VOCAB_SIZE,
             OUTPUT_VOCAB_SIZE,
             hidden_dim=HIDDEN_DIM,
+            max_seq_len=SEQ_LEN,
         )
         model = Transformer(encoder, decoder)
 

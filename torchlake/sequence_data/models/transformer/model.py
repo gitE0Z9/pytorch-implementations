@@ -16,12 +16,14 @@ class TransformerEncoder(ModelBase):
         hidden_dim: int = 512,
         num_layers: int = 6,
         num_heads: int = 8,
+        max_seq_len: int = 256,
         dropout_prob: float = 0.1,
         padding_idx: int | None = None,
     ):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.num_heads = num_heads
+        self.max_seq_len = max_seq_len
         self.dropout_prob = dropout_prob
         self.padding_idx = padding_idx
         super().__init__(vocab_size, None)
@@ -29,7 +31,10 @@ class TransformerEncoder(ModelBase):
     def build_foot(self, vocab_size):
         self.foot = nn.ModuleDict(
             {
-                "pos_embed": PositionEncoding1d(trainable=False),
+                "pos_embed": PositionEncoding1d(
+                    seq_len=self.max_seq_len,
+                    hidden_dim=self.hidden_dim,
+                ),
                 "token_embed": nn.Embedding(
                     vocab_size,
                     self.hidden_dim,
@@ -59,7 +64,7 @@ class TransformerEncoder(ModelBase):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.foot["token_embed"](x)
-        y = y + self.foot["pos_embed"](y).to(x.device)
+        y = y + self.foot["pos_embed"](y)
         y = self.foot["dropout"](y)
         return self.blocks(y)
 
@@ -72,6 +77,7 @@ class TransformerDecoder(ModelBase):
         hidden_dim: int = 512,
         num_layers: int = 6,
         num_heads: int = 8,
+        max_seq_len: int = 256,
         dropout_prob: float = 0.1,
         causal_mask: bool = True,
         padding_idx: int | None = None,
@@ -79,6 +85,7 @@ class TransformerDecoder(ModelBase):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.num_heads = num_heads
+        self.max_seq_len = max_seq_len
         self.dropout_prob = dropout_prob
         self.padding_idx = padding_idx
         self.causal_mask = causal_mask
@@ -93,7 +100,10 @@ class TransformerDecoder(ModelBase):
     def build_foot(self, vocab_size):
         self.foot = nn.ModuleDict(
             {
-                "pos_embed": PositionEncoding1d(trainable=False),
+                "pos_embed": PositionEncoding1d(
+                    seq_len=self.max_seq_len,
+                    hidden_dim=self.hidden_dim,
+                ),
                 "token_embed": nn.Embedding(
                     vocab_size,
                     self.hidden_dim,

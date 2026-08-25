@@ -1,17 +1,35 @@
 import pytest
 import torch
-from torch.testing import assert_close
 
 from ...models import PositionEncoding1d
 
+BATCH_SIZE = 2
+SEQ_LEN = 32
+HIDDEN_DIM = 16
+
 
 class TestPositionEncoding:
-    @pytest.mark.parametrize("trainable", [True, False])
-    def test_1d_output_shape(self, trainable: bool):
-        s, h = 32, 16
-        x = torch.rand(2, s, h)
+    @pytest.mark.parametrize(
+        "is_fixed,trainable",
+        [
+            (True, True),
+            (True, False),
+            (False, False),
+            pytest.param(
+                False, True, marks=pytest.mark.xfail(raises=AssertionError, strict=True)
+            ),
+        ],
+    )
+    def test_1d_output_shape(self, is_fixed: bool, trainable: bool):
+        x = torch.rand(BATCH_SIZE, SEQ_LEN, HIDDEN_DIM)
 
-        model = PositionEncoding1d(s, h, trainable)
-        y = model.forward(x)
+        model = PositionEncoding1d(
+            SEQ_LEN,
+            HIDDEN_DIM,
+            is_fixed=is_fixed,
+            trainable=trainable,
+        )
 
-        assert_close(y.shape, torch.Size((1, s, h)))
+        y = model(x)
+
+        assert y.shape == torch.Size((1, SEQ_LEN, HIDDEN_DIM))

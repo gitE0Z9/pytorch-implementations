@@ -11,6 +11,7 @@ class PositionEncoding1d(nn.Module):
         self,
         seq_len: int | None = None,
         hidden_dim: int | None = None,
+        is_fixed: bool = True,
         trainable: bool = False,
     ):
         """Position encoding for 1d sequence
@@ -18,14 +19,29 @@ class PositionEncoding1d(nn.Module):
         Args:
             seq_len (int | None, optional): sequence length for fixed size. Defaults to None.
             hidden_dim (int | None, optional): hidden dimension for fixed size. Defaults to None.
+            is_fixed (bool, optional): is encoding parameters fixed size. Defaults to True.
             trainable (bool, optional): is encoding parameters fixed size and trainable parameters. Defaults to False.
         """
+        if trainable:
+            assert (
+                is_fixed
+            ), "trainable position encoding needs to be fixed into a predefined shape"
+        if is_fixed:
+            assert (
+                seq_len is not None and hidden_dim is not None
+            ), "must provide sequence length and hidden dimension to generate fixed encoding"
+
         super().__init__()
         self.trainable = trainable
+        self.is_fixed = is_fixed
 
-        if trainable:
+        if is_fixed:
             # 1, s, h
-            self.encoding = nn.Parameter(self.init_fourier_grid(seq_len, hidden_dim))
+            theta = self.init_fourier_grid(seq_len, hidden_dim)
+            if trainable:
+                self.encoding = nn.Parameter(theta)
+            else:
+                self.register_buffer("encoding", theta)
 
     def init_fourier_grid(
         self,
@@ -55,8 +71,7 @@ class PositionEncoding1d(nn.Module):
         """
         _, seq_len, hidden_dim = x.shape
 
-        if not self.trainable:
-            # 1, s, h
+        if not self.is_fixed:
             return self.init_fourier_grid(seq_len, hidden_dim)
 
         if self.encoding.size(-1) == seq_len:
