@@ -42,7 +42,7 @@ class RNNDiscriminator(ModelBase):
         if context is None:
             context = NLPContext()
 
-        self.embed_dim = embed_dim
+        self.embed_dim = embed_dim if enable_embed else 0
         self.hidden_dim = hidden_dim
         self.context_dim = context_dim
         self.num_layers = num_layers
