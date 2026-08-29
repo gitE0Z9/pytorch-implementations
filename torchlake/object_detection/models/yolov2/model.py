@@ -23,7 +23,7 @@ class YOLOV2(ModelBase):
         self.hidden_dim = hidden_dim
         super().__init__(
             3,
-            1,
+            self.context.num_anchors * (self.context.num_classes + 5),
             foot_kwargs={
                 "backbone": backbone,
             },
@@ -65,7 +65,7 @@ class YOLOV2(ModelBase):
             }
         )
 
-    def build_head(self, _):
+    def build_head(self, output_size: int):
         self.head = nn.Sequential(
             Conv2dNormActivation(
                 self.hidden_dim + self.passthrough_feature_dim // 2,
@@ -74,11 +74,7 @@ class YOLOV2(ModelBase):
                 activation_layer=lambda: nn.LeakyReLU(0.1),
                 inplace=None,
             ),
-            nn.Conv2d(
-                self.hidden_dim,
-                self.context.num_anchors * (self.context.num_classes + 5),
-                1,
-            ),
+            nn.Conv2d(self.hidden_dim, output_size, 1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
