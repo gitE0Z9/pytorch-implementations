@@ -5,11 +5,11 @@ from torchlake.common.utils.sequence import get_input_sequence
 
 from ..models.base import RNNGenerator
 from ..models.gru import GRUDiscriminator
-from ..models.gru.network import GRUCell, GRULayer
+from ..models.gru.network import GRUCell, GRU
 
 BATCH_SIZE = 2
 VOCAB_SIZE = 10
-SEQ_LEN = 16
+SEQ_LEN = 256
 EMBED_DIM = 16
 HIDDEN_DIM = 8
 CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
@@ -17,31 +17,43 @@ CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
 
 class TestNetwork:
     def test_gru_cell_forward_shape(self):
-        x = torch.randn(BATCH_SIZE, EMBED_DIM)
+        x = torch.randn(SEQ_LEN, BATCH_SIZE, EMBED_DIM)
         h = torch.randn(BATCH_SIZE, HIDDEN_DIM)
 
         model = GRUCell(EMBED_DIM, HIDDEN_DIM)
 
         h = model(x, h)
 
-        assert h.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
+        assert h.shape == torch.Size((SEQ_LEN, BATCH_SIZE, HIDDEN_DIM))
 
-    @pytest.mark.parametrize(
-        "h",
-        (
-            None,
-            torch.randn(BATCH_SIZE, HIDDEN_DIM),
-        ),
-    )
-    def test_gru_layer_forward_shape(self, h: torch.Tensor | None):
+    @pytest.mark.parametrize("is_h_none", (True, False))
+    @pytest.mark.parametrize("bidirectional", (True, False))
+    @pytest.mark.parametrize("num_layer", (1, 2, 4))
+    def test_gru_forward_shape(
+        self,
+        is_h_none: bool,
+        bidirectional: bool,
+        num_layer: int,
+    ):
         x = torch.randn(BATCH_SIZE, SEQ_LEN, EMBED_DIM)
-        h = torch.randn(BATCH_SIZE, HIDDEN_DIM)
+        factor = num_layer * (2 if bidirectional else 1)
 
-        model = GRULayer(EMBED_DIM, HIDDEN_DIM)
+        if is_h_none:
+            h = None
+        else:
+            h = torch.randn(BATCH_SIZE, factor * HIDDEN_DIM)
+
+        model = GRU(
+            EMBED_DIM,
+            HIDDEN_DIM,
+            batch_first=True,
+            num_layers=num_layer,
+            bidirectional=bidirectional,
+        )
 
         h = model(x, h)
 
-        assert h.shape == torch.Size((BATCH_SIZE, SEQ_LEN, HIDDEN_DIM))
+        assert h.shape == torch.Size((BATCH_SIZE, SEQ_LEN, factor * HIDDEN_DIM))
 
 
 class TestModel:

@@ -75,7 +75,7 @@ class RNNDiscriminator(ModelBase):
         self.blocks = self.model_class(
             self.embed_dim + self.context_dim,
             self.hidden_dim,
-            self.num_layers,
+            num_layers=self.num_layers,
             batch_first=True,
             bidirectional=self.bidirectional,
         )

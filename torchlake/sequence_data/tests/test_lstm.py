@@ -5,11 +5,11 @@ from torchlake.common.utils.sequence import get_input_sequence
 
 from ..models.base import RNNGenerator
 from ..models.lstm import LSTMDiscriminator
-from ..models.lstm.network import LSTMCell, LSTMLayer
+from ..models.lstm.network import LSTMCell, LSTM
 
 BATCH_SIZE = 2
 VOCAB_SIZE = 10
-SEQ_LEN = 16
+SEQ_LEN = 256
 EMBED_DIM = 16
 HIDDEN_DIM = 8
 CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
@@ -17,7 +17,7 @@ CONTEXT = NLPContext(device="cpu", max_seq_len=SEQ_LEN)
 
 class TestNetwork:
     def test_lstm_cell_forward_shape(self):
-        x = torch.randn(BATCH_SIZE, EMBED_DIM)
+        x = torch.randn(SEQ_LEN, BATCH_SIZE, EMBED_DIM)
         h = torch.randn(BATCH_SIZE, HIDDEN_DIM)
         c = torch.randn(BATCH_SIZE, HIDDEN_DIM)
 
@@ -25,31 +25,52 @@ class TestNetwork:
 
         h, c = model(x, h, c)
 
-        assert h.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
-        assert c.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
+        assert h.shape == torch.Size((SEQ_LEN, BATCH_SIZE, HIDDEN_DIM))
+        assert c.shape == torch.Size((SEQ_LEN, BATCH_SIZE, HIDDEN_DIM))
 
     @pytest.mark.parametrize(
-        "h,c",
+        "is_h_none,is_c_none",
         (
-            (None, None),
-            (torch.randn(BATCH_SIZE, HIDDEN_DIM), None),
-            (None, torch.randn(BATCH_SIZE, HIDDEN_DIM)),
-            (torch.randn(BATCH_SIZE, HIDDEN_DIM), torch.randn(BATCH_SIZE, HIDDEN_DIM)),
+            (True, True),
+            (True, False),
+            (False, True),
+            (False, False),
         ),
     )
-    def test_lstm_layer_forward_shape(
+    @pytest.mark.parametrize("bidirectional", (True, False))
+    @pytest.mark.parametrize("num_layer", (1, 2, 4))
+    def test_lstm_forward_shape(
         self,
-        h: torch.Tensor | None,
-        c: torch.Tensor | None,
+        is_h_none: bool,
+        is_c_none: bool,
+        bidirectional: bool,
+        num_layer: int,
     ):
         x = torch.randn(BATCH_SIZE, SEQ_LEN, EMBED_DIM)
+        factor = num_layer * (2 if bidirectional else 1)
 
-        model = LSTMLayer(EMBED_DIM, HIDDEN_DIM)
+        if is_h_none:
+            h = None
+        else:
+            h = torch.randn(BATCH_SIZE, factor * HIDDEN_DIM)
+
+        if is_c_none:
+            c = None
+        else:
+            c = torch.randn(BATCH_SIZE, factor * HIDDEN_DIM)
+
+        model = LSTM(
+            EMBED_DIM,
+            HIDDEN_DIM,
+            batch_first=True,
+            num_layers=num_layer,
+            bidirectional=bidirectional,
+        )
 
         h, c = model(x, h, c)
 
-        assert h.shape == torch.Size((BATCH_SIZE, SEQ_LEN, HIDDEN_DIM))
-        assert c.shape == torch.Size((BATCH_SIZE, SEQ_LEN, HIDDEN_DIM))
+        assert h.shape == torch.Size((BATCH_SIZE, SEQ_LEN, factor * HIDDEN_DIM))
+        assert c.shape == torch.Size((BATCH_SIZE, SEQ_LEN, factor * HIDDEN_DIM))
 
 
 class TestModel:
