@@ -60,7 +60,7 @@ class FastText(ModelBase):
         word_spans: list[torch.Tensor],
     ) -> torch.Tensor:
         # b, s, h
-        y: torch.Tensor = self.foot.forward(ngrams, words, word_spans)
+        y: torch.Tensor = self.foot(ngrams, words, word_spans)
         # b, h
         return y.mean(axis=1)
 
