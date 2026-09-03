@@ -55,6 +55,7 @@ class CRNN(ModelBase):
             # B, 512, 2, W//4
             nn.MaxPool2d((2, 1), (2, 1)),
             # B, 512, 1, W//4-1
+            # need this bn, different from paper
             Conv2dNormActivation(512, 512, 2, padding=0),
         )
 
