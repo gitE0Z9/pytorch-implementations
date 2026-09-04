@@ -58,7 +58,6 @@ class ShowAttendTell(ModelBase):
 
     def train(self, mode=True):
         result = super().train(mode)
-        result.head.train(mode)
         result.forward = self.loss_forward if mode else self.predict
         return result
 
