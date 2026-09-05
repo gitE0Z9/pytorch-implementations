@@ -28,7 +28,7 @@ def test_classification_evaluator_get_total_accuracy():
     evaluator = ClassificationEvaluator(5, "cpu")
 
     matrix = IncrementalConfusionMatrix(5)
-    matrix.update(LABELS, PREDICTIONS)
+    matrix.update(PREDICTIONS, LABELS)
 
     acc = evaluator.get_total_accuracy(matrix)
 
@@ -39,7 +39,7 @@ def test_classification_evaluator_get_per_class_accuracy():
     evaluator = ClassificationEvaluator(5, "cpu")
 
     matrix = IncrementalConfusionMatrix(5)
-    matrix.update(LABELS, PREDICTIONS)
+    matrix.update(PREDICTIONS, LABELS)
 
     accs = evaluator.get_per_class_accuracy(matrix)
 

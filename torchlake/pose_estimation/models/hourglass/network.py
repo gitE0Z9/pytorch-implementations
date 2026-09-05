@@ -59,19 +59,6 @@ class Hourglass2d(nn.Module):
         num_resblock: int = 1,
     ):
         super().__init__()
-        self.upsample = nn.Sequential(
-            *[
-                ResBlock(
-                    hidden_dim,
-                    hidden_dim,
-                    block=BottleNeck(hidden_dim, hidden_dim // 2),
-                )
-                for _ in range(num_resblock if num_nested > 1 else num_resblock * 2)
-            ]
-        )
-        self.block = (
-            Hourglass2d(hidden_dim, num_nested - 1) if num_nested > 1 else nn.Identity()
-        )
         self.downsample = nn.Sequential(
             nn.MaxPool2d(2, 2),
             *[
@@ -82,6 +69,25 @@ class Hourglass2d(nn.Module):
                 )
                 for _ in range(num_resblock)
             ],
+        )
+        self.block = (
+            Hourglass2d(hidden_dim, num_nested - 1)
+            if num_nested > 1
+            else ResBlock(
+                hidden_dim,
+                hidden_dim,
+                block=BottleNeck(hidden_dim, hidden_dim // 2),
+            )
+        )
+        self.upsample = nn.Sequential(
+            *[
+                ResBlock(
+                    hidden_dim,
+                    hidden_dim,
+                    block=BottleNeck(hidden_dim, hidden_dim // 2),
+                )
+                for _ in range(num_resblock)
+            ]
         )
 
         self.shortcut = nn.Sequential(
@@ -99,11 +105,9 @@ class Hourglass2d(nn.Module):
         y = self.downsample(x)
         y = self.block(y)
         y = self.upsample(y)
-        y = F.interpolate(y, size=x.shape[-2:])
+        y = F.interpolate(y, size=x.shape[-2:], mode="nearest")
 
-        shortcut = self.shortcut(x)
-
-        return y + shortcut
+        return y + self.shortcut(x)
 
 
 class AuxiliaryHead(nn.Module):

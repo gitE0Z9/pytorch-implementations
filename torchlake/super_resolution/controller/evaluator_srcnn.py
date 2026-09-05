@@ -26,7 +26,7 @@ class SRCNNEvaluator(RegressionEvaluator):
     #         output = torch.cat((output, x[:, 1:3]), 1)
     #         return output
 
-    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
+    def _update_metric(self, metric, yhat: torch.Tensor, y: torch.Tensor):
         metric.update(
             yhat.detach()
             .cpu()

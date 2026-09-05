@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy as np
 
 
@@ -9,8 +11,8 @@ class IncrementalConfusionMatrix:
     def __str__(self) -> str:
         return str(self.matrix)
 
-    def update(self, true_labels: list[int], predicted_labels: list[int]):
-        for true, predicted in zip(true_labels, predicted_labels):
+    def update(self, pred: Sequence[int], gt: Sequence[int]):
+        for true, predicted in zip(gt, pred):
             self.matrix[true, predicted] += 1
 
     def get_confusion_matrix(self) -> np.ndarray:

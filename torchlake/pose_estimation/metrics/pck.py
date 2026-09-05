@@ -46,12 +46,12 @@ class PCK:
         # matched, total
         self.hits = torch.zeros(output_size, 2)
 
-    def update(self, gt: torch.Tensor, pred: torch.Tensor):
+    def update(self, pred: torch.Tensor, gt: torch.Tensor):
         """update hits
 
         Args:
-            gt (torch.Tensor): shape B, C, 2/3 (x, y, mask)
             pred (torch.Tensor): shape B, C, 2
+            gt (torch.Tensor): shape B, C, 2/3 (x, y, mask)
         """
         gt = gt.float()
 

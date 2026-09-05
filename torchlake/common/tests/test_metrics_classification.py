@@ -19,6 +19,6 @@ EXPECTED_MATRIX = np.array(
 def test_incremental_confusion_matrix_update():
     confusion_matrix = IncrementalConfusionMatrix(5)
 
-    confusion_matrix.update(LABELS, PREDICTIONS)
+    confusion_matrix.update(PREDICTIONS, LABELS)
 
     assert np.testing.assert_equal(confusion_matrix.matrix, EXPECTED_MATRIX) is None

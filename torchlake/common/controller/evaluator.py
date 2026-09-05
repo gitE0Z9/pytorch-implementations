@@ -28,7 +28,7 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
     ) -> torch.Tensor | tuple[torch.Tensor]: ...
 
     @abstractmethod
-    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor): ...
+    def _update_metric(self, metric, yhat: torch.Tensor, y: torch.Tensor): ...
 
     def run(self, data: Iterator, model: nn.Module, metric: T | None = None) -> T:
         if not hasattr(self, "_predict"):
@@ -41,7 +41,7 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
                 y = row[-1]
                 output = self._predict(row, model)
                 output = self._decode_output(output, row=row)
-                self._update_metric(metric, y, output)
+                self._update_metric(metric, output, y)
 
         return metric
 
@@ -85,7 +85,7 @@ class ClassificationEvaluator(EvaluatorBase):
         else:
             return output
 
-    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
+    def _update_metric(self, metric, yhat: torch.Tensor, y: torch.Tensor):
         metric.update(yhat.detach().cpu().long(), y.long())
 
     # TODO: split classification matrix to itself utils, or just use torchmetric
@@ -182,5 +182,5 @@ class RegressionEvaluator(EvaluatorBase):
     ) -> torch.Tensor | tuple[torch.Tensor]:
         return output
 
-    def _update_metric(self, metric, y: torch.Tensor, yhat: torch.Tensor):
+    def _update_metric(self, metric, yhat: torch.Tensor, y: torch.Tensor):
         metric.update(yhat.detach().cpu(), y)
