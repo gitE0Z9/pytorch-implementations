@@ -79,7 +79,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
     ) -> list[float]:
         # predict strategy
         if not hasattr(self, "_predict"):
-            self.build_predict_function_by_data_type(iter(data))
+            self.guess_predict_function_by_data_type(iter(data))
 
         # amp
         torch.set_autocast_enabled(scaler is not None)

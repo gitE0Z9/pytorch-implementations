@@ -32,7 +32,7 @@ class EvaluatorBase(PredictFunctionMixin, ABC):
 
     def run(self, data: Iterator, model: nn.Module, metric: T | None = None) -> T:
         if not hasattr(self, "_predict"):
-            self.build_predict_function_by_data_type(iter(data))
+            self.guess_predict_function_by_data_type(iter(data))
 
         model.eval()
         with torch.no_grad():

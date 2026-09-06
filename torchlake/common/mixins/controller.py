@@ -28,7 +28,7 @@ class PredictFunctionMixin:
                 )
                 self._predict = self._predict_do_nothing
 
-    def build_predict_function_by_data_type(self, data: Iterable):
+    def guess_predict_function_by_data_type(self, data: Iterable):
         x, _ = next(data)
         is_x_collection = isinstance(x, list | tuple | set)
 
