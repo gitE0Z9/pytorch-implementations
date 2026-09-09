@@ -76,26 +76,66 @@ class TestProductQuantization:
     @pytest.mark.parametrize(
         "codebook_dtype", [torch.uint8, torch.float16, torch.float32]
     )
-    def test_quantize(self, k: int, b: int, codebook_dtype: torch.dtype):
+    @pytest.mark.parametrize("normalized", [True, False])
+    def test_quantize(
+        self,
+        k: int,
+        b: int,
+        codebook_dtype: torch.dtype,
+        normalized: bool,
+    ):
         self.setUp()
-        model = ProductQuantization(k, b, codebook_dtype=codebook_dtype)
-        i = model.quantize(self.x)
+        model = ProductQuantization(
+            k,
+            b,
+            codebook_dtype=codebook_dtype,
+            normalized=normalized,
+        )
+        indices = model.quantize(self.x)
+        codebook = model.codebook
 
-        assert i.shape == torch.Size((self.n, k))
-        assert i.dtype == torch.uint8
-        assert model.codebook.shape == torch.Size((k, b, self.d // k))
-        assert model.codebook.dtype == codebook_dtype
+        if normalized:
+            norm_indices, indices = indices
+            assert norm_indices.shape == torch.Size((self.n, k))
+            assert norm_indices.dtype == torch.uint8
+            norm_codebook, codebook = codebook
+            assert norm_codebook.shape == torch.Size((k, 2**b, 1))
+            assert norm_codebook.dtype == codebook_dtype
+
+        assert indices.shape == torch.Size((self.n, k))
+        assert indices.dtype == torch.uint8
+        assert codebook.shape == torch.Size((k, 2**b, self.d // k))
+        assert codebook.dtype == codebook_dtype
 
     @pytest.mark.parametrize("k", [5, 10])
     @pytest.mark.parametrize("b", [8])
     @pytest.mark.parametrize(
         "codebook_dtype", [torch.uint8, torch.float16, torch.float32]
     )
-    def test_reconstruct(self, k: int, b: int, codebook_dtype: torch.dtype):
+    @pytest.mark.parametrize("normalized", [True, False])
+    def test_reconstruct(
+        self,
+        k: int,
+        b: int,
+        codebook_dtype: torch.dtype,
+        normalized: bool,
+    ):
         self.setUp()
-        model = ProductQuantization(k, b, codebook_dtype=codebook_dtype)
-        i = model.quantize(self.x)
-        x_prime = model.reconstruct(i.long())
+        model = ProductQuantization(
+            k,
+            b,
+            codebook_dtype=codebook_dtype,
+            normalized=normalized,
+        )
+        indices = model.quantize(self.x)
+        norm_indices = None
+        if normalized:
+            norm_indices, indices = indices
+
+        x_prime = model.reconstruct(
+            indices.long(),
+            norm_indices=norm_indices.long() if norm_indices is not None else None,
+        )
 
         assert x_prime.shape == torch.Size((self.n, self.d))
         assert x_prime.dtype == codebook_dtype

@@ -187,8 +187,9 @@ class CharNgramVocab:
         Returns:
             list[int]: a list of subtokens in subword vocab
         """
-        indices = itemgetter(*subtokens)(self.subword_vocab)
-        return [indices] if isinstance(indices, int) else list(indices)
+        # indices = itemgetter(*subtokens)(self.subword_vocab)
+        # return [indices] if isinstance(indices, int) else list(indices)
+        return [self.hash_subtoken(subtoken) for subtoken in subtokens]
 
     def save_word_vocab(self, path: Path | str):
         """save word vocab to json file

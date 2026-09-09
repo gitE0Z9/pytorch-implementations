@@ -40,7 +40,7 @@ class TestNetwork:
             context=CONTEXT,
         )
 
-        y = model.forward(ngram, word, word_span)
+        y = model(ngram, word, word_span)
 
         assert y.shape == torch.Size((BATCH_SIZE, SUBSEQ_LEN, EMBED_DIM))
 
@@ -69,7 +69,7 @@ class TestModel:
             torch.ones_like(w) * 2 for w in self.context_word.view(-1, SUBSEQ_LEN)
         ]
 
-    def test_ce_subword_lm_cbow_shape(self):
+    def test_ce_subword_lm_cbow_forward_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -81,7 +81,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-        gram_prob = model.forward(
+        gram_prob = model(
             self.context_ngram,
             self.context_word.view(-1, SUBSEQ_LEN),
             self.context_word_span,
@@ -90,7 +90,7 @@ class TestModel:
         )
 
         criterion = nn.CrossEntropyLoss()
-        loss = criterion.forward(
+        loss = criterion(
             gram_prob.permute(0, 3, 1, 2).repeat(1, 1, NEIGHBOR_SIZE, 1),
             self.context_word,
         )
@@ -99,7 +99,7 @@ class TestModel:
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, VOCAB_SIZE))
         assert not torch.isnan(loss)
 
-    def testce_subword_lm_sg_shape(self):
+    def test_ce_subword_lm_sg_forward_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -111,7 +111,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-        context_prob = model.forward(
+        context_prob = model(
             self.gram_ngram,
             self.gram_word.view(-1, SUBSEQ_LEN),
             self.gram_word_span,
@@ -120,7 +120,7 @@ class TestModel:
         )
 
         criterion = nn.CrossEntropyLoss()
-        loss = criterion.forward(
+        loss = criterion(
             context_prob.permute(0, 3, 1, 2),
             self.context_word,
         )
@@ -131,7 +131,7 @@ class TestModel:
         )
         assert not torch.isnan(loss)
 
-    def test_ns_subword_lm_cbow_shape(self):
+    def test_ns_subword_lm_cbow_forward_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -143,7 +143,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-        gram_prob = model.forward(
+        gram_prob = model(
             self.context_ngram,
             self.context_word.view(-1, SUBSEQ_LEN),
             self.context_word_span,
@@ -157,13 +157,13 @@ class TestModel:
             VOCAB_SIZE,
             context=CONTEXT,
         )
-        loss = criterion.forward(gram_prob, self.context_word)
+        loss = criterion(gram_prob, self.context_word)
         loss.backward()
 
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, EMBED_DIM))
         assert not torch.isnan(loss)
 
-    def test_ns_subword_lm_sg_shape(self):
+    def test_ns_subword_lm_sg_forward_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -175,7 +175,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-        context_prob = model.forward(
+        context_prob = model(
             self.gram_ngram,
             self.gram_word.view(-1, SUBSEQ_LEN),
             self.gram_word_span,
@@ -189,7 +189,7 @@ class TestModel:
             VOCAB_SIZE,
             context=CONTEXT,
         )
-        loss = criterion.forward(context_prob, self.gram_word)
+        loss = criterion(context_prob, self.gram_word)
         loss.backward()
 
         assert context_prob.shape == torch.Size(
@@ -197,7 +197,7 @@ class TestModel:
         )
         assert not torch.isnan(loss)
 
-    def test_hs_subword_lm_cbow_shape(self):
+    def test_hs_subword_lm_cbow_forward_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -209,7 +209,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-        gram_prob = model.forward(
+        gram_prob = model(
             self.context_ngram,
             self.context_word.view(-1, SUBSEQ_LEN),
             self.context_word_span,
@@ -218,13 +218,13 @@ class TestModel:
         )
 
         criterion = HierarchicalSoftmax(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
-        loss = criterion.forward(gram_prob, self.gram_word)
+        loss = criterion(gram_prob, self.gram_word)
         loss.backward()
 
         assert gram_prob.shape == torch.Size((BATCH_SIZE, 1, SUBSEQ_LEN, EMBED_DIM))
         assert not torch.isnan(loss)
 
-    def test_hs_subword_lm_sg_shape(self):
+    def test_hs_subword_lm_sg_forward_shape(self):
         self.setUp()
 
         model = SubwordLM(
@@ -236,7 +236,7 @@ class TestModel:
             context=CONTEXT,
         )
 
-        context_prob = model.forward(
+        context_prob = model(
             self.gram_ngram,
             self.gram_word.view(-1, SUBSEQ_LEN),
             self.gram_word_span,
@@ -245,7 +245,7 @@ class TestModel:
         )
 
         criterion = HierarchicalSoftmax(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
-        loss = criterion.forward(context_prob, self.gram_word)
+        loss = criterion(context_prob, self.gram_word)
         loss.backward()
 
         assert context_prob.shape == torch.Size(

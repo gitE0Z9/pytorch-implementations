@@ -20,7 +20,7 @@ class TestEfficientNetFeatureExtractor:
     ):
         self.setUp()
         model = EfficientNetFeatureExtractor(network_name, layer_type=layer_type)
-        y = model.forward(
+        y = model(
             self.x,
             ["0_1", "1_1", "2_1", "3_1", "4_1", "5_1", "6_1", "7_1", "8_1", "output"],
         )
