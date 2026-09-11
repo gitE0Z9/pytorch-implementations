@@ -38,6 +38,7 @@ class KMeansQuantization(Quantizer):
         k: int,
         codebook_dtype: torch.dtype = torch.float32,
         indices_dtype: torch.dtype | None = None,
+        error_acceptance: float = 1e-2,
     ):
         """KMeans quantization
 
@@ -45,10 +46,12 @@ class KMeansQuantization(Quantizer):
             k (int): number of clusters
             codebook_dtype (torch.dtype): data type of codebook tensor
             indices_dtype (torch.dtype, optional): data type of indices tensor. Default to None.
+            error_acceptance (float, optional): when error improved less than this value, stop the optimization. Defaults to 1e-2.
         """
         super().__init__()
         assert k > 1, "number of clusters should be larger than 1"
         self.k = k
+        self.error_acceptance = error_acceptance
         self.codebook_dtype = codebook_dtype
         self.indices_dtype = indices_dtype or self._guess_indices_dtype()
         self.codebook = None
@@ -62,7 +65,7 @@ class KMeansQuantization(Quantizer):
         Returns:
             list[torch.Tensor]: cluster indices, shape is (...other shapes), size of list is batch_size
         """
-        model = KMeans(self.k)
+        model = KMeans(self.k, error_acceptance=self.error_acceptance)
         # ...
         index = model.fit(vector).to(self.indices_dtype)
 
@@ -97,6 +100,7 @@ class ProductQuantization(Quantizer):
         codebook_dtype: torch.dtype = torch.float32,
         indices_dtype: torch.dtype | None = None,
         normalized: bool = False,
+        error_acceptance: float = 1e-2,
     ):
         """Product quantization
 
@@ -107,6 +111,7 @@ class ProductQuantization(Quantizer):
             codebook_dtype (torch.dtype): data type of codebook tensor.
             indices_dtype (torch.dtype, optional): data type of indices tensor. Default to None.
             normalized (bool, optional): enable normalized product quantization. Defaults to False.
+            error_acceptance (float, optional): when error improved less than this value, stop the optimization. Defaults to 1e-2.
         """
         super().__init__()
         assert k > 0, "subquantizers should be larger than 0"
@@ -114,6 +119,7 @@ class ProductQuantization(Quantizer):
 
         self.k = k
         self.b = b
+        self.error_acceptance = error_acceptance
         self.normalized = normalized
         self.codebook_dtype = codebook_dtype
         self.indices_dtype = indices_dtype or self._guess_indices_dtype()
@@ -169,6 +175,7 @@ class ProductQuantization(Quantizer):
                                 k=int(2**self.b),
                                 codebook_dtype=self.codebook_dtype,
                                 indices_dtype=self.indices_dtype,
+                                error_acceptance=self.error_acceptance,
                             )
                             for _ in range(self.k)
                         ]
@@ -199,7 +206,10 @@ class ProductQuantization(Quantizer):
 
         if self.normalized:
             # k x (..., 1)
-            norms = [vector.sum(-1, keepdim=True) for vector in vectors]
+            norms = [
+                torch.linalg.norm(vector, ord=2, dim=-1, keepdim=True)
+                for vector in vectors
+            ]
             # k x (..., sub_embed_dim)
             vectors = [vectors[i] / norms[i] for i in range(self.k)]
             return (

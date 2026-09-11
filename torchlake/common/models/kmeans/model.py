@@ -22,8 +22,13 @@ class KMeans(nn.Module):
 
         Args:
             k (int): number of clusters
+            total_iter (int, optional): maximum number of iterations. Defaults to 300.
+            error_acceptance (float, optional): when error improved less than this value, stop the optimization. Defaults to 1e-2.
+            dist_metric (Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None, optional): distance metric. Defaults to None.
+            eval_metric (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], float]  |  None, optional): evaluation metric. Defaults to None.
+            init_method (Literal["uniform", "random", "kmeans++", optional): initialization method. Defaults to "kmeans++".
         """
-        super(KMeans, self).__init__()
+        super().__init__()
         assert k > 1, "number of clusters should be larger than 1"
 
         self.k = k
@@ -105,7 +110,7 @@ class KMeans(nn.Module):
             print("new evaluation score:", new_score)
 
             # early stopping
-            if new_score - prev_score > self.error_acceptance:
+            if (new_score - prev_score).abs() > self.error_acceptance:
                 prev_score = new_score
             else:
                 break
