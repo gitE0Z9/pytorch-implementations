@@ -62,7 +62,7 @@ class KMeans(nn.Module):
         elif self.init_method == "kmeans++":
             visited = torch.randint(0, n, (1,))
             for _ in range(1, self.k):
-                prob = self.dist_metric(x, x[visited]).min(1)[0]
+                prob = self.dist_metric(x, x[visited]).pow(2).min(1)[0]
                 prob[visited] = 0
 
                 index = torch.multinomial(prob, num_samples=1)
