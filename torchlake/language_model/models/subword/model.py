@@ -2,13 +2,15 @@ from typing import Literal
 
 import torch
 from torch import nn
+
+from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NLPContext
 
 from ...constants.enum import LossType, NgramCombinationMethod, Word2VecModelType
 from .network import SubwordEmbedding
 
 
-class SubwordLM(nn.Module):
+class SubwordLM(ModelBase):
 
     def __init__(
         self,
@@ -36,28 +38,58 @@ class SubwordLM(nn.Module):
         if context is None:
             context = NLPContext()
 
-        super().__init__()
+        self.bucket_size = bucket_size
+        self.embed_dim = embed_dim
         self.model_type = model_type
-
-        self.embed: SubwordEmbedding = SubwordEmbedding(
-            bucket_size,
-            embed_dim,
-            ngram_reduction=ngram_reduction,
-            combination=combination,
-            context=context,
-        )
-
-        self.fc = (
-            nn.Linear(embed_dim, vocab_size)
-            if loss_type == LossType.CROSS_ENTROPY
-            else nn.Identity()
-        )
-
-        self._set_head()
+        self.loss_type = loss_type
+        self.ngram_reduction = ngram_reduction
+        self.combination = combination
+        self.context = context
+        super().__init__(1, vocab_size)
 
     @property
     def embeddings(self) -> nn.Embedding:
-        return self.embed.embeddings
+        return self.foot.embeddings
+
+    def build_foot(self, _, **kwargs):
+        self.foot: SubwordEmbedding = SubwordEmbedding(
+            self.bucket_size,
+            self.embed_dim,
+            ngram_reduction=self.ngram_reduction,
+            combination=self.combination,
+            context=self.context,
+        )
+
+    def build_head(self, output_size, **kwargs):
+        self.head = (
+            nn.Linear(self.embed_dim, output_size)
+            if self.loss_type == LossType.CROSS_ENTROPY
+            else nn.Identity()
+        )
+
+    def get_word_vectors(
+        self,
+        ngrams: list[torch.Tensor],
+        words: torch.Tensor,
+        word_spans: list[torch.Tensor],
+        batch_size: int = 1,
+    ) -> torch.Tensor:
+        """get embedded vector of words
+
+        Args:
+            ngrams (list[torch.Tensor]): ngram tokens, shape is batch_size*neighbor_size x (#grams)
+            words (torch.Tensor): word tokens, shape is batch_size, neighbor_size #subsequence)
+            word_spans (list[torch.Tensor]): word lengths, shape is batch_size*neighbor_size x (#subsequence)
+            batch_size (int, optional): size of batch. Defaults to 1.
+
+        Returns:
+            torch.Tensor: embedded vectors of words
+        """
+        # batch_size * 1 or neighbor_size, s, h
+        y: torch.Tensor = self.foot(ngrams, word_spans, words)
+        n, seq_len, embed_dim = y.shape
+        # batch_size, 1 or neighbor_size, s, h
+        return y.view(batch_size, n // batch_size, seq_len, embed_dim)
 
     def forward(
         self,
@@ -79,51 +111,17 @@ class SubwordLM(nn.Module):
         Returns:
             torch.Tensor: embedding vectors of contexts for CBOW or of gram for SkipGram
         """
-        # n, 1 or neighbor_size, s, h
-        y = self.get_embedding_vector(ngrams, words, word_spans, batch_size)
-        return self.head(y, target_neighbor_size)
+        # b, 1 or neighbor_size, s, h
+        y = self.get_word_vectors(ngrams, words, word_spans, batch_size)
+        if self.model_type == Word2VecModelType.CBOW:
+            y = y.mean(1, keepdim=True)
 
-        # if self.model_type == Word2VecModelType.CBOW:
-        #     y = y.mean(1, keepdim=True)
-        #     return self.fc(y)
-        # elif self.model_type == Word2VecModelType.SKIP_GRAM:
-        #     y = self.fc(y)
-        #     return y.repeat(1, neighbor_size, 1, 1)
+        # b, 1, s, o
+        y = self.head(y)
 
-    def get_embedding_vector(
-        self,
-        ngrams: list[torch.Tensor],
-        words: torch.Tensor,
-        word_spans: list[torch.Tensor],
-        batch_size: int = 1,
-    ) -> torch.Tensor:
-        """get embedding vector of ngrams
+        if self.model_type == Word2VecModelType.SKIP_GRAM:
+            # b, neighbor_size, s, o
+            y = y.repeat(1, target_neighbor_size, 1, 1)
 
-        Args:
-            ngrams (list[torch.Tensor]): ngram tokens, shape is batch_size*neighbor_size x (#grams)
-            words (torch.Tensor): word tokens, shape is batch_size, neighbor_size #subsequence)
-            word_spans (list[torch.Tensor]): word lengths, shape is batch_size*neighbor_size x (#subsequence)
-            batch_size (int, optional): size of batch. Defaults to 1.
-
-        Returns:
-            torch.Tensor: embedding vector of ngrams
-        """
-        # batch_size * 1 or neighbor_size, s, h
-        y: torch.Tensor = self.embed(ngrams, words, word_spans)
-        n, seq_len, embed_dim = y.shape
-        # batch_size, 1 or neighbor_size, s, h
-        return y.view(batch_size, n // batch_size, seq_len, embed_dim)
-
-    def _set_head(self):
-        self.head = {
-            Word2VecModelType.CBOW: self._forward_cbow,
-            Word2VecModelType.SKIP_GRAM: self._forward_sg,
-        }[self.model_type]
-
-    def _forward_cbow(self, y: torch.Tensor, _: int = 1) -> torch.Tensor:
-        y = y.mean(1, keepdim=True)
-        return self.fc(y)
-
-    def _forward_sg(self, y: torch.Tensor, neighbor_size: int = 1) -> torch.Tensor:
-        y = self.fc(y)
-        return y.repeat(1, neighbor_size, 1, 1)
+        # b, 1 or neighbor_size, s, o
+        return y

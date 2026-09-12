@@ -20,13 +20,14 @@ WORD_COUNTS = torch.randint(0, 5, (VOCAB_SIZE,))
 
 class TestNetwork:
     @pytest.mark.parametrize(
-        "combination",
+        "combination,vocab_size",
         [
-            NgramCombinationMethod.NGRAM_ONLY,
-            NgramCombinationMethod.WORD_AND_NGRAM,
+            (NgramCombinationMethod.NGRAM_ONLY, 0),
+            (NgramCombinationMethod.WORD_AND_NGRAM, 0),
+            (NgramCombinationMethod.WORD_AND_NGRAM, VOCAB_SIZE),
         ],
     )
-    def test_subword_embedding_forward_shape(self, combination: int):
+    def test_subword_embedding_forward_shape(self, combination: int, vocab_size: int):
         ngram = [
             torch.randint(0, VOCAB_SIZE, (SUBSEQ_LEN * 2,)) for _ in range(BATCH_SIZE)
         ]
@@ -36,11 +37,12 @@ class TestNetwork:
         model = SubwordEmbedding(
             BUCKET_SIZE,
             EMBED_DIM,
+            vocab_size=vocab_size,
             combination=combination,
             context=CONTEXT,
         )
 
-        y = model(ngram, word, word_span)
+        y = model(ngram, word_span, word)
 
         assert y.shape == torch.Size((BATCH_SIZE, SUBSEQ_LEN, EMBED_DIM))
 
