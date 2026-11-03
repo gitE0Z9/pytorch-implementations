@@ -183,8 +183,10 @@ package name: `language_model`
 | Word2vec                                        | [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57) | ``word2vec``      |
 | GloVe                                           | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``glove``         |
 | Vector log-bilinear language model (vLBL/ivLBL) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``vlbl``          |
+| Subword language model                          |                                                                                                                 | ``subword``       |
 | RNN LM                                          |                                                                                                                 | `rnnlm`           |
 | Character-aware neural language model           |                                                                                                                 | `character_aware` |
+| Gated convolution language model                |                                                                                                                 | `gated_conv`      |
 
 ### Text classification
 
@@ -248,11 +250,11 @@ package name: `super_resolution`
 
 package name: `graph`
 
-| Model                               | Article Link                                                                                                   | Package       |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------- |
-| Graph Convolution Network (GCN)     | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf) | ``gcn``       |
-| Graph Attention Network (GAT)       | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``attention`` |
-| Graph Attention Network v2 (GAT v2) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``attention`` |
+| Model                               | Article Link                                                                                                   | Package |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------- |
+| Graph Convolution Network (GCN)     | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gcn-c617638a9fcf) | ``gcn`` |
+| Graph Attention Network (GAT)       | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``gat`` |
+| Graph Attention Network v2 (GAT v2) | [medium](https://acrocanthosaurus627.medium.com/pytorch-%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-gat-a0a413e3cd12) | ``gat`` |
 
 ### Reinforcement Learning
 
@@ -261,6 +263,14 @@ package name: `reinforcement_learning`
 | Model          | Article Link                                                                                                                                  | Package |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | Deep Q Network | [medium](https://acrocanthosaurus627.medium.com/%E7%B6%93%E5%85%B8%E7%B6%B2%E8%B7%AF%E7%B3%BB%E5%88%97-%E5%85%AB-deep-q-network-b12d7769e337) | ``dqn`` |
+
+### Explanability
+
+套件名: `explanation`
+
+| Model                                      | Article Link | Package      |
+| ------------------------------------------ | ------------ | ------------ |
+| Gradient weighted Class Activation Mapping |              | ``grad_cam`` |
 
 ## Environment
 
