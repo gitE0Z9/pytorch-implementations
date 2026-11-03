@@ -5,6 +5,7 @@ from torchlake.common.utils.sequence import get_input_sequence
 
 from ..models.base import RNNGenerator
 from ..models.lstm import LSTMDiscriminator
+from ..models.base import RNNDiscriminator
 from ..models.lstm.network import LSTMCell, LSTM
 
 BATCH_SIZE = 2
@@ -163,7 +164,6 @@ class TestModel:
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
         model = LSTMDiscriminator(
-            VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,
             label_size,
@@ -171,8 +171,9 @@ class TestModel:
             bidirectional=bidirectional,
             output_sequence=output_sequence,
         )
+        model.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
-        y = model.forward(x)
+        y = model(x)
 
         assert y.shape == target_shape
 
@@ -186,7 +187,6 @@ class TestModel:
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
         discriminator = LSTMDiscriminator(
-            VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,
             VOCAB_SIZE,
@@ -194,11 +194,12 @@ class TestModel:
             bidirectional=bidirectional,
             context=CONTEXT,
         )
+        discriminator.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         model = RNNGenerator(discriminator)
         model.train()
 
-        y = model.loss_forward(y)
+        y = model(y)
 
         assert y.shape[0] == BATCH_SIZE
         assert 0 <= y.shape[1] <= SEQ_LEN
@@ -216,7 +217,6 @@ class TestModel:
         x = get_input_sequence((BATCH_SIZE, 1), CONTEXT)
 
         discriminator = LSTMDiscriminator(
-            VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,
             VOCAB_SIZE,
@@ -224,11 +224,12 @@ class TestModel:
             bidirectional=bidirectional,
             context=CONTEXT,
         )
+        discriminator.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         model = RNNGenerator(discriminator)
         model.eval()
 
-        y = model.predict(x, topk=topk)
+        y = model(x, topk=topk)
 
         assert y.size(0) == BATCH_SIZE
         assert y.size(1) <= SEQ_LEN + 1

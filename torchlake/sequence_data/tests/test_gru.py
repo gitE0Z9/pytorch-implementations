@@ -146,7 +146,6 @@ class TestModel:
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
         model = GRUDiscriminator(
-            VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,
             label_size,
@@ -154,6 +153,7 @@ class TestModel:
             bidirectional=bidirectional,
             output_sequence=output_sequence,
         )
+        model.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         y = model(x)
 
@@ -169,7 +169,6 @@ class TestModel:
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
         discriminator = GRUDiscriminator(
-            VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,
             VOCAB_SIZE,
@@ -177,6 +176,7 @@ class TestModel:
             bidirectional=bidirectional,
             context=CONTEXT,
         )
+        discriminator.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         model = RNNGenerator(discriminator)
         model.train()
@@ -199,7 +199,6 @@ class TestModel:
         x = get_input_sequence((BATCH_SIZE, 1), CONTEXT)
 
         discriminator = GRUDiscriminator(
-            VOCAB_SIZE,
             EMBED_DIM,
             HIDDEN_DIM,
             VOCAB_SIZE,
@@ -207,6 +206,7 @@ class TestModel:
             bidirectional=bidirectional,
             context=CONTEXT,
         )
+        discriminator.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         model = RNNGenerator(discriminator)
         model.eval()

@@ -1,6 +1,5 @@
 import numpy as np
 
-
 VOC_CLASS_NAMES = [
     "aeroplane",
     "bicycle",

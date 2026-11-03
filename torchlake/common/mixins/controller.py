@@ -1,4 +1,5 @@
-from typing import Any, Iterable
+import warnings
+from typing import Any, Iterable, Sequence
 
 import torch
 from torch import nn
@@ -23,7 +24,7 @@ class PredictFunctionMixin:
                 return
 
             if nested_level > 1:
-                print(
+                warnings.warn(
                     "for deeply nested tensors, please send to device in collate_fn or earlier stage, we will pass x as it is"
                 )
                 self._predict = self._predict_do_nothing
@@ -64,14 +65,26 @@ class PredictFunctionMixin:
         *args,
         **kwargs,
     ) -> torch.Tensor | Any:
+        def inner(x: Sequence | torch.Tensor, device: torch.device):
+            if isinstance(x, torch.Tensor):
+                return x.to(device)
+            if isinstance(x, (list, tuple)):
+                moved = [inner(item, device=device) for item in x]
+                return type(x)(moved)
+            return x
+
         x, _ = row
-        for i in range(len(x)):
-            x[i] = x[i].to(self.device)
+        x = inner(x, device=self.device)
         output = model(*x, *args, **kwargs)
         # for output that has feature in last
         if self.feature_last:
-            for i in range(len(output)):
-                output[i] = output[i].permute(0, -1, *range(1, len(output.shape) - 1))
+            if isinstance(output, (list, tuple)):
+                for i in range(len(output)):
+                    output[i] = output[i].permute(
+                        0, -1, *range(1, len(output.shape) - 1)
+                    )
+            else:
+                output = output.permute(0, -1, *range(1, len(output.shape) - 1))
         return output
 
     def _predict_do_nothing(

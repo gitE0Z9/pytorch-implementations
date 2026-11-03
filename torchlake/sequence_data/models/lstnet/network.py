@@ -106,17 +106,17 @@ class Highway(nn.Module):
         """forward
 
         Args:
-            x (torch.Tensor): input. shape is (b, 1, s, c)
+            x (torch.Tensor): input. shape is (b, c, s)
             z (torch.Tensor): output. shape is (b, c)
 
         Returns:
             torch.Tensor: output
         """
-        output_size = x.size(-1)
-        # B, highway window size, C
-        x = x[:, 0, -self.highway_window_size :, :]
+        output_size = x.size(1)
+        # B, C, highway window size
+        x = x[:, :, -self.highway_window_size :]
         # B * C, highway window size
-        x = x.transpose(-1, -2).reshape(-1, self.highway_window_size)
+        x = x.reshape(-1, self.highway_window_size)
         # B * C, 1
         y = self.linear(x)
         # B, C

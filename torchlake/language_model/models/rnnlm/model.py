@@ -1,85 +1,65 @@
-# copy from seq2seq
+from functools import partial
 
 import torch
-from torchlake.common.models.model_base import ModelBase
+import torch.nn.functional as F
+from torch import nn
+
 from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import get_input_sequence
-from torchlake.sequence_data.models.base import RNNGenerator, RNNDiscriminator
+from torchlake.sequence_data.models.base import RNNDiscriminator, RNNGenerator
+from typing import Type
 
 
-class RNNLM(ModelBase):
+class RNNLM(RNNGenerator):
     def __init__(
         self,
-        backbone: RNNGenerator,
+        vocab_size: int,
+        hidden_dim: int,
+        rnn_discriminator_class: Type[RNNDiscriminator],
+        num_layers: int = 1,
         context: NLPContext | None = None,
     ):
-        if context is None:
-            context = NLPContext()
-
-        self.context = context
-        super().__init__(
-            None,
-            None,
-            head_kwargs={"backbone": backbone},
+        backbone = rnn_discriminator_class(
+            input_channel=vocab_size,
+            hidden_dim=hidden_dim,
+            output_size=vocab_size,
+            num_layers=num_layers,
+            output_sequence=True,
+            context=context,
+            projection_layer=lambda x: F.one_hot(x, num_classes=vocab_size).float(),
         )
-
-    def build_foot(self, _, **kwargs):
-        self.foot = ...
-
-    def build_head(self, _, **kwargs):
-        self.head: RNNGenerator = kwargs.pop("backbone")
+        super().__init__(backbone, attention=None)
 
     def train(self, mode=True):
         result = super().train(mode)
-        result.head.train()
-        result.forward = self.loss_forward
+        # override super(RNNGenerator) behavior
+        result.head.output_sequence = True
+        result.head.forward = partial(result.head.forward, output_state=not mode)
+        result.forward = self.head.forward if mode else self.predict
         return result
 
-    def eval(self):
-        result = super().eval()
-        result.head.eval()
-        result.forward = self.predict
-        return result
-
-    def loss_forward(
-        self,
-        x: torch.Tensor,
-        teacher_forcing_ratio: float = 0.5,
-        early_stopping: bool = True,
-    ) -> torch.Tensor | tuple[torch.Tensor]:
-        """training loss forward
-
-        Args:
-            x (torch.Tensor): groundtruth sequence, shape is (batch_size, seq_len)
-            teacher_forcing_ratio (float, optional): scheduled sampling in paper [1506.03099]. Defaults to 0.5.
-            early_stopping (bool, optional): stop generation after longest meaningful tokens in y. Defaults to True.
-
-        Returns:
-            torch.Tensor: generated sequence
-        """
-        return self.head.loss_forward(
-            x,
-            teacher_forcing_ratio=teacher_forcing_ratio,
-            early_stopping=early_stopping,
+    @property
+    def input_embedding(self) -> nn.Embedding:
+        w: torch.Tensor = self.head.blocks.weight_ih_l0.detach()
+        out_c, in_c = w.shape
+        e = nn.Embedding(
+            in_c,
+            out_c,
+            padding_idx=self.head.context.padding_idx,
         )
+        e.weight.data.copy_(w.T)
 
-    def predict(
-        self,
-        x: torch.Tensor,
-        topk: int = 1,
-    ) -> torch.Tensor | tuple[torch.Tensor]:
-        """predict sequence with beam search
+        return e
 
-        Args:
-            x (torch.Tensor): source sequence, shape in (batch, seq)
-            topk (int, optional): beam search size. Defaults to 1.
-
-        Returns:
-            torch.Tensor: output sequence
-        """
-        batch_size = x.size(0)
-
-        return self.head.predict(
-            get_input_sequence((batch_size, 1), self.context),
-            topk=topk,
+    @property
+    def output_embedding(self) -> nn.Embedding:
+        w = self.head.head.weight.detach()
+        out_c, in_c = w.shape
+        e = nn.Embedding(
+            out_c,
+            in_c,
+            padding_idx=self.head.context.padding_idx,
         )
+        e.weight.data.copy_(w)
+
+        return e

@@ -1,15 +1,22 @@
+from functools import wraps
+from typing import Type, TypeVar
+
 from torch import nn
 
+from .rnn_discriminator import RNNDiscriminator
 
-def register_model_class(model_class: nn.Module):
-    def decorator(cls: nn.Module):
+T = TypeVar("T", bound=RNNDiscriminator)
+
+
+def register_model_class(model_class: Type[nn.Module]):
+    def decorator(cls: Type[T]) -> Type[T]:
         original_init = cls.__init__
 
-        def new_init(self, *args, **kwargs):
-            return original_init(self, model_class=model_class, *args, **kwargs)
+        @wraps(original_init)
+        def new_init(self, *args, **kwargs) -> None:
+            original_init(self, *args, rnn_class=model_class, **kwargs)
 
-        cls.__init__ = new_init
-
+        cls.__init__ = new_init  # type: ignore[method-assign]
         return cls
 
     return decorator

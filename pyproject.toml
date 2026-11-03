@@ -45,13 +45,28 @@ notebook = [
   "scikit-learn>=1.6.1",
   "torchinfo>=1.8.0",
 ]
-ocr = ["levenshtein>=0.27.1", "trdg>=0.1.1"]
+ocr = [
+    "levenshtein>=0.27.1",
+    "trdg",
+]
 graph = ["networkx>=3.4.2", "torch_geometric>=2.7.0"]
 3d = ["trimesh>=4.8.3"]
-text = ["tokenizers>=0.21.1"]
+text = [
+    "nltk>=3.10.3",
+    "spacy>=3.8.15",
+    "tokenizers>=0.21.1",
+]
+tabular = [
+    "odfpy>=1.4.1",
+    "yfinance>=1.5.2",
+]
+vendor = [
+    "onnx>=1.22.0",
+]
 
 [dependency-groups]
 dev = [
+  "line-profiler>=5.0.2",
   "pytest>=8.3.5",
   "pytest-benchmark>=5.1.0",
   "pytest-cov>=6.1.1",
@@ -63,6 +78,9 @@ dev = [
 [tool.uv]
 conflicts = [[{ extra = "cpu" }, { extra = "cu126" }]]
 no-build-isolation-package = ["torchtext"]
+override-dependencies = [
+  "arabic-reshaper==2.1.4",
+]
 
 [tool.uv.sources]
 torch = [
@@ -84,6 +102,7 @@ torch-sparse = [
 torch-tensorrt = [{ index = "torch-tensorrt-cu126" }]
 tensorrt = { path = "F:/TensorRT-10.7.0.23/python/tensorrt-10.7.0-cp311-none-win_amd64.whl" }
 torchtext = { path = "torchtext" }
+trdg = { git = "https://github.com/Belval/TextRecognitionDataGenerator", rev = "dd9d7d3886fc2cf5a1e3228445c6651e3f53654c" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

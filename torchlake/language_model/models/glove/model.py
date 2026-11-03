@@ -1,10 +1,11 @@
 import torch
 from torch import nn
 
+from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NLPContext
 
 
-class GloVe(nn.Module):
+class GloVe(ModelBase):
 
     def __init__(
         self,
@@ -22,20 +23,34 @@ class GloVe(nn.Module):
         if context is None:
             context = NLPContext()
 
-        super().__init__()
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
         self.context = context
-        self.word_embed = nn.Embedding(
-            vocab_size,
-            embed_dim,
-            padding_idx=context.padding_idx,
+        super().__init__(vocab_size, 1)
+        self.word_bias = nn.Parameter(torch.zeros((self.vocab_size,)))
+        self.context_bias = nn.Parameter(torch.zeros((self.vocab_size,)))
+
+    @property
+    def input_embedding(self) -> nn.Embedding:
+        return self.foot
+
+    @property
+    def output_embedding(self) -> nn.Embedding:
+        return self.head
+
+    def build_foot(self, input_channel, **kwargs):
+        self.foot = nn.Embedding(
+            input_channel,
+            self.embed_dim,
+            padding_idx=self.context.padding_idx,
         )
-        self.context_embed = nn.Embedding(
-            vocab_size,
-            embed_dim,
-            padding_idx=context.padding_idx,
+
+    def build_head(self, _, **kwargs):
+        self.head = nn.Embedding(
+            self.vocab_size,
+            self.embed_dim,
+            padding_idx=self.context.padding_idx,
         )
-        self.word_bias = nn.Parameter(torch.zeros((vocab_size,)))
-        self.context_bias = nn.Parameter(torch.zeros((vocab_size,)))
 
     def forward(self, gram: torch.Tensor, context: torch.Tensor) -> torch.Tensor:
         """forward
@@ -48,7 +63,7 @@ class GloVe(nn.Module):
             torch.Tensor: w_i * w_j + b_i + b_j
         """
         # b*seq, 1, h # b*seq, neighbor_size, h
-        w_e, c_e = self.word_embed(gram), self.context_embed(context)
+        w_e, c_e = self.foot(gram), self.head(context)
         # b*seq, neighbor_size + b*seq, 1 + b*seq, neighbor_size => b*seq, neighbor_size
         return (
             torch.einsum("sxh,syh->sy", w_e, c_e)

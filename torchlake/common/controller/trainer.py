@@ -71,6 +71,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
         checkpoint_func: (
             Callable[[nn.Module, Optimizer, LRScheduler | None], None] | None
         ) = None,
+        gradient_clipping_hook: Callable | None = None,
         at_batch_end_hook: Callable[[int], None] | None = None,
         at_epoch_end_hook: Callable | None = None,
         is_early_stoppable_func: Callable[[], bool] | None = None,
@@ -87,7 +88,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
 
         if recorder is None:
             recorder = self.recorder
-            if recorder.is_static_dataset and recorder.data_size <= 0:
+            if recorder.is_static_dataset and recorder.dataset_size <= 0:
                 print("Calculating dataset size...")
                 recorder.calc_dataset_size(data)
 
@@ -106,7 +107,7 @@ class TrainerBase(PredictFunctionMixin, ABC):
             for batch_idx, row in enumerate(tqdm(data)):
                 row_size = recorder.calc_batch_size(row)
                 if not recorder.is_static_dataset:
-                    recorder.increment_data_size(row_size)
+                    recorder.increment_dataset_size(row_size)
 
                 with torch.autocast(
                     device_type=self.device.type,
@@ -134,15 +135,20 @@ class TrainerBase(PredictFunctionMixin, ABC):
                 if (batch_idx + 1) % self.acc_iters == 0:
                     # mixed precision
                     if scaler is None:
+                        if gradient_clipping_hook is not None:
+                            gradient_clipping_hook()
                         optimizer.step()
                     else:
+                        if gradient_clipping_hook is not None:
+                            scaler.unscale_(optimizer)
+                            gradient_clipping_hook()
                         scaler.step(optimizer)
                         scaler.update()
 
                     optimizer.zero_grad()
 
                 recorder.increment_running_loss(
-                    *(loss.item() / recorder.data_size for loss in losses)
+                    *(loss.item() / recorder.dataset_size for loss in losses)
                 )
 
                 if at_batch_end_hook is not None:
@@ -205,7 +211,7 @@ class ClassificationTrainer(TrainerBase):
         row: tuple[Iterable],
         criterion: nn.Module,
     ) -> torch.Tensor:
-        _, y = row
+        y = row[-1]
         y: torch.Tensor = y.to(self.device)
 
         return criterion(y_hat, y.long())

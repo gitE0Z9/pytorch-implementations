@@ -59,6 +59,6 @@ class TestModel:
         model = DCNN(VOCAB_SIZE, topk=3)
 
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, MAX_SEQ_LEN))
-        output = model.forward(x)
+        output = model(x)
 
         assert output.shape == torch.Size((BATCH_SIZE, 1))

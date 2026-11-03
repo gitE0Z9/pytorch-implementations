@@ -38,15 +38,15 @@ class BiLSTMCRF(ModelBase):
 
     def build_foot(self, vocab_size):
         self.foot = LSTMDiscriminator(
-            vocab_size,
             self.embed_dim,
             self.hidden_dim,
             self.output_size,
             num_layers=self.num_layers,
             bidirectional=True,
-            context=self.context,
             output_sequence=True,
+            context=self.context,
         )
+        self.foot.set_embedding_as_projection_layer(vocab_size, self.embed_dim)
 
     def build_head(self, output_size):
         self.head = LinearCRF(output_size, self.context)

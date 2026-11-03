@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import torch
+
 from torchlake.common.controller.trainer import TrainerBase
 
 from ..models.glove.loss import GloVeLoss
@@ -20,11 +21,11 @@ class GloVeTrainer(TrainerBase):
         context = context.to(self.device)
 
         # batch*subseq, neighbor_size
-        return model.forward(gram, context)
+        return model(gram, context)
 
     def _calc_loss(
         self,
-        output: torch.Tensor,
+        y_hat: torch.Tensor,
         row: tuple[Iterable],
         criterion: GloVeLoss,
     ):
@@ -32,4 +33,4 @@ class GloVeTrainer(TrainerBase):
         gram = gram.to(self.device)
         context = context.to(self.device)
 
-        return criterion.forward(gram, context, output)
+        return criterion(y_hat, gram, context)

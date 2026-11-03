@@ -97,7 +97,7 @@ class GANTrainer:
 
         if recorder is None:
             recorder = self.recorder
-            if recorder.is_static_dataset and recorder.data_size <= 0:
+            if recorder.is_static_dataset and recorder.dataset_size <= 0:
                 print("Calculating dataset size...")
                 recorder.calc_dataset_size(data)
 
@@ -109,7 +109,7 @@ class GANTrainer:
             for batch_idx, row in enumerate(tqdm(data)):
                 row_size = recorder.calc_batch_size(row)
                 if not recorder.is_static_dataset:
-                    recorder.increment_data_size(row_size)
+                    recorder.increment_dataset_size(row_size)
 
                 noise = noise_generator(row_size, self.device)
 
@@ -143,7 +143,10 @@ class GANTrainer:
                     optimizer_g.zero_grad()
 
                     recorder.increment_running_loss(
-                        *(loss.item() / recorder.data_size for loss in (d_loss, g_loss))
+                        *(
+                            loss.item() / recorder.dataset_size
+                            for loss in (d_loss, g_loss)
+                        )
                     )
 
             recorder.enqueue_training_loss()

@@ -6,7 +6,7 @@ from ...common.schemas.nlp import NLPContext
 from ..constants.enum import LossType, NgramCombinationMethod, Word2VecModelType
 from ..models.subword.model import SubwordLM
 from ..models.subword.network import SubwordEmbedding
-from ..models.word2vec.loss import HierarchicalSoftmax, NegativeSampling
+from ..models.word2vec.loss import HierarchicalSoftmaxLoss, NegativeSampling
 
 BATCH_SIZE = 16
 BUCKET_SIZE = 100
@@ -219,7 +219,7 @@ class TestModel:
             1,
         )
 
-        criterion = HierarchicalSoftmax(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
+        criterion = HierarchicalSoftmaxLoss(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
         loss = criterion(gram_prob, self.gram_word)
         loss.backward()
 
@@ -246,7 +246,7 @@ class TestModel:
             NEIGHBOR_SIZE,
         )
 
-        criterion = HierarchicalSoftmax(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
+        criterion = HierarchicalSoftmaxLoss(WORD_COUNTS, EMBED_DIM, VOCAB_SIZE, CONTEXT)
         loss = criterion(context_prob, self.gram_word)
         loss.backward()
 

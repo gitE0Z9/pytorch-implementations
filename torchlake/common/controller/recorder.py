@@ -12,8 +12,8 @@ class TrainRecorder:
         current_epoch: int = 0,
         total_epoch: int = 1,
         num_loss: int = 1,
-        is_data_size_static: bool = True,
         loss_names: Sequence[str] = ["total"],
+        is_static_dataset: bool = True,
     ):
         """recorder of training progress
 
@@ -21,7 +21,8 @@ class TrainRecorder:
             current_epoch (int, optional): current epoch. Defaults to 0.
             total_epoch (int, optional): total epoch. Defaults to 1.
             num_loss (int, optional): how many losses term to record. Defaults to 1.
-            is_data_size_static (bool, optional): if calculate during training. Defaults to True.
+            loss_names (Sequence[str], optional): names of each loss term. Defaults to ["total"].
+            is_static_dataset (bool, optional): if False, calculate the dataset size during training. Defaults to True.
         """
         self.current_epoch = current_epoch
         self.total_epoch = total_epoch
@@ -32,10 +33,10 @@ class TrainRecorder:
                 loss_names.append(f"subloss {i+1}")
         self.num_loss = num_loss
         self.loss_names = loss_names
-        self.is_static_dataset = is_data_size_static
+        self.is_static_dataset = is_static_dataset
 
-        self.current_data_size = 0
-        self.data_size = 0
+        self.current_dataset_size = 0
+        self.dataset_size = 0
         self.reset_running_loss()
         self.reset_training_loss()
 
@@ -48,17 +49,17 @@ class TrainRecorder:
     def is_final_epoch(self) -> bool:
         return self.current_epoch >= self.total_epoch
 
-    def reset_data_size(self):
-        self.data_size = 0
+    def reset_dataset_size(self):
+        self.dataset_size = 0
 
-    def reset_current_data_size(self):
-        self.current_data_size = 0
+    def reset_current_dataset_size(self):
+        self.current_dataset_size = 0
 
-    def increment_data_size(self, size: int):
-        self.data_size += size
+    def increment_dataset_size(self, size: int):
+        self.dataset_size += size
 
-    def increment_current_data_size(self, size: int):
-        self.current_data_size += size
+    def increment_current_dataset_size(self, size: int):
+        self.current_dataset_size += size
 
     def calc_batch_size(self, row: tuple) -> int:
         # get x
@@ -82,13 +83,13 @@ class TrainRecorder:
         return count
 
     def calc_dataset_size(self, dataset: Iterable) -> int:
-        self.reset_data_size()
+        self.reset_dataset_size()
 
         for row in tqdm(dataset):
             count = self.calc_batch_size(row)
-            self.increment_data_size(count)
+            self.increment_dataset_size(count)
 
-        return self.data_size
+        return self.dataset_size
 
     def reset_running_loss(self):
         self.running_losses: list[float] = [0.0] * self.num_loss
@@ -133,8 +134,8 @@ class TrainRecorder:
         state = {
             "current_epoch": self.current_epoch,
             "total_epoch": self.total_epoch,
-            "current_data_size": self.current_data_size,
-            "data_size": self.data_size,
+            "current_dataset_size": self.current_dataset_size,
+            "dataset_size": self.dataset_size,
             "num_loss": self.num_loss,
             "loss_names": self.loss_names,
             "running_losses": self.running_losses,
@@ -147,8 +148,8 @@ class TrainRecorder:
         state = json.loads(path.read_text())
         self.current_epoch = state["current_epoch"]
         self.total_epoch = state["total_epoch"]
-        self.current_data_size = state["current_data_size"]
-        self.data_size = state["data_size"]
+        self.current_dataset_size = state["current_dataset_size"]
+        self.dataset_size = state["dataset_size"]
         self.num_loss = state["num_loss"]
         self.loss_names = state["loss_names"]
         self.running_losses = state["running_losses"]

@@ -11,7 +11,7 @@ class CharQuantization(nn.Module):
         self.context = context
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = F.one_hot(x, self.char_size)
+        y = F.one_hot(x, self.char_size).float()
 
         # page 2 stated that zero out any character not in the alphabet table
         # but instead we only zero out uninformative tokens

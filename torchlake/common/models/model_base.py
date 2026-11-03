@@ -41,9 +41,8 @@ class ModelBase(nn.Module, ABC):
     def config(self) -> list[list[Any]]:
         raise NotImplementedError
 
-    @abstractmethod
     def build_foot(self, input_channel: int, **kwargs):
-        self.foot = ...
+        self.foot = None
 
     def build_blocks(self, **kwargs):
         self.blocks = None
@@ -58,7 +57,10 @@ class ModelBase(nn.Module, ABC):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.foot(x)
+        if self.foot is not None:
+            y = self.foot(x)
+        else:
+            y = x
 
         if self.blocks is not None:
             y = self.blocks(y)

@@ -1,9 +1,9 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 from torchlake.common.schemas.nlp import NLPContext
-from torch.nn.functional import binary_cross_entropy_with_logits
 
 
 class NCE(nn.Module):
@@ -27,6 +27,10 @@ class NCE(nn.Module):
             context (NLPContext, optional): NLP context. Defaults to None.
         """
         assert negative_ratio > 0, "negative ratio should be higher than 0"
+        if exclude_padding:
+            assert (
+                context.padding_idx is not None
+            ), "when exclude padding is True, padding index must not be None."
 
         if context is None:
             context = NLPContext()
@@ -35,7 +39,7 @@ class NCE(nn.Module):
         self.context = context
         self.negative_ratio = negative_ratio
         self.power = power
-        self.distribution = self.get_distribution(word_freqs).to(context.device)
+        self.distribution = self.get_distribution(word_freqs.to(context.device))
         self.vocab_size = self.distribution.numel()
         self.replacement = replacement
         self.exclude_padding = exclude_padding
@@ -56,16 +60,15 @@ class NCE(nn.Module):
         """negative sampling by noise distribution
 
         Args:
-            target (torch.Tensor): shape(batch_size, 1 or neighbor_size, subseq)
+            target (torch.Tensor): shape(batch_size*subseq, 1 or neighbor_size)
 
         Returns:
-            torch.Tensor: sampled token by noise distribution, shape is (batch_size, 1 or neighbor_size, subseq, #neg)
+            torch.Tensor: sampled token by noise distribution, shape is (#neg*batch_size*subseq, 1 or neighbor_size)
         """
         n: int = target.numel()
         output_shape = (
-            target.size(0),
+            self.negative_ratio * target.size(0),
             target.size(1),
-            target.size(2) * self.negative_ratio,
         )
 
         if self.replacement:
@@ -74,54 +77,60 @@ class NCE(nn.Module):
                 n * self.negative_ratio, replacement=True
             ).view(n, self.negative_ratio)
 
-            collision = y == target.view(-1, 1)
+            collision = y == target.view(n, 1)
             while collision.any():
                 y[collision] = self.distribution.multinomial(
                     collision.sum().item(), replacement=True
                 )
-                collision = y == target.view(-1, 1)
+                collision = y == target.view(n, 1)
 
-            # (B, 1 or neighbor_size, subseq * #neg)
-            return y.view(*output_shape)
+            # (#neg*B*subseq, 1 or neighbor_size)
+            return y.T.reshape(*output_shape)
         else:
+            # n, v
             y = self.distribution.repeat(n, 1)
             # remove positive vocab
             # TODO: skipgram use target view as well
             # cbow could benefit from view but not skipgram
-            y[torch.arange(n), target.reshape(-1)] = 0
+            y[torch.arange(n), target.reshape(n)] = 0
 
             return (
                 y
                 # only 2 dim supported
+                # n, #neg
                 .multinomial(self.negative_ratio)
-                # (B, 1 or neighbor_size, subseq * #neg)
-                .view(*output_shape)
+                # #neg, n
+                .T
+                # (#neg*B*subseq, 1 or neighbor_size)
+                .reshape(*output_shape)
             )
 
     def forward(
         self,
-        model: nn.Module,
+        pred: torch.Tensor,
         x_indices: torch.Tensor,
         y_indices: torch.Tensor,
-        pred: torch.Tensor,
+        model: nn.Module,
     ) -> torch.Tensor:
         """compute noise contrastive estimation loss
 
         Args:
-            model (nn.Module): VLBL or IVLBL
-            x_indices (torch.Tensor): shape(batch_size, 1 or neighbor_size, #subsequence)
-            y_indices (torch.Tensor): shape(batch_size, neighbor_size or 1, #subsequence)
-            pred (torch.Tensor): shape(batch_size, neighbor_size or 1, #subsequence)
+            pred (torch.Tensor): shape(batch_size*#subsequence, neighbor_size or 1)
+            x_indices (torch.Tensor): shape(batch_size*#subsequence, 1 or neighbor_size)
+            y_indices (torch.Tensor): shape(batch_size*#subsequence, neighbor_size or 1)
+            model (nn.Module): VLBL or IVLBL. for negative score.
 
         Returns:
             torch.Tensor: nce loss value
         """
-        # B, 1 or neighbor_size, subseq * #negative
-        negative_x_indices = x_indices.repeat(1, 1, self.negative_ratio)
-        # B, neighbor_size or 1, subseq * #negative
+        # #negative*B*subseq, neighbor_size or 1
         negative_y_indices = self.sample(y_indices)
-        # B, neighbor_size or 1, subseq * #negative
-        negative_pred = model(negative_x_indices, negative_y_indices)
+        # #negative*B*subseq, neighbor_size or 1
+        negative_pred = model(
+            # #negative*B*subseq, 1 or neighbor_size
+            x_indices.repeat(self.negative_ratio, 1),
+            negative_y_indices,
+        )
 
         positive_loss = binary_cross_entropy_with_logits(
             pred - self.negative_ratio * self.distribution[y_indices].log(),

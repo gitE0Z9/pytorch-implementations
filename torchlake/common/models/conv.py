@@ -1,6 +1,7 @@
 from typing import Literal
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 
@@ -175,3 +176,41 @@ class ConvINReLU(nn.Module):
             y = self.activation(y)
 
         return y
+
+
+def pad_on_left(x: torch.Tensor, offset: int):
+    return F.pad(x, (offset, 0))
+
+
+class CausalConv1d(nn.Conv1d):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=True,
+        padding_mode="zeros",
+        device=None,
+        dtype=None,
+    ):
+        self._pad = padding
+        super().__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            0,
+            dilation,
+            groups,
+            bias,
+            padding_mode,
+            device,
+            dtype,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return super().forward(pad_on_left(x, self._pad))

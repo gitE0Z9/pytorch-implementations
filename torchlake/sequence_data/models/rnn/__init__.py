@@ -1,5 +1,5 @@
-from .model import RNNDiscriminator
+from .model import SimpleRNNDiscriminator
 
 __all__ = [
-    "RNNDiscriminator",
+    "SimpleRNNDiscriminator",
 ]

@@ -3,7 +3,7 @@ import textwrap
 
 import pytest
 
-from ..utils.tree import build_huffman_tree
+from ..utils.tree import HuffmanNode, build_huffman_tree
 
 random.seed(42)
 LARGE_COUNTS = [random.randint(1, 10_000) for _ in range(1_000_000)]
@@ -21,7 +21,11 @@ class TestHuffman:
     )
     def test_build_tree(self, counts: list[int]):
         """for benchmark and smoke test"""
-        build_huffman_tree(counts)
+        root = build_huffman_tree(counts)
+        assert isinstance(root, HuffmanNode)
+        assert root.value > 0
+        assert root.left is not None
+        assert root.right is not None
 
     @pytest.mark.parametrize(
         "counts",
@@ -41,32 +45,27 @@ class TestHuffman:
         [
             (
                 [5, 2, 3],
-                textwrap.dedent(
-                    """
+                textwrap.dedent("""
                     └── 4 (10)
                         ├── 0 (5)
                         └── 3 (5)
                             ├── 1 (2)
                             └── 2 (3)
-                    """
-                ),
+                    """),
             ),
             (
                 [7, 2, 3],
-                textwrap.dedent(
-                    """
+                textwrap.dedent("""
                     └── 4 (12)
                         ├── 3 (5)
                         │   ├── 1 (2)
                         │   └── 2 (3)
                         └── 0 (7)
-                    """
-                ),
+                    """),
             ),
             (
                 [8, 9, 10, 11, 12, 57, 23],
-                textwrap.dedent(
-                    """
+                textwrap.dedent("""
                     └── 12 (130)
                         ├── 5 (57)
                         └── 11 (73)
@@ -80,8 +79,7 @@ class TestHuffman:
                                 │   ├── 2 (10)
                                 │   └── 3 (11)
                                 └── 6 (23)
-                    """
-                ),
+                    """),
             ),
         ],
     )

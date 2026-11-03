@@ -25,7 +25,7 @@ class RNNGeneratorTrainer(CurriculumMixin, ClassificationTrainer):
         else:
             teacher_forcing_ratio = self.teacher_forcing_raio
 
-        output = model.forward(
+        output = model(
             x,
             teacher_forcing_ratio=teacher_forcing_ratio,
             *args,

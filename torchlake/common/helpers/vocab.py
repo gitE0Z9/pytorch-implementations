@@ -113,7 +113,6 @@ class CharNgramVocab:
         self.encoding = encoding
         self.context = context
 
-        # as vocab dict
         self.word_vocab = None
         # as a cache
         self.subword_vocab = {}

@@ -1,7 +1,7 @@
 import torch
 import pytest
 
-from ...models import ConvBNReLU, ConvINReLU
+from ...models.conv import ConvBNReLU, ConvINReLU, CausalConv1d
 
 
 class TestConvBNReLU:
@@ -28,7 +28,7 @@ class TestConvBNReLU:
         assert y.shape == torch.Size(output_shape)
 
 
-class TestConvInReLU:
+class TestConvINReLU:
     @pytest.mark.parametrize(
         "input_shape,output_shape,dimension",
         [
@@ -50,3 +50,17 @@ class TestConvInReLU:
         y = model(x)
 
         assert y.shape == torch.Size(output_shape)
+
+
+BATCH_SIZE = 2
+HIDDEN_DIM = 8
+SEQ_LEN = 1024
+
+
+class TestCausalConv:
+    def test_causal_conv_1d_forward_shape(self):
+        x = torch.rand((BATCH_SIZE, HIDDEN_DIM, SEQ_LEN))
+        model = CausalConv1d(HIDDEN_DIM, HIDDEN_DIM + 2, 2, padding=1)
+        y = model(x)
+
+        assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM + 2, SEQ_LEN))

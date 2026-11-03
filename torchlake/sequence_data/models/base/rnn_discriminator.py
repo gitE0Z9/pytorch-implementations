@@ -1,83 +1,94 @@
 import torch
 from torch import nn
-from torchlake.common.schemas.nlp import NLPContext
-from torchlake.common.utils.sequence import pack_sequence, unpack_sequence
 
 from torchlake.common.models.model_base import ModelBase
+from torchlake.common.schemas.nlp import NLPContext
+from torchlake.common.utils.sequence import pack_sequence, unpack_sequence
 
 
 class RNNDiscriminator(ModelBase):
     def __init__(
         self,
         input_channel: int,
-        embed_dim: int = 300,
-        hidden_dim: int = 128,
-        output_size: int = 1,
-        num_layers: int = 1,
+        hidden_dim: int,
+        output_size: int,
         context_dim: int = 0,
+        num_layers: int = 1,
         bidirectional: bool = False,
         output_sequence: bool = False,
-        enable_embed: bool = True,
         drop_fc: bool = False,
         context: NLPContext | None = None,
-        model_class: nn.Module | None = None,
+        rnn_class: nn.Module | None = None,
+        projection_layer: nn.Module | None = None,
     ):
         """Wrapper for sequence model discriminator
 
         Args:
             input_channel (int): input channel size
-            embed_dim (int, optional): dimension of embedding vector. Defaults to 300.
             hidden_dim (int): dimension of hidden layer
-            output_size (int, optional): number of features of output. Defaults to 1.
-            num_layers (int, optional): number of layers. Defaults to 1.
+            output_size (int, optional): number of features of output.
             context_dim (int, optional): dimension of context vector. Defaults to 0.
+            num_layers (int, optional): number of layers. Defaults to 1.
             bidirectional (bool, optional): is bidirectional layer. Defaults to False.
             output_sequence (bool, optional): every position of a sequence has output. Defaults to False.
-            enable_embed (bool, optional): need an embedding layer. Defaults to True.
             drop_fc (bool, optional): remove fully connected head. Defaults to False.
             context (NlpContext, optional): NLP context. Defaults to None.
-            model_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
+            rnn_class (nn.Module | None, optional): nn.Module class as sequence modeling layer. Defaults to None.
+            projection_layer (nn.Module | None, optional): nn.Module class as projection layer. Defaults to None.
         """
-        assert issubclass(model_class, nn.Module), "model class is not a nn.module"
+        assert issubclass(rnn_class, nn.Module), "rnn class is not a nn.module"
         if context is None:
             context = NLPContext()
 
-        self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.context_dim = context_dim
         self.num_layers = num_layers
         self.bidirectional = bidirectional
         self.output_sequence = output_sequence
-        self.enable_embed = enable_embed
         self.drop_fc = drop_fc
         self.context = context
-        self.model_class = model_class
 
         self.factor = 2 if bidirectional else 1
 
-        super().__init__(input_channel, output_size)
+        super().__init__(
+            input_channel,
+            output_size,
+            foot_kwargs={
+                "projection_layer": projection_layer,
+            },
+            blocks_kwargs={
+                "rnn_class": rnn_class,
+            },
+        )
 
     @property
     def feature_dim(self) -> int:
         return self.hidden_dim * self.factor
 
-    def build_foot(self, input_channel: int):
-        if self.enable_embed:
-            self.foot = nn.Embedding(
-                input_channel,
-                self.embed_dim,
-                padding_idx=self.context.padding_idx,
-            )
-        else:
-            self.foot = nn.Identity()
+    def set_embedding_as_projection_layer(self, vocab_size: int, embed_dim: int):
+        self.foot = nn.Embedding(
+            vocab_size,
+            embed_dim,
+            padding_idx=self.context.padding_idx,
+        )
 
-    def build_blocks(self):
-        self.blocks = self.model_class(
-            self.embed_dim + self.context_dim,
+    def build_foot(self, _: int, **kwargs):
+        projection_layer = kwargs.pop("projection_layer")
+
+        if projection_layer is None:
+            self.foot = nn.Identity()
+        else:
+            self.foot = projection_layer
+
+    def build_blocks(self, **kwargs):
+        rnn_class = kwargs.pop("rnn_class")
+
+        self.blocks = rnn_class(
+            self.input_channel + self.context_dim,
             self.hidden_dim,
             num_layers=self.num_layers,
-            batch_first=True,
             bidirectional=self.bidirectional,
+            batch_first=True,
         )
 
     def build_neck(self):
@@ -107,8 +118,8 @@ class RNNDiscriminator(ModelBase):
         Returns:
             tuple[torch.Tensor, torch.Tensor]: output and hidden states
         """
-        _, seq_len, _ = y.shape
-        if self.context.padding_idx is not None:
+        seq_len = y.size(1)
+        if self.context.padding_idx is not None and self.input_channel == 0:
             y = pack_sequence(
                 y,
                 x.ne(self.context.padding_idx).sum(dim=1).long().detach().cpu(),
@@ -180,7 +191,7 @@ class RNNDiscriminator(ModelBase):
         """forward
 
         Args:
-            x (torch.Tensor): input. shape is (batch_size, 1)
+            x (torch.Tensor): input. shape is (batch_size, seq_len) or (batch_size, seq_len, dim)
             ht (torch.Tensor, optional): hidden state. shape is (bidirectional * num_layers, batch_size, hidden_dim). Defaults to None.
             *states (tuple[torch.Tensor]): other hidden states.
             context_vector (torch.Tensor, optional): context vector from attention. shape is (batch_size, 1, context_dim). Defaults to None.
@@ -189,10 +200,12 @@ class RNNDiscriminator(ModelBase):
         Returns:
             torch.Tensor: prediction or prediction and states
         """
-        # batch_size, 1, embed_dim
+        # enable_embed: batch_size, seq_len, embed_dim
+        # otherwise: batch_size, seq_len, dim
         y = self.foot(x)
+
         if context_vector is not None:
-            # batch_size, 1, embed_dim + context_dim
+            # batch_size, seq_len, (embed_dim or dim) + context_dim
             y = torch.cat([y, context_vector], -1)
 
         o, ht, states = self.feature_extract(x, y, *(ht, *states))

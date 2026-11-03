@@ -15,12 +15,11 @@ class FastTextEvaluator(ClassificationEvaluator):
         *args,
         **kwargs,
     ) -> torch.Tensor | Any:
-        x, _ = row
-        # x is a tuple of (ngrams, words, word_spans)
-        _x = (
-            [it.to(self.device) for it in x[0]],
-            x[1].to(self.device),
-            [it.to(self.device) for it in x[2]],
+        (ngrams, words, word_spans), _ = row
+        x = (
+            [it.to(self.device) for it in ngrams],
+            words.to(self.device),
+            [it.to(self.device) for it in word_spans],
         )
 
-        return model(*_x, *args, **kwargs)
+        return model(*x, *args, **kwargs)

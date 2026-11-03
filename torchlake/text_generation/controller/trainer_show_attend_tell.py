@@ -25,7 +25,7 @@ class ShowAttendTellTrainer(CurriculumMixin, ClassificationTrainer):
         else:
             teacher_forcing_ratio = self.teacher_forcing_raio
 
-        output, att = model.forward(
+        output, att = model(
             x,
             y,
             teacher_forcing_ratio=teacher_forcing_ratio,

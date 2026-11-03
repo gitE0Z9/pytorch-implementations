@@ -26,10 +26,8 @@ class ResBlock(nn.Module):
         """
         super().__init__()
         self.activation = activation
-
         self.block = block
-
-        self.downsample = shortcut or self.build_shortcut(
+        self.shortcut = shortcut or self.build_shortcut(
             input_channel,
             output_channel,
             stride,
@@ -66,7 +64,7 @@ class ResBlock(nn.Module):
         return layer
 
     def forward(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
-        y = self.block(x, *args, **kwargs) + self.downsample(x)
+        y = self.block(x, *args, **kwargs) + self.shortcut(x)
 
         if self.activation is None:
             return y

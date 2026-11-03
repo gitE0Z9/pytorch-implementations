@@ -47,10 +47,11 @@ class TextCNN(ModelBase):
 
     def build_blocks(self):
         self.blocks = MultiKernelConvModule(
-            1,
+            self.embed_dim,
             self.hidden_dim,
-            [(k, self.embed_dim) for k in self.kernels],
+            self.kernels,
             disable_padding=True,
+            dimension="1d",
             activation=nn.ReLU(inplace=True),
             reduction="max",
             concat_output=True,
@@ -63,11 +64,11 @@ class TextCNN(ModelBase):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Batch_size, 1, Seq_len, embed_dim
-        y = self.foot(x).unsqueeze(1)
+        # Batch_size, Seq_len, embed_dim
+        y = self.foot(x)
 
         # Batch_size, filter_number * hidden_dim
-        y = self.blocks(y)
+        y = self.blocks(y.transpose(1, 2))
 
         # Batch_size, label_size
         return self.head(y)

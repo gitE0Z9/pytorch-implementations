@@ -46,7 +46,7 @@ class LSTNet(ModelBase):
         self.attention = attention
         self.dropout_prob = dropout_prob
         self.activation = activation
-        super().__init__(1, output_size)
+        super().__init__(output_size, output_size)
 
     @property
     def feature_dim(self) -> int:
@@ -59,10 +59,10 @@ class LSTNet(ModelBase):
 
     def build_foot(self, input_channel, **kwargs):
         self.foot = nn.Sequential(
-            nn.Conv2d(
+            nn.Conv1d(
                 input_channel,
                 self.hidden_dim_c,
-                (self.kernel, self.output_size),
+                self.kernel,
             ),
             nn.ReLU(True),
             nn.Dropout(p=self.dropout_prob),
@@ -102,13 +102,11 @@ class LSTNet(ModelBase):
             self.head["highway"] = Highway(self.highway_window_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # shape of x: B, S, C => B, 1, S, C
-        x = x.unsqueeze(1)
+        # shape of x: B, S, C => B, C, S
+        x = x.transpose(1, 2)
 
-        # B, hc, S-k+1, 1
-        c = self.foot(x)
         # B, hc, S-k+1
-        c = c.squeeze(-1)
+        c = self.foot(x)
 
         # S-k+1, B, hc
         r = c.permute(2, 0, 1)

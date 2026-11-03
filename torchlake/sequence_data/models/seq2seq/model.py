@@ -75,7 +75,7 @@ class Seq2Seq(ModelBase):
         # encoding
         o, hs, states = self.encode(x)
 
-        return self.head.loss_forward(
+        return self.head(
             y,
             hs,
             *states,
@@ -106,7 +106,7 @@ class Seq2Seq(ModelBase):
         # encoding
         o, hs, states = self.encode(x)
 
-        return self.head.predict(
+        return self.head(
             get_input_sequence((batch_size, 1), self.context),
             hs,
             *states,

@@ -1,12 +1,5 @@
 from .model import ResNet, ResNetB, ResNetC, ResNetD
-from .network import (
-    ConvBlock,
-    BottleNeck,
-    BottleNeckB,
-    BottleNeckD,
-    ResBlock,
-    ResBlockD,
-)
+from .network import BottleNeck, BottleNeckB, ConvBlock, ResBlockD
 
 __all__ = [
     "ResNet",
@@ -16,7 +9,5 @@ __all__ = [
     "ConvBlock",
     "BottleNeck",
     "BottleNeckB",
-    "BottleNeckD",
-    "ResBlock",
     "ResBlockD",
 ]

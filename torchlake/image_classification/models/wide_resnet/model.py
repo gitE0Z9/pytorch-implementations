@@ -1,188 +1,191 @@
-from copy import deepcopy
+from typing import Literal
+
 from torch import nn
 from torchlake.common.models import ResBlock
 
 from ..resnet.model import ResNet
-from .network import BottleNeck, DropoutConvBlock
-
-# input, output, base?, num_repeat, block_type
-CONFIGS = [
-    [16, 16, 16, 1, DropoutConvBlock],
-    [16, 32, 32, 1, DropoutConvBlock],
-    [32, 64, 64, 1, DropoutConvBlock],
-]
+from ..resnet.network import BottleNeck
+from .network import DropoutConvBlock
 
 
 class WideResNet(ResNet):
-    configs = CONFIGS
-
     def __init__(
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        pre_activation: bool = True,
         deepening_factor: int = 1,
         widening_factor: int = 1,
-        enable_dropout: bool = False,
-        dropout_prob: float = 0.5,
+        dropout_prob: float = 0,
+        pre_activation: bool = True,
+        config: tuple[tuple[int]] | None = None,
     ):
         """Wide ResNet in paper [1605.07146v4]
 
         Args:
             input_channel (int, optional): input channel size. Defaults to 3.
             output_size (int, optional): output channel size. Defaults to 1.
-            pre_activation (bool, Defaults True): put activation before convolution layer in paper[1603.05027v3]
-            deepening_factor (int, Defaults 1): depth muliplier l in paper [1605.07146v4], number of layer = 6 * k + 4. Defaults to 1.
-            widening_factor (int, Defaults 1): width muliplier k in paper [1605.07146v4]. Defaults to 1.
-            enable_dropout (bool, Defaults False): enable dropout layer between layers. Defaults to False.
-            dropout_prob (float, Defaults 0.5): dropout probability of convolution block. Defaults to 0.5.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to True.
+            deepening_factor (int, optional): depth muliplier l in paper [1605.07146v4], number of layer = 6 * k + 4. Defaults to 1.
+            widening_factor (int, optional): width muliplier k in paper [1605.07146v4]. Defaults to 1.
+            dropout_prob (float, optional): dropout probability of convolution block. Defaults to 0.
+            config (tuple[tuple[int]], optional): stage conifg, format is (input_dim, output_dim, num_block). Defaults to None.
         """
-        self.enable_dropout = enable_dropout
-        self.dropout_prob = dropout_prob if self.enable_dropout else 0
+        self.dropout_prob = dropout_prob
         self.deepening_factor = deepening_factor
         self.widening_factor = widening_factor
+        self._config = config
 
-        # modify config
-        for stage_index, param in enumerate(self.config):
-            in_c, out_c, base_c, num_repeat, block_class = param
-
-            if stage_index != 0:
-                in_c *= widening_factor
-
-            out_c *= widening_factor
-            base_c *= widening_factor
-            num_repeat *= deepening_factor
-
-            self.config[stage_index] = [in_c, out_c, base_c, num_repeat, block_class]
-
-        super(WideResNet, self).__init__(
-            input_channel,
-            output_size,
-            pre_activation,
-        )
-
-        # XXX: bad practice
-        delattr(self, "key")
+        super().__init__(input_channel, output_size, pre_activation)
 
     @property
-    def config(self) -> list[list[int | nn.Module]]:
+    def config(self) -> tuple[tuple[int]]:
         """parameter of layers
 
         Returns:
-            list[list[int | nn.Module]]: parameters of layers
+            tuple[tuple[int | nn.Module]]: parameters of layers
         """
-        return deepcopy(self.configs)
+        # input_dim, output_dim, num_block
+        return self._config or (
+            (16, 16, 1),
+            (16, 32, 1),
+            (32, 64, 1),
+        )
+
+    def build_foot(self, input_channel):
+        self.foot = nn.Sequential(
+            DropoutConvBlock(
+                input_channel,
+                16,
+                pre_activation=self.pre_activation,
+            ),
+        )
 
     def build_blocks(self):
-        """build blocks"""
-        for block_index, (
-            input_channel,
-            output_channel,
-            block_base_channel,
-            num_repeat,
-            block_class,
-        ) in enumerate(self.config):
-            layers = nn.Sequential()
-            for layer_index in range(num_repeat):
-                layers.append(
+        self.blocks = nn.Sequential()
+
+        for stage_idx, (in_c, out_c, num_block) in enumerate(self.config):
+            block = nn.Sequential()
+
+            if stage_idx != 0:
+                in_c *= self.widening_factor
+            out_c *= self.widening_factor
+            num_block *= self.deepening_factor
+
+            for layer_idx in range(num_block):
+                stride = 1
+                if layer_idx == 0:
+                    stride = 2
+                else:
+                    in_c = out_c
+
+                block.append(
                     ResBlock(
-                        input_channel if layer_index == 0 else output_channel,
-                        output_channel,
-                        block_class(
-                            input_channel=(
-                                input_channel if layer_index == 0 else output_channel
-                            ),
-                            block_base_channel=block_base_channel,
-                            stride=2 if layer_index == 0 else 1,
+                        in_c,
+                        out_c,
+                        DropoutConvBlock(
+                            in_c,
+                            out_c,
+                            stride=stride,
                             pre_activation=self.pre_activation,
                             dropout_prob=self.dropout_prob,
                         ),
-                        stride=2 if layer_index == 0 else 1,
+                        stride=stride,
                     )
                 )
 
-            setattr(self, f"block{block_index+1}", layers)
+            self.blocks.append(block)
 
 
-# input, output, base?, number_block, block_type
-BOTTLENECK_CONFIGS = {
-    50: [
-        [64, 256, 64, 3, BottleNeck],
-        [256, 512, 128, 4, BottleNeck],
-        [512, 1024, 256, 6, BottleNeck],
-        [1024, 2048, 512, 3, BottleNeck],
-    ],
-    101: [
-        [64, 256, 64, 3, BottleNeck],
-        [256, 512, 128, 4, BottleNeck],
-        [512, 1024, 256, 23, BottleNeck],  # more block
-        [1024, 2048, 512, 3, BottleNeck],
-    ],
-    152: [
-        [64, 256, 64, 3, BottleNeck],
-        [256, 512, 128, 8, BottleNeck],  # more block
-        [512, 1024, 256, 36, BottleNeck],  # more block
-        [1024, 2048, 512, 3, BottleNeck],
-    ],
-}
-
-
-class BottleneckWideResNet(ResNet):
-    configs = BOTTLENECK_CONFIGS
-
+class WideResNetWithBottleneck(ResNet):
     def __init__(
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        pre_activation: bool = True,
-        key: int = 50,
         widening_factor: int = 1,
+        pre_activation: bool = True,
+        key: Literal[50, 101, 152] = 50,
+        config: tuple[tuple[int]] | None = None,
     ):
         """Bottleneck version of Wide ResNet in paper [1605.07146v4]
 
         Args:
             input_channel (int, optional): input channel size. Defaults to 3.
             output_size (int, optional): output channel size. Defaults to 1.
-            pre_activation (bool, Defaults True): put activation before convolution layer in paper[1603.05027v3]
-            key (int, optional): key of configs. Defaults to 50.
-            widening_factor (int, Defaults 1): width muliplier k in paper [1605.07146v4]. Defaults to 1.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to True.
+            widening_factor (int, optional): width muliplier k in paper [1605.07146v4]. Defaults to 1.
+            key (Literal[50, 101, 152], optional): key of configs. Defaults to 50.
+            config (tuple[tuple[int]], optional): stage conifg, format is (input_dim, hidden_dim, expansion_factor, number_block). Defaults to None.
         """
         self.widening_factor = widening_factor
 
-        super(BottleneckWideResNet, self).__init__(
+        super().__init__(
             input_channel,
             output_size,
-            pre_activation,
-            key,
+            pre_activation=pre_activation,
+            key=key,
+            config=config,
         )
 
-    def build_blocks(self):
-        """build blocks"""
-        for block_index, (
-            input_channel,
-            output_channel,
-            block_base_channel,
-            num_repeat,
-            block_class,
-        ) in enumerate(self.config):
-            layers = nn.Sequential()
-            for layer_index in range(num_repeat):
+    @property
+    def config(self) -> tuple[tuple[int]]:
+        # input_dim, hidden_dim, expansion_factor, number_block
+        return self._config or {
+            50: (
+                (64, 64, 4, 3),
+                (256, 128, 4, 4),
+                (512, 256, 4, 6),
+                (1024, 512, 4, 3),
+            ),
+            101: (
+                (64, 64, 4, 3),
+                (256, 128, 4, 4),
+                (512, 256, 4, 23),  # more block
+                (1024, 512, 4, 3),
+            ),
+            152: (
+                (64, 64, 4, 3),
+                (256, 128, 4, 8),  # more block
+                (512, 256, 4, 36),  # more block
+                (1024, 512, 4, 3),
+            ),
+        }
 
-                layers.append(
+    def build_blocks(self):
+        self.blocks = nn.Sequential()
+
+        for stage_idx, (
+            in_c,
+            hidden_dim,
+            expansion_factor,
+            num_block,
+        ) in enumerate(self.config):
+            block = nn.Sequential()
+
+            if stage_idx != 0:
+                in_c *= self.widening_factor
+            hidden_dim *= self.widening_factor
+            out_c = hidden_dim * expansion_factor
+
+            for layer_idx in range(num_block):
+                stride = 1
+                if layer_idx == 0:
+                    stride = 2
+                else:
+                    in_c = out_c
+
+                block.append(
                     ResBlock(
-                        input_channel if layer_index == 0 else output_channel,
-                        output_channel,
-                        block_class(
-                            input_channel=(
-                                input_channel if layer_index == 0 else output_channel
-                            ),
-                            block_base_channel=block_base_channel,
-                            stride=2 if layer_index == 0 else 1,
+                        in_c,
+                        out_c,
+                        BottleNeck(
+                            in_c,
+                            hidden_dim,
+                            stride=stride,
+                            expansion_factor=expansion_factor,
                             pre_activation=self.pre_activation,
-                            widening_factor=self.widening_factor,
                         ),
-                        stride=2 if layer_index == 0 else 1,
+                        stride=stride,
                     )
                 )
 
-            setattr(self, f"block{block_index+1}", layers)
+            self.blocks.append(block)

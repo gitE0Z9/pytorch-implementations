@@ -62,14 +62,12 @@ class CRNN(ModelBase):
     def build_head(self, output_size, **kwargs):
         self.head = nn.Sequential(
             LSTMDiscriminator(
-                0,
                 512,
                 self.hidden_dim,
                 output_size,
                 num_layers=2,
                 bidirectional=True,
                 output_sequence=True,
-                enable_embed=False,
                 context=self.context,
             ),
         )

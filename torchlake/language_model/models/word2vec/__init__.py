@@ -1,10 +1,13 @@
-from .loss import HierarchicalSoftmax, NegativeSampling
-from .model import Word2Vec, SkipGram, CBOW
+from .loss import HierarchicalSoftmaxLoss, NegativeSampling
+from .model import Word2Vec
+from .network import HierarchicalSoftmax
+from .utils import subsampling_probability, subsampling
 
 __all__ = [
     "HierarchicalSoftmax",
     "NegativeSampling",
+    "HierarchicalSoftmaxLoss",
     "Word2Vec",
-    "SkipGram",
-    "CBOW",
+    "subsampling_probability",
+    "subsampling",
 ]

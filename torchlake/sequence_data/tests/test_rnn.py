@@ -4,7 +4,7 @@ from torchlake.common.schemas.nlp import NLPContext
 from torchlake.common.utils.sequence import get_input_sequence
 
 from ..models.base import RNNGenerator
-from ..models.rnn import RNNDiscriminator
+from ..models.rnn import SimpleRNNDiscriminator
 from ..models.rnn.network import RNNCell, RNN
 
 BATCH_SIZE = 2
@@ -145,8 +145,7 @@ class TestModel:
     ) -> None:
         x = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
-        model = RNNDiscriminator(
-            VOCAB_SIZE,
+        model = SimpleRNNDiscriminator(
             EMBED_DIM,
             HIDDEN_DIM,
             label_size,
@@ -154,6 +153,7 @@ class TestModel:
             bidirectional=bidirectional,
             output_sequence=output_sequence,
         )
+        model.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         y = model(x)
 
@@ -168,8 +168,7 @@ class TestModel:
     ) -> None:
         y = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
 
-        discriminator = RNNDiscriminator(
-            VOCAB_SIZE,
+        discriminator = SimpleRNNDiscriminator(
             EMBED_DIM,
             HIDDEN_DIM,
             VOCAB_SIZE,
@@ -177,6 +176,7 @@ class TestModel:
             bidirectional=bidirectional,
             context=CONTEXT,
         )
+        discriminator.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         model = RNNGenerator(discriminator)
         model.train()
@@ -197,8 +197,7 @@ class TestModel:
         topk: int,
     ) -> None:
         x = get_input_sequence((BATCH_SIZE, 1), CONTEXT)
-        discriminator = RNNDiscriminator(
-            VOCAB_SIZE,
+        discriminator = SimpleRNNDiscriminator(
             EMBED_DIM,
             HIDDEN_DIM,
             VOCAB_SIZE,
@@ -206,6 +205,7 @@ class TestModel:
             bidirectional=bidirectional,
             context=CONTEXT,
         )
+        discriminator.set_embedding_as_projection_layer(VOCAB_SIZE, EMBED_DIM)
 
         model = RNNGenerator(discriminator)
         model.eval()

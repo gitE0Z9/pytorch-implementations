@@ -10,10 +10,10 @@ from .convertor_darknet import DarkNetConvertor
 class DarkNet53Convertor(DarkNetConvertor):
     def extra_convert(self, weight_handle: BufferedReader, dest: nn.Module):
         if isinstance(dest, ResBlock):
-            if not isinstance(dest.downsample, nn.Identity):
+            if not isinstance(dest.shortcut, nn.Identity):
                 print("start converting shortcut")
 
-                block: Conv2dNormActivation = dest.downsample[0]
+                block: Conv2dNormActivation = dest.shortcut[0]
                 self.convert_bn(weight_handle, block[1])
                 self.convert_conv(weight_handle, block[0])
 

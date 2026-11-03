@@ -110,9 +110,9 @@ class CharCNN(ModelBase):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # b, h, s
-        y = self.foot(x).transpose(-1, -2).float()
+        y = self.foot(x).transpose(-1, -2)
         #  b, h, s -> b*s, h
-        y = self.blocks(y).transpose(-1, -2).contiguous().view(-1, self.feature_dim)
+        y = self.blocks(y).transpose(-1, -2).reshape(-1, self.feature_dim)
 
         # b*s, o
         return self.head(y)

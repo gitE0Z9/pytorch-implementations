@@ -90,6 +90,9 @@ class ResNet(nn.Module):
             nn.MaxPool2d(3, stride=2, padding=1),
         )
 
+        if self.pre_activation:
+            self.foot.insert(1, nn.ReLU(True))
+
     def build_blocks(self):
         """build blocks"""
         for block_index, (
@@ -110,6 +113,9 @@ class ResNet(nn.Module):
                 )
                 for layer_index in range(num_layer)
             ]
+
+            if self.pre_activation:
+                layers[-1].activation = nn.ReLU(True)
 
             setattr(self, f"block{block_index+1}", nn.Sequential(*layers))
 

@@ -35,7 +35,7 @@ class TestNetwork:
         assert y.shape == torch.Size((BATCH_SIZE, HIDDEN_DIM))
 
     def test_highway_forward_shape(self):
-        x = torch.rand(BATCH_SIZE, 1, WINDOW_SIZE, OUTPUT_SIZE)
+        x = torch.rand(BATCH_SIZE, OUTPUT_SIZE, WINDOW_SIZE)
         z = torch.rand(BATCH_SIZE, OUTPUT_SIZE)
 
         model = Highway(24)

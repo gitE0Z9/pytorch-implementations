@@ -1,6 +1,8 @@
+from typing import Literal
+
 import torch
+import torch.nn.functional as F
 from torch import nn
-from torchlake.common.utils.sparse import ones_tensor
 
 
 class GloVeLoss(nn.Module):
@@ -10,6 +12,7 @@ class GloVeLoss(nn.Module):
         co_occurrence_counts: torch.Tensor,
         alpha: float = 0.75,
         maximum_count: int = 100,
+        reduction: Literal["sum", "mean"] | None = "mean",
     ):
         """GloVe loss function
 
@@ -17,11 +20,12 @@ class GloVeLoss(nn.Module):
             co_occurrence_counts (torch.Tensor): a sparse coo tensor, shape is (vocab_size, vocab_size), value is word-word cooccurrence counts
             alpha (float, optional): power of the weighted probability. Defaults to 0.75.
             maximum_count (int, optional): maximum occurrence count as cutoff of the weighted probability. Defaults to 100.
+            reduction (Literal["sum", "mean"] | None, optional): reduction. Defaults to "sum".
         """
         super().__init__()
-        self.loss = nn.MSELoss(reduction="none")
         self.co_occurrence_counts = co_occurrence_counts.coalesce()
         self.weighted_prob = self._build_weighted_prob(alpha, maximum_count)
+        self.reduction = reduction
 
     def _build_weighted_prob(self, alpha: float, maximum_count: int) -> torch.Tensor:
         """build the weighted probability
@@ -78,16 +82,16 @@ class GloVeLoss(nn.Module):
 
     def forward(
         self,
+        pred: torch.Tensor,
         gram: torch.Tensor,
         context: torch.Tensor,
-        pred: torch.Tensor,
     ) -> torch.Tensor:
         """calculate GloVe loss value
 
         Args:
+            pred (torch.Tensor): prediction of GloVe, shape is batch_size*subseq_len, neighbor_size
             gram (torch.Tensor): shape is batch_size*subseq_len, 1
             context (torch.Tensor): shape is batch_size*subseq_len, neighbor_size
-            pred (torch.Tensor): prediction of GloVe, shape is batch_size*subseq_len, neighbor_size
 
         Returns:
             torch.Tensor: GloVe loss value
@@ -106,5 +110,13 @@ class GloVeLoss(nn.Module):
         w = self._index_sparse_tensor(self.weighted_prob, index, pred.shape)
 
         # log1p in on the page 4
-        y = self.loss(pred, gt.log1p())
-        return (y * w).mean()
+        y = w * F.mse_loss(pred, gt.log1p(), reduction="none")
+
+        if self.reduction is None:
+            return y
+        elif self.reduction == "mean":
+            return y.mean()
+        elif self.reduction == "sum":
+            return y.sum()
+        else:
+            raise ValueError

@@ -28,15 +28,11 @@ class RNNGenerator(ModelBase):
             head_kwargs={"model": model},
         )
 
-    def build_foot(self, _, **kwargs):
-        self.foot = ...
-
     def build_neck(self, **kwargs):
         self.neck = kwargs.pop("attention")
 
     def build_head(self, _, **kwargs):
         self.head: RNNDiscriminator = kwargs.pop("model")
-        self.head.forward = partial(self.head.forward, output_state=True)
 
     def train(self, mode=True):
         result = super().train(mode)
@@ -124,7 +120,13 @@ class RNNGenerator(ModelBase):
             # insert input token embedding, previous hidden and previous cell states
             # receive output tensor (predictions) and new hidden and cell states
             # B, V
-            output, states = self.head(input_seq, ht, *states, context_vector=c)
+            output, states = self.head(
+                input_seq,
+                ht,
+                *states,
+                context_vector=c,
+                output_state=True,
+            )
             ht, states = states[0], states[1:]
             if output_state:
                 all_states.append((ht, *states))
@@ -206,22 +208,29 @@ class RNNGenerator(ModelBase):
         # store attention score
         if output_attention:
             attention_weights.append(attention_weight.repeat(topk, 1))
-        output, states = self.head(input_seq, ht, *states, context_vector=c)
+        # B, S, O
+        output, states = self.head(
+            input_seq,
+            ht,
+            *states,
+            context_vector=c,
+            output_state=True,
+        )
         # D, topk*B, h
         states = tuple(state.repeat(1, topk, 1) for state in states)
         ht, states = states[0], states[1:]
 
-        # B, 1, topk
+        # B, S, topk
         topk_values, topk_indices = output.topk(topk, dim=-1)
         # beam search has topk hypothses
-        # topk, B, 2
+        # topk, B, S+1
         paths = torch.cat(
             [input_seq.unsqueeze_(-1).repeat(1, 1, topk), topk_indices], 1
         ).permute(2, 0, 1)
         # B, topk
-        probs: torch.Tensor = topk_values.squeeze_(1)
+        probs: torch.Tensor = topk_values[:, -1, :]
         # beam search forward
-        for _ in range(2, max_seq_len):
+        for _ in range(paths.size(2), max_seq_len):
             # attention
             if self.neck is not None:
                 c, attention_weight = self.attend(ht, ot)
@@ -238,6 +247,7 @@ class RNNGenerator(ModelBase):
                 ht,
                 *states,
                 context_vector=c,
+                output_state=True,
             )
             ht, states = states[0], states[1:]
 

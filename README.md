@@ -178,11 +178,13 @@
 
 套件名: `language_model`
 
-| Model                                           | Article Link                                                                                                    | Package      |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------ |
-| Word2vec                                        | [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57) | ``word2vec`` |
-| GloVe                                           | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``glove``    |
-| Vector log-bilinear language model (vLBL/ivLBL) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``vlbl``     |
+| Model                                           | Article Link                                                                                                    | Package           |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------- |
+| Word2vec                                        | [medium](https://acrocanthosaurus627.medium.com/language-model-from-scratch-with-pytorch-word2vec-10e77770cc57) | ``word2vec``      |
+| GloVe                                           | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``glove``         |
+| Vector log-bilinear language model (vLBL/ivLBL) | [medium](https://medium.com/@acrocanthosaurus627/language-model-from-scratch-with-pytorch-glove-6dea3f65bc7a)   | ``vlbl``          |
+| RNN LM                                          |                                                                                                                 | `rnnlm`           |
+| Character-aware neural language model           |                                                                                                                 | `character_aware` |
 
 ### 文本分類
 

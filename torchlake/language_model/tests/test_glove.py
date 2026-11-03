@@ -281,7 +281,7 @@ class TestModel:
 
         model = GloVe(VOCAB_SIZE, EMBED_SIZE)
 
-        y = model.forward(gram, context)
+        y = model(gram, context)
 
         assert y.shape == torch.Size((BATCH_SIZE * SUBSEQ_LEN, NEIGHBOR_SIZE))
 
@@ -336,6 +336,6 @@ class TestLoss:
 
         criterion = GloVeLoss(counter.get_tensor(), maximum_count=5)
         pred = model(self.gram, self.context)
-        y: torch.Tensor = criterion(self.gram, self.context, pred)
+        y: torch.Tensor = criterion(pred, self.gram, self.context)
 
         assert not y.isnan()

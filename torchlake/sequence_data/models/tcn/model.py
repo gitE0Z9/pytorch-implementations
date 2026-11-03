@@ -1,8 +1,9 @@
 from itertools import pairwise
 from typing import Sequence
 
-from torch import nn
 import torch
+from torch import nn
+from torch.nn.utils.parametrizations import weight_norm
 
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.models.residual import ResBlock
@@ -60,7 +61,7 @@ class TCN(ModelBase):
                     dropout=self.dropout_prob,
                 ),
                 shortcut=(
-                    nn.Conv1d(input_channel, self.hidden_dims[0], 1)
+                    weight_norm(nn.Conv1d(input_channel, self.hidden_dims[0], 1))
                     if input_channel != self.hidden_dims[0]
                     else nn.Identity()
                 ),
@@ -82,7 +83,7 @@ class TCN(ModelBase):
                         dropout=self.dropout_prob,
                     ),
                     shortcut=(
-                        nn.Conv1d(prev_dim, next_dim, 1)
+                        weight_norm(nn.Conv1d(prev_dim, next_dim, 1))
                         if prev_dim != next_dim
                         else nn.Identity()
                     ),
