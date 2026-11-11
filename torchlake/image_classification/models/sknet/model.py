@@ -1,34 +1,41 @@
-from ..resnext.model import ResNeXt
+from ..resnet.model import BottleneckArgs, ResNet
 from .network import BottleNeck
 
-# input, output, base?, number_block, block_type
-CONFIGS = {
-    26: [
-        [64, 256, 128, 2, BottleNeck],  # less block
-        [256, 512, 256, 2, BottleNeck],  # less block
-        [512, 1024, 512, 2, BottleNeck],  # less block
-        [1024, 2048, 1024, 2, BottleNeck],  # less block
-    ],
-    50: [
-        [64, 256, 128, 3, BottleNeck],
-        [256, 512, 256, 4, BottleNeck],
-        [512, 1024, 512, 6, BottleNeck],
-        [1024, 2048, 1024, 3, BottleNeck],
-    ],
-    101: [
-        [64, 256, 128, 3, BottleNeck],
-        [256, 512, 256, 4, BottleNeck],
-        [512, 1024, 512, 23, BottleNeck],  # more block
-        [1024, 2048, 1024, 3, BottleNeck],
-    ],
-    152: [
-        [64, 256, 128, 3, BottleNeck],
-        [256, 512, 256, 8, BottleNeck],  # more block
-        [512, 1024, 512, 36, BottleNeck],  # more block
-        [1024, 2048, 1024, 3, BottleNeck],
-    ],
-}
 
+class SkNet(ResNet):
+    @property
+    def config(self) -> tuple[BottleneckArgs]:
+        """parameter of layers
 
-class SkNet(ResNeXt):
-    configs = CONFIGS
+        Returns:
+            tuple[BottleneckArgs]: parameters of layers
+        """
+        return (
+            self._config
+            or {
+                26: (
+                    BottleneckArgs(64, 128, 2, 2, BottleNeck),  # less block
+                    BottleneckArgs(256, 256, 2, 2, BottleNeck),  # less block
+                    BottleneckArgs(512, 512, 2, 2, BottleNeck),  # less block
+                    BottleneckArgs(1024, 1024, 2, 2, BottleNeck),  # less block
+                ),
+                50: (
+                    BottleneckArgs(64, 128, 2, 3, BottleNeck),
+                    BottleneckArgs(256, 256, 2, 4, BottleNeck),
+                    BottleneckArgs(512, 512, 2, 6, BottleNeck),
+                    BottleneckArgs(1024, 1024, 2, 3, BottleNeck),
+                ),
+                101: (
+                    BottleneckArgs(64, 128, 2, 3, BottleNeck),
+                    BottleneckArgs(256, 256, 2, 4, BottleNeck),
+                    BottleneckArgs(512, 512, 2, 23, BottleNeck),  # more block
+                    BottleneckArgs(1024, 1024, 2, 3, BottleNeck),
+                ),
+                152: (
+                    BottleneckArgs(64, 128, 2, 3, BottleNeck),
+                    BottleneckArgs(256, 256, 2, 8, BottleNeck),  # more block
+                    BottleneckArgs(512, 512, 2, 36, BottleNeck),  # more block
+                    BottleneckArgs(1024, 1024, 2, 3, BottleNeck),
+                ),
+            }[self.key]
+        )

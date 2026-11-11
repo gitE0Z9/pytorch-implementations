@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
-from ..resnet.network import BottleNeck as RBottleNeck
+
+from ..resnet.network import BottleNeck as BottleNeckBase
 
 
 class SplitAttention2d(nn.Module):
@@ -14,7 +15,7 @@ class SplitAttention2d(nn.Module):
         cardinality: int = 1,
         radix: int = 2,
     ):
-        super(SplitAttention2d, self).__init__()
+        super().__init__()
         self.radix = radix
         hidden_dim = max(32, input_channel * radix // reduction_ratio)
         self.conv = Conv2dNormActivation(
@@ -66,12 +67,13 @@ class SplitAttention2d(nn.Module):
         return attention.mul(_y).sum(1)
 
 
-class BottleNeck(RBottleNeck):
+class BottleNeck(BottleNeckBase):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        expansion_factor: int = 4,
         pre_activation: bool = False,
     ):
         """bottleneck block in resnest
@@ -80,14 +82,16 @@ class BottleNeck(RBottleNeck):
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): activation before block
+            expansion_factor (int, optional): output channel size = expansion factor x hidden dimension. Defaults to 4.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
         """
-        super(BottleNeck, self).__init__(
+        super().__init__(
             input_channel,
-            block_base_channel,
+            hidden_dim,
             stride,
+            expansion_factor,
             pre_activation,
         )
-        self.block[1] = SplitAttention2d(block_base_channel, block_base_channel)
+        self.layers[1] = SplitAttention2d(hidden_dim, hidden_dim)

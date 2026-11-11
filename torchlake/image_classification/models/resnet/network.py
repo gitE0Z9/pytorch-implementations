@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+
 from torchlake.common.models import ConvBNReLU, ResBlock
 
 
@@ -125,75 +126,6 @@ class BottleNeckB(BottleNeck):
         self.layers[1].conv.stride = (stride, stride)
 
 
-class ResBlock(nn.Module):
-    def __init__(
-        self,
-        input_channel: int,
-        block_base_channel: int,
-        output_channel: int,
-        block: ConvBlock | BottleNeck,
-        stride: int = 1,
-        pre_activation: bool = False,
-    ):
-        """residual block in resnet
-        skip connection has kernel size 1 and input_channel -> output_channel
-
-        Args:
-            input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
-            output_channel (int): output channel size
-            block (ConvBlock | BottleNeck): block class
-            stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before convolution layer in paper[1603.05027v3]
-        """
-        super().__init__()
-        self.pre_activation = pre_activation
-
-        self.block = block(
-            input_channel=input_channel,
-            block_base_channel=block_base_channel,
-            stride=stride,
-            pre_activation=pre_activation,
-        )
-        self.shortcut = self.build_shortcut(input_channel, output_channel, stride)
-        self.activation = nn.Identity() if pre_activation else nn.ReLU(True)
-
-    def build_shortcut(
-        self,
-        input_channel: int,
-        output_channel: int,
-        stride: int = 1,
-    ) -> nn.Module:
-        """build shortcut
-
-        Args:
-            input_channel (int): input channel size
-            output_channel (int): output channel size
-            stride (int, optional): stride of block. Defaults to 1.
-        """
-
-        if input_channel == output_channel and stride == 1:
-            return nn.Identity()
-
-        layer = nn.Sequential(
-            ConvBNReLU(
-                input_channel,
-                output_channel,
-                1,
-                stride=stride,
-                activation=None,
-                conv_last=self.pre_activation,
-            )
-        )
-
-        return layer
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.block(x) + self.shortcut(x)
-
-        return self.activation(y)
-
-
 class ResBlockD(ResBlock):
 
     def build_shortcut(
@@ -212,7 +144,7 @@ class ResBlockD(ResBlock):
         layer = super().build_shortcut(input_channel, output_channel, stride)
 
         if isinstance(layer, nn.Sequential):
-            layer[0].conv.stride = (1, 1)
+            layer[0][0].stride = (1, 1)
         # compatibility
         elif isinstance(layer, nn.Identity) and stride > 1:
             layer = nn.Sequential(layer)

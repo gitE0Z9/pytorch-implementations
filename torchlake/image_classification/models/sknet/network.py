@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchlake.common.models import ConvBNReLU
 
-from ..resnext.network import BottleNeck as XBottleNeck
+from ..resnet.network import BottleNeck as BottleNeckBase
 
 
 class SelectiveKernel2d(nn.Module):
@@ -13,7 +13,7 @@ class SelectiveKernel2d(nn.Module):
         output_channel: int,
         reduction_ratio: int = 16,
     ):
-        super(SelectiveKernel2d, self).__init__()
+        super().__init__()
         hidden_dim = max(32, output_channel // reduction_ratio)
         self.conv1 = ConvBNReLU(
             input_channel,
@@ -63,28 +63,31 @@ class SelectiveKernel2d(nn.Module):
         return attention[:, :, :, None, None].mul(_y).sum(1)
 
 
-class BottleNeck(XBottleNeck):
+class BottleNeck(BottleNeckBase):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        expansion_factor: int = 2,
         pre_activation: bool = False,
     ):
-        """bottleneck block in sknet
-        1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 2 * block_base_channel
+        """bottleneck block in resnext
+        kernel: 1x1 -> 3x3 -> 1x1
+        channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): activation before block
+            expansion_factor (int, optional): expansion factor of base channel. Defaults to 2.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
         """
-        super(BottleNeck, self).__init__(
+        super().__init__(
             input_channel,
-            block_base_channel,
+            hidden_dim,
             stride,
+            expansion_factor,
             pre_activation,
         )
-        self.block[1] = SelectiveKernel2d(block_base_channel, block_base_channel)
+        self.layers[1] = SelectiveKernel2d(hidden_dim, hidden_dim)
