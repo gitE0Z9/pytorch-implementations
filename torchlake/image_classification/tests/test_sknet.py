@@ -15,9 +15,14 @@ FEATURE_MAP_SIZE = 13
 
 
 class TestNetwork:
-    def test_selective_kernel_2d_forward_shape(self):
+    @pytest.mark.parametrize("pre_activation", [False, True])
+    def test_selective_kernel_2d_forward_shape(self, pre_activation: bool):
         x = torch.randn(BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
-        layer = SelectiveKernel2d(HIDDEN_DIM, HIDDEN_DIM)
+        layer = SelectiveKernel2d(
+            HIDDEN_DIM,
+            HIDDEN_DIM,
+            pre_activation=pre_activation,
+        )
         y = layer(x)
 
         assert y.shape == torch.Size(

@@ -2,7 +2,39 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ..resnet.network import BottleNeck, ConvBlock, ResBlock
+from torchlake.common.models import ResBlock
+
+from ..resnet.network import BottleNeck, ConvBlock
+
+
+def build_residual_unit(
+    input_channel: int,
+    output_channel: int,
+    stride: int = 1,
+) -> ResBlock:
+    """pre-activation bottleneck residual unit used throughout residual attention network
+
+    Args:
+        input_channel (int): input channel size
+        output_channel (int): output channel size
+        stride (int, optional): stride of block. Defaults to 1.
+
+    Returns:
+        ResBlock: residual unit
+    """
+    return ResBlock(
+        input_channel,
+        output_channel,
+        BottleNeck(
+            input_channel,
+            output_channel // 4,
+            stride=stride,
+            expansion_factor=4,
+            pre_activation=True,
+        ),
+        stride=stride,
+        activation=None,
+    )
 
 
 class DownSample(nn.Module):
@@ -19,16 +51,13 @@ class DownSample(nn.Module):
             output_channel (int): output channel size
             r (int, optional): number of residual units between adjacent pooling layer in the mask branch, according to paper. Defaults to 1.
         """
-        super(DownSample, self).__init__()
+        super().__init__()
         self.block = nn.Sequential(
             nn.MaxPool2d(3, stride=2, padding=1),
             *[
-                ResBlock(
+                build_residual_unit(
                     input_channel if i == 0 else output_channel,
-                    output_channel // 4,
                     output_channel,
-                    BottleNeck,
-                    pre_activation=True,
                 )
                 for i in range(r)
             ],
@@ -50,18 +79,9 @@ class UpSample(nn.Module):
             output_channel (int): output channel size
             r (int, optional): number of residual units between adjacent pooling layer in the mask branch, according to paper. Defaults to 1.
         """
-        super(UpSample, self).__init__()
+        super().__init__()
         self.block = nn.Sequential(
-            *[
-                ResBlock(
-                    output_channel,
-                    output_channel // 4,
-                    output_channel,
-                    BottleNeck,
-                    pre_activation=True,
-                )
-            ]
-            * r,
+            *[build_residual_unit(output_channel, output_channel) for _ in range(r)]
         )
 
     def forward(self, x: torch.Tensor, size: torch.Size) -> torch.Tensor:
@@ -85,7 +105,7 @@ class MaskBranch(nn.Module):
             r (int, optional): number of residual units between adjacent pooling layer in the mask branch, according to paper. Defaults to 1.
             num_skip (int, optional): number of skip connections. Defaults to 0.
         """
-        super(MaskBranch, self).__init__()
+        super().__init__()
         self.num_skip = num_skip
         self.downsample_list = nn.ModuleList(
             [
@@ -98,25 +118,13 @@ class MaskBranch(nn.Module):
             ]
         )
         self.upsample_list = nn.ModuleList(
-            [
-                UpSample(
-                    output_channel,
-                    r,
-                )
-            ]
-            * (num_skip + 1)
+            [UpSample(output_channel, r) for _ in range(num_skip + 1)]
         )
         self.skip_list = nn.ModuleList(
             [
-                ResBlock(
-                    output_channel,
-                    output_channel // 4,
-                    output_channel,
-                    BottleNeck,
-                    pre_activation=True,
-                )
+                build_residual_unit(output_channel, output_channel)
+                for _ in range(num_skip)
             ]
-            * num_skip
         )
         self.post_block = nn.Sequential(
             ConvBlock(
@@ -171,43 +179,29 @@ class AttentionModule(nn.Module):
         r: int = 1,
         num_skip: int = 0,
     ):
-        """residual block in resnet
-        skip connection has kernel size 1 and input_channel -> output_channel
+        """attention module in residual attention network [1704.06904v1]
 
         Args:
             input_channel (int): input channel size
             output_channel (int): output channel size
-            block (BottleNeck): block class
             p (int, optional): number of residual unit before and after attention structure. Defaults to 1.
             t (int, optional): number of residual unit in trunk branch. Defaults to 1.
             r (int, optional): number of residual units between adjacent pooling layer in the mask branch, according to paper. Defaults to 1.
             num_skip (int, optional): number of skip connections. Defaults to 0.
         """
-        super(AttentionModule, self).__init__()
+        super().__init__()
 
         self.pre_res_block = nn.Sequential(
             *[
-                ResBlock(
+                build_residual_unit(
                     input_channel if i == 0 else output_channel,
-                    output_channel // 4,
                     output_channel,
-                    BottleNeck,
-                    pre_activation=True,
                 )
                 for i in range(p)
             ]
         )
         self.trunk_branch = nn.Sequential(
-            *[
-                ResBlock(
-                    output_channel,
-                    output_channel // 4,
-                    output_channel,
-                    BottleNeck,
-                    pre_activation=True,
-                )
-            ]
-            * t
+            *[build_residual_unit(output_channel, output_channel) for _ in range(t)]
         )
         self.mask_branch = MaskBranch(
             output_channel,
@@ -216,16 +210,7 @@ class AttentionModule(nn.Module):
             num_skip,
         )
         self.post_res_block = nn.Sequential(
-            *[
-                ResBlock(
-                    output_channel,
-                    output_channel // 4,
-                    output_channel,
-                    BottleNeck,
-                    pre_activation=True,
-                )
-            ]
-            * p
+            *[build_residual_unit(output_channel, output_channel) for _ in range(p)]
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

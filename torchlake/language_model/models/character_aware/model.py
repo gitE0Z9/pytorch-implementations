@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from torchlake.common.models import HighwayBlock
+from torchlake.common.models import HighwayLayer
 from torchlake.common.models.model_base import ModelBase
 from torchlake.common.schemas.nlp import NLPContext
 from torchlake.sequence_data.models.lstm import LSTMDiscriminator
@@ -89,7 +89,7 @@ class CharaceterAwareLM(ModelBase):
         h = sum(self.hidden_dims)
         self.neck = nn.Sequential(
             *[
-                HighwayBlock(
+                HighwayLayer(
                     nn.Sequential(
                         nn.Linear(h, h),
                         nn.ReLU(True),

@@ -12,7 +12,19 @@ class SelectiveKernel2d(nn.Module):
         input_channel: int,
         output_channel: int,
         reduction_ratio: int = 16,
+        pre_activation: bool = False,
     ):
+        """selective kernel convolution in paper [1903.06586v2]
+        split: 3x3 conv and dilated 3x3 conv (as 5x5)
+        fuse: global average pooling of summed branches -> fc
+        select: softmax attention over branches
+
+        Args:
+            input_channel (int): input channel size
+            output_channel (int): output channel size
+            reduction_ratio (int, optional): reduction ratio r of fuse fc, hidden dimension is max(32, output_channel // r). Defaults to 16.
+            pre_activation (bool, optional): put activation before convolution layer of branches in paper[1603.05027v3]. Defaults to False.
+        """
         super().__init__()
         hidden_dim = max(32, output_channel // reduction_ratio)
         self.conv1 = ConvBNReLU(
@@ -21,6 +33,7 @@ class SelectiveKernel2d(nn.Module):
             3,
             padding=1,
             group=32,
+            conv_last=pre_activation,
         )
         self.conv2 = ConvBNReLU(
             input_channel,
@@ -29,9 +42,10 @@ class SelectiveKernel2d(nn.Module):
             padding=2,
             dilation=2,
             group=32,
+            conv_last=pre_activation,
         )
 
-        self.s = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Linear(output_channel, hidden_dim, bias=False),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(True),
@@ -42,25 +56,21 @@ class SelectiveKernel2d(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y1 = self.conv1(x)
         y2 = self.conv2(x)
-        # B, C, H, W
-        batch_size, c, h, w = y1.shape
+        b, c, _, _ = y1.shape
         # B, 2, C, H, W
-        _y = torch.cat([y1, y2], 1).view(batch_size, 2, c, h, w)
+        y = torch.stack((y1, y2), 1)
 
-        # B, C, H, W
-        y = _y.sum(1)
         # B, C
-        y = y.mean((2, 3))
+        z = y.sum(1).mean((2, 3))
         # B, hidden
-        y = self.s(y)
-
+        z = self.fc(z)
         # B, 2C
-        attention = self.attention(y)
+        a = self.attention(z)
         # B, 2, C
-        attention = attention.view(batch_size, 2, c).softmax(1)
+        a = a.view(b, 2, c).softmax(1)
 
-        # B, 2, C, 1, 1 x B, 2, C, H, W => B, C, H, W
-        return attention[:, :, :, None, None].mul(_y).sum(1)
+        # B, 2, C x B, 2, C, H, W => B, C, H, W
+        return torch.einsum("bkc,bkchw->bchw", a, y)
 
 
 class BottleNeck(BottleNeckBase):
@@ -72,8 +82,8 @@ class BottleNeck(BottleNeckBase):
         expansion_factor: int = 2,
         pre_activation: bool = False,
     ):
-        """bottleneck block in resnext
-        kernel: 1x1 -> 3x3 -> 1x1
+        """bottleneck block in sknet
+        kernel: 1x1 -> selective kernel -> 1x1
         channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
@@ -90,4 +100,8 @@ class BottleNeck(BottleNeckBase):
             expansion_factor,
             pre_activation,
         )
-        self.layers[1] = SelectiveKernel2d(hidden_dim, hidden_dim)
+        self.layers[1] = SelectiveKernel2d(
+            hidden_dim,
+            hidden_dim,
+            pre_activation=pre_activation,
+        )

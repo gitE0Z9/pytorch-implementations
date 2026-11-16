@@ -1,40 +1,19 @@
-from torch import nn
-from torchlake.common.models import ResBlock
+from functools import partial
+from typing import Literal
 
-from ..resnet.model import ResNet
+from ..resnet.model import BottleneckArgs, ResNet
 from .network import BottleNeck
-
-# input, output, base?, num_repeat, block_type
-CONFIGS = {
-    50: [
-        [64, 256, 64, 3, BottleNeck],
-        [256, 512, 128, 4, BottleNeck],
-        [512, 1024, 256, 6, BottleNeck],
-        [1024, 2048, 512, 3, BottleNeck],
-    ],
-    101: [
-        [64, 256, 64, 3, BottleNeck],
-        [256, 512, 128, 4, BottleNeck],
-        [512, 1024, 256, 23, BottleNeck],  # more block
-        [1024, 2048, 512, 3, BottleNeck],
-    ],
-    152: [
-        [64, 256, 64, 3, BottleNeck],
-        [256, 512, 128, 8, BottleNeck],  # more block
-        [512, 1024, 256, 36, BottleNeck],  # more block
-        [1024, 2048, 512, 3, BottleNeck],
-    ],
-}
 
 
 class Res2Net(ResNet):
-    configs = CONFIGS
 
     def __init__(
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        key: int = 50,
+        pre_activation: bool = False,
+        key: Literal[50, 101, 152] = 50,
+        config: tuple[BottleneckArgs] | None = None,
         split: int = 4,
         groups: int = 1,
     ):
@@ -43,46 +22,50 @@ class Res2Net(ResNet):
         Args:
             input_channel (int, optional): input channel size. Defaults to 3.
             output_size (int, optional): output channel size. Defaults to 1.
-            key (int, optional): key of configs. Defaults to 50.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            key (Literal[50, 101, 152], optional): key of configs. Defaults to 50.
+            config (tuple[BottleneckArgs], optional): stage config, format is (input_dim, hidden_dim, expansion, number_block, layer_cls). Defaults to None.
             split (int, optional): s in paper, split input_channel into s * w channels. Defaults to 4.
             groups (int, optional): group of 3x3 filters. Defaults to 1.
         """
         self.split = split
         self.groups = groups
-        super(Res2Net, self).__init__(
+        super().__init__(
             input_channel,
             output_size,
+            pre_activation=pre_activation,
             key=key,
+            config=config,
         )
 
-        delattr(self, "pre_activation")
+    @property
+    def config(self) -> tuple[BottleneckArgs]:
+        """parameter of layers
 
-    def build_blocks(self):
-        """build blocks"""
-        for block_index, (
-            input_channel,
-            output_channel,
-            base_number,
-            num_layer,
-            layer_class,
-        ) in enumerate(self.config):
-            layers = nn.Sequential()
+        Returns:
+            tuple[BottleneckArgs]: parameters of layers
+        """
+        if self._config:
+            return self._config
 
-            for layer_index in range(num_layer):
-                layer = layer_class(
-                    input_channel if layer_index == 0 else output_channel,
-                    base_number,
-                    stride=2 if layer_index == 0 else 1,
-                    split=self.split,
-                    groups=self.groups,
-                )
-                layers.append(
-                    ResBlock(
-                        input_channel if layer_index == 0 else output_channel,
-                        output_channel,
-                        layer,
-                        stride=2 if layer_index == 0 else 1,
-                    )
-                )
-
-            setattr(self, f"block{block_index+1}", layers)
+        layer_cls = partial(BottleNeck, split=self.split, groups=self.groups)
+        return {
+            50: (
+                BottleneckArgs(64, 64, 4, 3, layer_cls),
+                BottleneckArgs(256, 128, 4, 4, layer_cls),
+                BottleneckArgs(512, 256, 4, 6, layer_cls),
+                BottleneckArgs(1024, 512, 4, 3, layer_cls),
+            ),
+            101: (
+                BottleneckArgs(64, 64, 4, 3, layer_cls),
+                BottleneckArgs(256, 128, 4, 4, layer_cls),
+                BottleneckArgs(512, 256, 4, 23, layer_cls),  # more block
+                BottleneckArgs(1024, 512, 4, 3, layer_cls),
+            ),
+            152: (
+                BottleneckArgs(64, 64, 4, 3, layer_cls),
+                BottleneckArgs(256, 128, 4, 8, layer_cls),  # more block
+                BottleneckArgs(512, 256, 4, 36, layer_cls),  # more block
+                BottleneckArgs(1024, 512, 4, 3, layer_cls),
+            ),
+        }[self.key]

@@ -1,12 +1,17 @@
 import pytest
 import torch
 
-from ..models.resnet.network import ResBlock
 from ..models.residual_attention.model import ResidualAttentionNetwork
-from ..models.residual_attention.network import MaskBranch, AttentionModule
+from ..models.residual_attention.network import AttentionModule, MaskBranch
+
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+IMAGE_SIZE = 224
+OUTPUT_SIZE = 5
+FEATURE_MAP_SIZE = 13
 
 
-class TestResidualAttentionNetwork:
+class TestNetwork:
     @pytest.mark.parametrize(
         "name,input_channel,output_channel,num_skip",
         [
@@ -25,17 +30,19 @@ class TestResidualAttentionNetwork:
         output_channel: int,
         num_skip: int,
     ):
-        x = torch.randn(2, input_channel, 13, 13)
+        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
         layer = MaskBranch(input_channel, output_channel, num_skip=num_skip)
         y = layer(x)
 
-        assert y.shape == torch.Size((2, output_channel, 13, 13))
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, output_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        )
 
     @pytest.mark.parametrize(
         "name,input_channel,output_channel",
         [
-            ["bottleneck_first", 64, 256],
-            ["bottleneck_middle", 256, 256],
+            ["first", 64, 256],
+            ["middle", 256, 256],
         ],
     )
     def test_attention_module_forward_shape(
@@ -44,22 +51,20 @@ class TestResidualAttentionNetwork:
         input_channel: int,
         output_channel: int,
     ):
-        x = torch.randn(2, input_channel, 13, 13)
+        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
         layer = AttentionModule(input_channel, output_channel)
         y = layer(x)
 
-        assert y.shape == torch.Size((2, output_channel, 13, 13))
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, output_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        )
 
-    @pytest.mark.parametrize(
-        "name,num_layer",
-        [
-            ["56", 56],
-            ["92", 92],
-        ],
-    )
-    def test_residual_attention_network_forward_shape(self, name: str, num_layer: int):
-        x = torch.randn(2, 3, 224, 224)
-        model = ResidualAttentionNetwork(output_size=5, num_layer=num_layer)
+
+class TestModel:
+    @pytest.mark.parametrize("key", [56, 92])
+    def test_residual_attention_network_forward_shape(self, key: int):
+        x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        model = ResidualAttentionNetwork(INPUT_CHANNEL, OUTPUT_SIZE, key=key)
         y = model(x)
 
-        assert y.shape == torch.Size((2, 5))
+        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

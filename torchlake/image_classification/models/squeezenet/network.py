@@ -18,7 +18,7 @@ class FireModule(nn.Module):
             squeeze_ratio (int, optional): ratio to compress channel. Defaults to 1.
             expand_ratio (int, optional): ratio to expand channel. Defaults to 1.
         """
-        super(FireModule, self).__init__()
+        super().__init__()
         compressed_channel = int(squeeze_ratio * input_channel)
         expanded_channel = int(expand_ratio * compressed_channel)
 

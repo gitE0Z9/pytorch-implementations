@@ -18,8 +18,8 @@ class BottleNeck(nn.Module):
             output_channel (int): output channel size
             stride (int, optional): stride of block. Defaults to 1.
         """
-        super(BottleNeck, self).__init__()
-        self.block = nn.Sequential(
+        super().__init__()
+        self.layers = nn.Sequential(
             Conv2dNormActivation(
                 input_channel,
                 output_channel // 2,
@@ -52,4 +52,4 @@ class BottleNeck(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
+        return self.layers(x)

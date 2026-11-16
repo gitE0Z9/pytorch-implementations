@@ -6,110 +6,132 @@ from ..resnext.network import BottleNeck as XBottleNeck
 from ..resnext.network import ConvBlock as XConvBlock
 
 
-class SeConvBlock(SEMixin, ConvBlock):
+class SEConvBlock(SEMixin, ConvBlock):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        output_channel: int,
         stride: int = 1,
         pre_activation: bool = False,
+        reduction_ratio: int = 16,
     ):
         """convolution block in se-resnet
-        3 -> 3
-        input_channel -> block_base_channel -> block_base_channel
+        kernel: 3x3 -> 3x3 -> se
+        channel: input_channel -> output_channel -> output_channel
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            output_channel (int): output channel size
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            reduction_ratio (int, optional): reduction ratio of squeeze and excitation. Defaults to 16.
         """
-        super(SeConvBlock, self).__init__(
+        super().__init__(
             input_channel,
-            block_base_channel,
+            output_channel,
             stride,
             pre_activation,
         )
-        self.se = SqueezeExcitation2d(block_base_channel, 16)
+        self.se = SqueezeExcitation2d(output_channel, reduction_ratio)
 
 
-class SeBottleNeck(SEMixin, BottleNeck):
+class SEBottleNeck(SEMixin, BottleNeck):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        expansion_factor: int = 4,
         pre_activation: bool = False,
+        reduction_ratio: int = 16,
     ):
         """bottleneck block in se-resnet
-        1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+        kernel: 1x1 -> 3x3 -> 1x1 -> se
+        channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+            expansion_factor (int, optional): output channel size = expansion factor x hidden dimension. Defaults to 4.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            reduction_ratio (int, optional): reduction ratio of squeeze and excitation. Defaults to 16.
         """
-        super(SeBottleNeck, self).__init__(
+        super().__init__(
             input_channel,
-            block_base_channel,
+            hidden_dim,
             stride,
+            expansion_factor,
             pre_activation,
         )
-        self.se = SqueezeExcitation2d(block_base_channel * 4, 16)
+        self.se = SqueezeExcitation2d(hidden_dim * expansion_factor, reduction_ratio)
 
 
-class SeXConvBlock(SEMixin, XConvBlock):
+class SEXConvBlock(SEMixin, XConvBlock):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        output_channel: int,
         stride: int = 1,
+        group: int = 32,
+        expansion_factor: int = 2,
         pre_activation: bool = False,
+        reduction_ratio: int = 16,
     ):
-        """convolution block in resnet
-        3 -> 3
-        input_channel -> block_base_channel -> block_base_channel
+        """convolution block in se-resnext
+        kernel: 3x3 -> 3x3 -> se
+        channel: input_channel -> expansion_factor * output_channel -> output_channel
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            output_channel (int): output channel size
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False):
+            group (int, optional): group of middle layer. Defaults to 32.
+            expansion_factor (int, optional): hidden dimension = expansion factor x output channel size. Defaults to 2.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            reduction_ratio (int, optional): reduction ratio of squeeze and excitation. Defaults to 16.
         """
-        super(SeXConvBlock, self).__init__(
+        super().__init__(
             input_channel,
-            block_base_channel,
+            output_channel,
             stride,
+            group,
+            expansion_factor,
             pre_activation,
         )
-        self.se = SqueezeExcitation2d(block_base_channel, 16)
+        self.se = SqueezeExcitation2d(output_channel, reduction_ratio)
 
 
-class SeXBottleNeck(SEMixin, XBottleNeck):
+class SEXBottleNeck(SEMixin, XBottleNeck):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        group: int = 32,
+        expansion_factor: int = 2,
         pre_activation: bool = False,
+        reduction_ratio: int = 16,
     ):
-        """bottleneck block in resnext
-        1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+        """bottleneck block in se-resnext
+        kernel: 1x1 -> 3x3 -> 1x1 -> se
+        channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): activation before block
+            group (int, optional): group of middle layer. Defaults to 32.
+            expansion_factor (int, optional): output channel size = expansion factor x hidden dimension. Defaults to 2.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            reduction_ratio (int, optional): reduction ratio of squeeze and excitation. Defaults to 16.
         """
-        super(SeXBottleNeck, self).__init__(
+        super().__init__(
             input_channel,
-            block_base_channel,
+            hidden_dim,
             stride,
+            group,
+            expansion_factor,
             pre_activation,
         )
-
-        self.se = SqueezeExcitation2d(block_base_channel * 2, 16)
+        self.se = SqueezeExcitation2d(hidden_dim * expansion_factor, reduction_ratio)

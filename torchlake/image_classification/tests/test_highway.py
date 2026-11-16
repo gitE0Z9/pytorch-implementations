@@ -1,42 +1,31 @@
 import torch
 
 from ..models.highway.model import HighwayNetwork
-from ..models.highway.network import HighwayLayer
+from ..models.highway.network import HighwayBlock
+
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+IMAGE_SIZE = 224
+OUTPUT_SIZE = 5
+HIDDEN_DIM = 64
+FEATURE_MAP_SIZE = 13
 
 
-def test_layer_forward_shape():
-    x = torch.randn(2, 64, 13, 13)
-    layer = HighwayLayer(64, 128, 3)
-    y = layer(x)
+class TestNetwork:
+    def test_highway_block_forward_shape(self):
+        x = torch.randn(BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        layer = HighwayBlock(HIDDEN_DIM, HIDDEN_DIM * 2, 3)
+        y = layer(x)
 
-    assert y.shape == torch.Size((2, 128, 13, 13))
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, HIDDEN_DIM * 2, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        )
 
 
-def test_network_forward_shape():
-    x = torch.randn(2, 3, 224, 224)
+class TestModel:
+    def test_highway_network_forward_shape(self):
+        x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        model = HighwayNetwork(INPUT_CHANNEL, OUTPUT_SIZE)
+        y = model(x)
 
-    layer = HighwayNetwork(
-        [
-            ["c", 3, 32, 3],
-            ["p", 0, 0, 0],
-            ["c", 32, 32, 3],
-            ["c", 32, 32, 3],
-            ["c", 32, 64, 3],
-            ["p", 0, 0, 0],
-            ["c", 64, 64, 3],
-            ["c", 64, 64, 3],
-            ["c", 64, 128, 3],
-            ["p", 0, 0, 0],
-            ["c", 128, 128, 3],
-            ["c", 128, 128, 3],
-            ["c", 128, 256, 3],
-            ["p", 0, 0, 0],
-            ["c", 256, 256, 3],
-            ["c", 256, 256, 3],
-            ["c", 256, 512, 3],
-        ],
-    )
-
-    y = layer(x)
-
-    assert y.shape == torch.Size((2, 1))
+        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

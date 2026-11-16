@@ -1,20 +1,21 @@
 from typing import Literal
 
-import torch
 from torch import nn
-from torchlake.common.models import FlattenFeature, ResBlock
 from torchvision.ops import Conv2dNormActivation
+
+from torchlake.common.models import FlattenFeature, ResBlock
+from torchlake.common.models.model_base import ModelBase
 
 from .network import FireModule
 
 
-class SqueezeNet(nn.Module):
+class SqueezeNet(ModelBase):
     def __init__(
         self,
         input_channel: int = 3,
         output_size: int = 1,
         dropout_prob: float = 0.5,
-        version: Literal["1.0"] | Literal["1.1"] = "1.0",
+        version: Literal["1.0", "1.1"] = "1.0",
     ):
         """SqueezeNet [1602.07360v4]
         1.1: https://github.com/forresti/SqueezeNet/tree/master/SqueezeNet_v1.1
@@ -23,46 +24,26 @@ class SqueezeNet(nn.Module):
             input_channel (int): input channel size. Defaults to 3.
             output_size (int, optional): output size. Defaults to 1.
             dropout_prob (float, optional): dropout probability. Defaults to 0.5.
-            version (Literal["1.0"] | Literal["1.1"] , optional): version 1.0 and 1.1. Defaults to "1.0".
+            version (Literal["1.0", "1.1"] , optional): version 1.0 and 1.1. Defaults to "1.0".
         """
-        super(SqueezeNet, self).__init__()
+        self.dropout_prob = dropout_prob
         self.version = version
+        super().__init__(input_channel, output_size)
 
-        self.layers = nn.Sequential(
-            # head layer
-            Conv2dNormActivation(
-                input_channel,
-                96 if version == "1.0" else 64,
-                7 if version == "1.0" else 3,
-                stride=2,
-                padding=2,  # as paper
-                norm_layer=None,
-            ),
-            nn.MaxPool2d(
-                3,
-                2,
-                0,  # as paper
-            ),
-            # middle layers
-            *self.build_middle_layers(),
-            # final layers
-            nn.Dropout(dropout_prob),
-            Conv2dNormActivation(
-                512,
-                output_size,
-                1,
-                norm_layer=None,
-            ),
-        )
-        self.pool = FlattenFeature()
+    @property
+    def feature_dim(self) -> int:
+        return 512
 
-    def build_middle_layers(self) -> list[nn.Module]:
-        """Build middle layers."""
-        entry_channel_size = 96 if self.version == "1.0" else 64
-        # input_channel, squeeze_ratio, expand_ratio
-        config = [
+    @property
+    def entry_channel(self) -> int:
+        return 96 if self.version == "1.0" else 64
+
+    @property
+    def config(self) -> tuple[tuple[int | float]]:
+        # input_channel, squeeze_ratio, expand_ratio of fire 2 ~ fire 9
+        return (
             # fire 2
-            (entry_channel_size, 16 / entry_channel_size, 4),
+            (self.entry_channel, 16 / self.entry_channel, 4),
             (128, 1 / 8, 4),
             # 1.1 pool here
             (128, 1 / 4, 4),
@@ -75,41 +56,61 @@ class SqueezeNet(nn.Module):
             # 1.0 pool here
             # fire 9
             (512, 1 / 8, 4),
-        ]
-        pool_configs = {
-            "1.0": [2, 6],  # 1, 4, 8
-            "1.1": [1, 3],  # 1, 3, 5
-        }
-        pool_config = pool_configs[self.version]
-        residual_config = [1, 3, 5, 7]  # fire 3, 5, 7, 9
+        )
 
-        middle_layers = []
-        for i, (in_c, squeeze_ratio, expand_ratio) in enumerate(config):
+    @property
+    def pool_indices(self) -> tuple[int]:
+        """index of fire module followed by max pooling"""
+        return {
+            "1.0": (2, 6),  # after fire 4, 8
+            "1.1": (1, 3),  # after fire 3, 5
+        }[self.version]
 
-            # common block
+    @property
+    def residual_indices(self) -> tuple[int]:
+        """index of fire module with simple bypass, i.e. fire 3, 5, 7, 9"""
+        return (1, 3, 5, 7)
+
+    def build_foot(self, input_channel, **kwargs):
+        self.foot = nn.Sequential(
+            Conv2dNormActivation(
+                input_channel,
+                self.entry_channel,
+                7 if self.version == "1.0" else 3,
+                stride=2,
+                padding=2,  # as paper
+                norm_layer=None,
+            ),
+            # padding as paper
+            nn.MaxPool2d(3, 2, padding=0),
+        )
+
+    def build_blocks(self, **kwargs):
+        self.blocks = nn.Sequential()
+        for i, (in_c, squeeze_ratio, expand_ratio) in enumerate(self.config):
             layer = FireModule(in_c, squeeze_ratio, expand_ratio)
-            # if simple bypass
-            if i in residual_config:
+            # simple bypass
+            if i in self.residual_indices:
                 layer = ResBlock(
                     in_c,
                     int(in_c * squeeze_ratio * expand_ratio * 2),
                     layer,
                     activation=None,
                 )
-            middle_layers.append(layer)
+            self.blocks.append(layer)
 
-            # pool
-            if i in pool_config:
-                middle_layers.append(
-                    nn.MaxPool2d(
-                        3,
-                        2,
-                        0,  # as paper
-                    )
-                )
+            if i in self.pool_indices:
+                # padding as paper
+                self.blocks.append(nn.MaxPool2d(3, 2, padding=0))
 
-        return middle_layers
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.layers(x)
-        return self.pool(y)
+    def build_head(self, output_size, **kwargs):
+        self.head = nn.Sequential(
+            nn.Dropout(self.dropout_prob),
+            Conv2dNormActivation(
+                self.feature_dim,
+                output_size,
+                1,
+                norm_layer=None,
+            ),
+            FlattenFeature(),
+        )

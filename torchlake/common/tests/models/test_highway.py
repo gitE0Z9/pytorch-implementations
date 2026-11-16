@@ -3,14 +3,14 @@ from unittest import TestCase
 import torch
 from torchvision.ops import Conv2dNormActivation
 
-from ...models import HighwayBlock
+from ...models import HighwayLayer
 
 
-class TestHighwayBlock(TestCase):
+class TestHighwayLayer(TestCase):
     def test_output_shape(self):
         x = torch.randn(8, 32, 7, 7)
 
-        model = HighwayBlock(
+        model = HighwayLayer(
             Conv2dNormActivation(32, 32, 3),
             Conv2dNormActivation(32, 32, 3),
         )

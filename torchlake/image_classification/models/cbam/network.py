@@ -1,9 +1,10 @@
 import torch
 from torch import nn
-from torchlake.common.mixins.network import SEMixin
 from torchvision.ops import Conv2dNormActivation
 
-from ..resnet.network import BottleNeck
+from torchlake.common.mixins.network import SEMixin
+
+from ..resnet.network import BottleNeck as BottleNeckBase
 
 
 class CBAM2d(nn.Module):
@@ -68,28 +69,33 @@ class CBAM2d(nn.Module):
         return y
 
 
-class BottleNeck(SEMixin, BottleNeck):
+class BottleNeck(SEMixin, BottleNeckBase):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        expansion_factor: int = 4,
         pre_activation: bool = False,
+        reduction_ratio: int = 16,
     ):
-        """bottleneck block in se-resnet
-        1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+        """bottleneck block in cbam-resnet
+        kernel: 1x1 -> 3x3 -> 1x1 -> cbam
+        channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+            expansion_factor (int, optional): output channel size = expansion factor x hidden dimension. Defaults to 4.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            reduction_ratio (int, optional): reduction ratio of cbam. Defaults to 16.
         """
         super().__init__(
             input_channel,
-            block_base_channel,
+            hidden_dim,
             stride,
+            expansion_factor,
             pre_activation,
         )
-        self.se = CBAM2d(block_base_channel * 4, 16)
+        self.se = CBAM2d(hidden_dim * expansion_factor, reduction_ratio)

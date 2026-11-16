@@ -74,6 +74,19 @@ def receptive_field(k: int, l: int) -> int:
     return (k - 1) ** (l - 1) + receptive_field(k, l - 1)
 
 
+def make_divisible(value: float, divisor: int) -> int:
+    """round value to the nearest multiple of divisor, at least divisor
+
+    Args:
+        value (float): value to round, e.g. scaled channel size
+        divisor (int): divisor
+
+    Returns:
+        int: nearest multiple of divisor
+    """
+    return max(divisor, int(value + divisor / 2) // divisor * divisor)
+
+
 def generate_grid(
     *shapes: tuple[int],
     is_center: bool = False,

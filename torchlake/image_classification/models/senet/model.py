@@ -1,78 +1,92 @@
-from ..resnet.model import ResNet
-from ..resnext.model import ResNeXt
-from .network import SeBottleNeck, SeConvBlock, SeXBottleNeck, SeXConvBlock
-
-CONFIGS = {
-    18: [
-        [64, 64, 64, 2, SeConvBlock],  # less block
-        [64, 128, 128, 2, SeConvBlock],  # less block
-        [128, 256, 256, 2, SeConvBlock],  # less block
-        [256, 512, 512, 2, SeConvBlock],  # less block
-    ],
-    34: [
-        [64, 64, 64, 3, SeConvBlock],  # narrower
-        [64, 128, 128, 4, SeConvBlock],  # narrower
-        [128, 256, 256, 6, SeConvBlock],  # narrower
-        [256, 512, 512, 3, SeConvBlock],  # narrower
-    ],
-    50: [
-        [64, 256, 64, 3, SeBottleNeck],
-        [256, 512, 128, 4, SeBottleNeck],
-        [512, 1024, 256, 6, SeBottleNeck],
-        [1024, 2048, 512, 3, SeBottleNeck],
-    ],
-    101: [
-        [64, 256, 64, 3, SeBottleNeck],
-        [256, 512, 128, 4, SeBottleNeck],
-        [512, 1024, 256, 23, SeBottleNeck],  # more block
-        [1024, 2048, 512, 3, SeBottleNeck],
-    ],
-    152: [
-        [64, 256, 64, 3, SeBottleNeck],
-        [256, 512, 128, 8, SeBottleNeck],  # more block
-        [512, 1024, 256, 36, SeBottleNeck],  # more block
-        [1024, 2048, 512, 3, SeBottleNeck],
-    ],
-}
+from ..resnet.model import BottleneckArgs, ConvBlockArgs, ResNet
+from .network import SEBottleNeck, SEConvBlock, SEXBottleNeck, SEXConvBlock
 
 
-class SeResNet(ResNet):
-    configs = CONFIGS
+class SEResNet(ResNet):
+    @property
+    def config(self) -> tuple[ConvBlockArgs | BottleneckArgs]:
+        """parameter of layers
+
+        Returns:
+            tuple[ConvBlockArgs | BottleneckArgs]: parameters of layers
+        """
+        return (
+            self._config
+            or {
+                18: (
+                    ConvBlockArgs(64, 64, 2, SEConvBlock),  # less block
+                    ConvBlockArgs(64, 128, 2, SEConvBlock),  # less block
+                    ConvBlockArgs(128, 256, 2, SEConvBlock),  # less block
+                    ConvBlockArgs(256, 512, 2, SEConvBlock),  # less block
+                ),
+                34: (
+                    ConvBlockArgs(64, 64, 3, SEConvBlock),  # narrower
+                    ConvBlockArgs(64, 128, 4, SEConvBlock),  # narrower
+                    ConvBlockArgs(128, 256, 6, SEConvBlock),  # narrower
+                    ConvBlockArgs(256, 512, 3, SEConvBlock),  # narrower
+                ),
+                50: (
+                    BottleneckArgs(64, 64, 4, 3, SEBottleNeck),
+                    BottleneckArgs(256, 128, 4, 4, SEBottleNeck),
+                    BottleneckArgs(512, 256, 4, 6, SEBottleNeck),
+                    BottleneckArgs(1024, 512, 4, 3, SEBottleNeck),
+                ),
+                101: (
+                    BottleneckArgs(64, 64, 4, 3, SEBottleNeck),
+                    BottleneckArgs(256, 128, 4, 4, SEBottleNeck),
+                    BottleneckArgs(512, 256, 4, 23, SEBottleNeck),  # more block
+                    BottleneckArgs(1024, 512, 4, 3, SEBottleNeck),
+                ),
+                152: (
+                    BottleneckArgs(64, 64, 4, 3, SEBottleNeck),
+                    BottleneckArgs(256, 128, 4, 8, SEBottleNeck),  # more block
+                    BottleneckArgs(512, 256, 4, 36, SEBottleNeck),  # more block
+                    BottleneckArgs(1024, 512, 4, 3, SEBottleNeck),
+                ),
+            }[self.key]
+        )
 
 
-XCONFIGS = {
-    18: [
-        [64, 64, 64, 2, SeXConvBlock],  # less block
-        [64, 128, 128, 2, SeXConvBlock],  # less block
-        [128, 256, 256, 2, SeXConvBlock],  # less block
-        [256, 512, 512, 2, SeXConvBlock],  # less block
-    ],
-    34: [
-        [64, 64, 64, 3, SeXConvBlock],  # narrower
-        [64, 128, 128, 4, SeXConvBlock],  # narrower
-        [128, 256, 256, 6, SeXConvBlock],  # narrower
-        [256, 512, 512, 3, SeXConvBlock],  # narrower
-    ],
-    50: [
-        [64, 256, 128, 3, SeXBottleNeck],
-        [256, 512, 256, 4, SeXBottleNeck],
-        [512, 1024, 512, 6, SeXBottleNeck],
-        [1024, 2048, 1024, 3, SeXBottleNeck],
-    ],
-    101: [
-        [64, 256, 128, 3, SeXBottleNeck],
-        [256, 512, 256, 4, SeXBottleNeck],
-        [512, 1024, 512, 23, SeXBottleNeck],  # more block
-        [1024, 2048, 1024, 3, SeXBottleNeck],
-    ],
-    152: [
-        [64, 256, 128, 3, SeXBottleNeck],
-        [256, 512, 256, 8, SeXBottleNeck],  # more block
-        [512, 1024, 512, 36, SeXBottleNeck],  # more block
-        [1024, 2048, 1024, 3, SeXBottleNeck],
-    ],
-}
+class SEResNeXt(ResNet):
+    @property
+    def config(self) -> tuple[ConvBlockArgs | BottleneckArgs]:
+        """parameter of layers
 
-
-class SeResNeXt(ResNeXt):
-    configs = XCONFIGS
+        Returns:
+            tuple[ConvBlockArgs | BottleneckArgs]: parameters of layers
+        """
+        return (
+            self._config
+            or {
+                18: (
+                    ConvBlockArgs(64, 64, 2, SEXConvBlock),  # less block
+                    ConvBlockArgs(64, 128, 2, SEXConvBlock),  # less block
+                    ConvBlockArgs(128, 256, 2, SEXConvBlock),  # less block
+                    ConvBlockArgs(256, 512, 2, SEXConvBlock),  # less block
+                ),
+                34: (
+                    ConvBlockArgs(64, 64, 3, SEXConvBlock),  # narrower
+                    ConvBlockArgs(64, 128, 4, SEXConvBlock),  # narrower
+                    ConvBlockArgs(128, 256, 6, SEXConvBlock),  # narrower
+                    ConvBlockArgs(256, 512, 3, SEXConvBlock),  # narrower
+                ),
+                50: (
+                    BottleneckArgs(64, 128, 2, 3, SEXBottleNeck),
+                    BottleneckArgs(256, 256, 2, 4, SEXBottleNeck),
+                    BottleneckArgs(512, 512, 2, 6, SEXBottleNeck),
+                    BottleneckArgs(1024, 1024, 2, 3, SEXBottleNeck),
+                ),
+                101: (
+                    BottleneckArgs(64, 128, 2, 3, SEXBottleNeck),
+                    BottleneckArgs(256, 256, 2, 4, SEXBottleNeck),
+                    BottleneckArgs(512, 512, 2, 23, SEXBottleNeck),  # more block
+                    BottleneckArgs(1024, 1024, 2, 3, SEXBottleNeck),
+                ),
+                152: (
+                    BottleneckArgs(64, 128, 2, 3, SEXBottleNeck),
+                    BottleneckArgs(256, 256, 2, 8, SEXBottleNeck),  # more block
+                    BottleneckArgs(512, 512, 2, 36, SEXBottleNeck),  # more block
+                    BottleneckArgs(1024, 1024, 2, 3, SEXBottleNeck),
+                ),
+            }[self.key]
+        )

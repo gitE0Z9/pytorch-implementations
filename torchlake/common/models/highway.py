@@ -2,10 +2,10 @@ import torch
 from torch import nn
 
 
-class HighwayBlock(nn.Module):
+class HighwayLayer(nn.Module):
 
     def __init__(self, block: nn.Module, gate: nn.Module):
-        super(HighwayBlock, self).__init__()
+        super().__init__()
         self.block = block
         self.gate = gate
 

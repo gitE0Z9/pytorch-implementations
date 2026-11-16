@@ -1,115 +1,120 @@
-import torch
+from typing import Literal
+
 from torch import nn
 from torchvision.ops import Conv2dNormActivation
 
+from torchlake.common.models.model_base import ModelBase
+from torchlake.common.utils.numerical import make_divisible
+
 from .network import ResBlock
 
-# input, output, number_block
-CONFIGS = {
-    1: [
-        [24, 144, 4],
-        [144, 288, 8],
-        [288, 576, 4],
-    ],
-    2: [
-        [24, 200, 4],
-        [200, 400, 8],
-        [400, 800, 4],
-    ],
-    3: [
-        [24, 240, 4],
-        [240, 480, 8],
-        [480, 960, 4],
-    ],
-    4: [
-        [24, 272, 4],
-        [272, 544, 8],
-        [544, 1088, 4],
-    ],
-    8: [
-        [24, 384, 4],
-        [384, 768, 8],
-        [768, 1536, 4],
-    ],
-}
 
-
-class ShuffleNet(nn.Module):
+class ShuffleNet(ModelBase):
     def __init__(
         self,
         input_channel: int = 3,
         output_size: int = 1,
-        groups: int = 1,
+        groups: Literal[1, 2, 3, 4, 8] = 1,
         scale_factor: float = 1,
-        configs: dict[int, list[list[int]]] = CONFIGS,
+        config: tuple[tuple[int]] | None = None,
     ):
-        """ShuffleNet
+        """ShuffleNet [1707.01083v2]
 
         Args:
             input_channel (int, optional): input channel size. Defaults to 3.
             output_size (int, optional): output channel size. Defaults to 1.
-            groups (int, optional): number of groups of channels. Defaults to 1.
+            groups (Literal[1, 2, 3, 4, 8], optional): number of groups of channels. Defaults to 1.
             scale_factor (float, optional): scale factor s. Defaults to 1.
-            configs (list[list[int]], optional): configs for shufflenet, key is number of groups. Defaults to CONFIGS.
+            config (tuple[tuple[int]], optional): stage config, format is (input_channel, output_channel, num_layer). Defaults to None.
         """
-        super(ShuffleNet, self).__init__()
-        self.config = configs[groups]
-        self.num_stage = len(self.config)
+        self.groups = groups
         # for identity check
         self.scale_factor = scale_factor
+        self._config = config
+        super().__init__(input_channel, output_size)
 
+    @property
+    def feature_dim(self) -> int:
+        return self.stage_channels[-1]
+
+    @property
+    def stem_channel(self) -> int:
+        """scaled stem channel, divisible by groups"""
+        return make_divisible(self.scale_factor * self.config[0][0], self.groups)
+
+    @property
+    def stage_channels(self) -> tuple[int]:
+        """scaled output channel of each stage,
+        divisible by 4 x groups so that the bottleneck (1/4 of output) splits evenly into groups
+        """
+        return tuple(
+            make_divisible(self.scale_factor * out_c, 4 * self.groups)
+            for _, out_c, _ in self.config
+        )
+
+    @property
+    def config(self) -> tuple[tuple[int]]:
+        # input_channel, output_channel, num_layer
+        return (
+            self._config
+            or {
+                1: (
+                    (24, 144, 4),
+                    (144, 288, 8),
+                    (288, 576, 4),
+                ),
+                2: (
+                    (24, 200, 4),
+                    (200, 400, 8),
+                    (400, 800, 4),
+                ),
+                3: (
+                    (24, 240, 4),
+                    (240, 480, 8),
+                    (480, 960, 4),
+                ),
+                4: (
+                    (24, 272, 4),
+                    (272, 544, 8),
+                    (544, 1088, 4),
+                ),
+                8: (
+                    (24, 384, 4),
+                    (384, 768, 8),
+                    (768, 1536, 4),
+                ),
+            }[self.groups]
+        )
+
+    def build_foot(self, input_channel, **kwargs):
         self.foot = nn.Sequential(
             Conv2dNormActivation(
                 input_channel,
-                int(scale_factor * self.config[0][0]),
+                self.stem_channel,
                 3,
                 stride=2,
             ),
             nn.MaxPool2d(3, stride=2, padding=1),
         )
-        self.build_blocks(groups, scale_factor)
-        self.pool = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-        )
-        self.fc = nn.Linear(
-            int(scale_factor * self.config[-1][1]),
-            output_size,
-        )
 
-    def build_blocks(self, groups: int = 1, scale_factor: float = 1):
-        """build blocks
-
-        Args:
-            groups (int, optional): number of groups of channels. Defaults to 1.
-            scale_factor (float, optional): scale factor s. Defaults to 1.
-        """
-        for block_index, (
-            input_channel,
-            output_channel,
-            num_layer,
-        ) in enumerate(self.config):
-            _input_channel = int(scale_factor * input_channel)
-            _output_channel = int(scale_factor * output_channel)
-
-            layers = [
-                ResBlock(
-                    _input_channel if layer_index == 0 else _output_channel,
-                    _output_channel,
-                    stride=2 if layer_index == 0 else 1,
-                    groups=groups,
+    def build_blocks(self, **kwargs):
+        self.blocks = nn.Sequential()
+        in_c = self.stem_channel
+        for stage_idx, ((_, _, num_layer), out_c) in enumerate(
+            zip(self.config, self.stage_channels)
+        ):
+            stage = nn.Sequential()
+            for layer_idx in range(num_layer):
+                stage.append(
+                    ResBlock(
+                        in_c if layer_idx == 0 else out_c,
+                        out_c,
+                        stride=2 if layer_idx == 0 else 1,
+                        groups=self.groups,
+                        # paper: no group conv on the first pointwise layer of stage 2
+                        group_first_pointwise=not (stage_idx == 0 and layer_idx == 0),
+                    )
                 )
-                for layer_index in range(num_layer)
-            ]
 
-            setattr(self, f"block{block_index+1}", nn.Sequential(*layers))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.foot(x)
-        for i in range(self.num_stage):
-            block = getattr(self, f"block{i+1}", None)
-            y = block(y)
-        y = self.pool(y)
-        y = self.fc(y)
-
-        return y
+            self.blocks.append(stage)
+            in_c = out_c

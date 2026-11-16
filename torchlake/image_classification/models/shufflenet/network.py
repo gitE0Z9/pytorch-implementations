@@ -13,6 +13,7 @@ class BottleNeck(nn.Module):
         stride: int = 1,
         groups: int = 1,
         reduction_ratio: int = 4,
+        group_first_pointwise: bool = True,
     ):
         """Bottleneck in paper [1707.01083v2]
 
@@ -22,20 +23,22 @@ class BottleNeck(nn.Module):
             stride (int, optional): stride of depthwise convolution. Defaults to 1.
             groups (int, optional): number of groups of channels. Defaults to 1.
             reduction_ratio (int, optional): ratio to compress channel in bottleneck of resnet. Defaults to 4.
+            group_first_pointwise (bool, optional): use group convolution in the first pointwise layer, paper disables it for the first block of stage 2 since its input channel is small. Defaults to True.
         """
-        super(BottleNeck, self).__init__()
+        super().__init__()
         compressed_channel = output_channel // reduction_ratio
         if stride > 1:
             output_channel -= input_channel
+        first_groups = groups if group_first_pointwise else 1
 
-        self.block = nn.Sequential(
+        self.layers = nn.Sequential(
             Conv2dNormActivation(
                 input_channel,
                 compressed_channel,
                 1,
-                groups=groups,
+                groups=first_groups,
             ),
-            ChannelShuffle(groups),
+            # shuffle
             Conv2dNormActivation(
                 compressed_channel,
                 compressed_channel,
@@ -52,9 +55,11 @@ class BottleNeck(nn.Module):
                 activation_layer=None,
             ),
         )
+        if first_groups > 1:
+            self.layers.insert(1, ChannelShuffle(first_groups))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
+        return self.layers(x)
 
 
 class ResBlock(nn.Module):
@@ -65,16 +70,18 @@ class ResBlock(nn.Module):
         output_channel: int,
         stride: int = 1,
         groups: int = 1,
+        group_first_pointwise: bool = True,
     ):
-        """_summary_
+        """residual block of shufflenet
 
         Args:
             input_channel (int): input channel size
             output_channel (int): output channel size
             stride (int, optional): stride of depthwise convolution and identity branch. Defaults to 1.
             groups (int, optional): number of groups of channels. Defaults to 1.
+            group_first_pointwise (bool, optional): use group convolution in the first pointwise layer of bottleneck. Defaults to True.
         """
-        super(ResBlock, self).__init__()
+        super().__init__()
         self.stride = stride
 
         self.block = BottleNeck(
@@ -82,6 +89,7 @@ class ResBlock(nn.Module):
             output_channel,
             stride,
             groups,
+            group_first_pointwise=group_first_pointwise,
         )
         self.identity_branch = (
             nn.AvgPool2d(3, 2, padding=1) if stride > 1 else nn.Identity()

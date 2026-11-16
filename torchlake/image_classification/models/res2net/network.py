@@ -1,6 +1,9 @@
 import torch
 from torch import nn
-from torchvision.ops import Conv2dNormActivation
+
+from torchlake.common.models import ConvBNReLU
+
+from ..resnet.network import BottleNeck as BottleNeckBase
 
 
 class Res2NetLayer(nn.Module):
@@ -10,26 +13,32 @@ class Res2NetLayer(nn.Module):
         input_channel: int,
         split: int = 4,
         groups: int = 1,
+        pre_activation: bool = False,
     ):
-        """Res2Net module
+        """Res2Net layer
 
         Args:
             input_channel (int): input channel size
             split (int, optional): s in paper, split input_channel into s * w channels. Defaults to 4.
             groups (int, optional): group of 3x3 filters. Defaults to 1.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
         """
-        super(Res2NetLayer, self).__init__()
+        super().__init__()
+        assert split >= 2, "split should be at least 2"
+
         self.split = split
         self.convs = nn.ModuleList(
             [
-                Conv2dNormActivation(
+                ConvBNReLU(
                     input_channel // split,
                     input_channel // split,
                     3,
-                    groups=groups,
+                    padding=1,
+                    group=groups,
+                    conv_last=pre_activation,
                 )
+                for _ in range(split - 1)
             ]
-            * (split - 1)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -45,49 +54,37 @@ class Res2NetLayer(nn.Module):
         return y
 
 
-class BottleNeck(nn.Module):
+class BottleNeck(BottleNeckBase):
 
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        expansion_factor: int = 4,
+        pre_activation: bool = False,
         split: int = 4,
         groups: int = 1,
     ):
         """Bottleneck block in res2net [1904.01169v3]
-        The modified middle portion is a VGG extractor liked structure.
 
-        1 -> (3 -> 3 -> 3) -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+        kernel: 1x1 -> (3x3 -> 3x3 -> 3x3) -> 1x1
+        channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
+            expansion_factor (int, optional): output channel size = expansion factor x hidden dimension. Defaults to 4.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
             split (int, optional): s in paper, split input_channel into s * w channels. Defaults to 4.
             groups (int, optional): group of 3x3 filters. Defaults to 1.
         """
-        super(BottleNeck, self).__init__()
-        self.block = nn.Sequential(
-            Conv2dNormActivation(
-                input_channel,
-                block_base_channel,
-                1,
-                stride=stride,
-            ),
-            Res2NetLayer(
-                block_base_channel,
-                split,
-                groups,
-            ),
-            Conv2dNormActivation(
-                block_base_channel,
-                block_base_channel * 4,
-                1,
-                activation_layer=None,
-            ),
+        super().__init__(
+            input_channel,
+            hidden_dim,
+            stride,
+            expansion_factor,
+            pre_activation,
         )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
+        self.layers[1] = Res2NetLayer(hidden_dim, split, groups, pre_activation)

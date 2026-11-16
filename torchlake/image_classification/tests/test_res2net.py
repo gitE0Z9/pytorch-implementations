@@ -6,60 +6,92 @@ import torch
 from ..models.res2net.model import Res2Net
 from ..models.res2net.network import BottleNeck, Res2NetLayer
 
-
-@pytest.mark.parametrize("in_c,split,groups", [[32, 2, 16], [128, 4, 32]])
-def test_res2net_layer_forward_shape(in_c: int, split: int, groups: int):
-    x = torch.randn(2, in_c, 13, 13)
-    layer = Res2NetLayer(in_c, split, groups)
-    y = layer(x)
-
-    assert y.shape == torch.Size((2, in_c, 13, 13))
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+IMAGE_SIZE = 224
+OUTPUT_SIZE = 5
+FEATURE_MAP_SIZE = 13
 
 
-@pytest.mark.parametrize(
-    "name,input_channel,base_number,output_channel,stride",
-    [
-        ["first", 64, 64, 256, 2],
-        ["middle", 256, 64, 256, 1],
-    ],
-)
-@pytest.mark.parametrize("split", [2, 4])
-@pytest.mark.parametrize("groups", [4, 8])
-def test_bottleneck_forward_shape(
-    name: str,
-    input_channel: int,
-    base_number: int,
-    output_channel: int,
-    stride: int,
-    split: int,
-    groups: int,
-):
-    INPUT_SIZE = 13
-    OUTPUT_SIZE = ceil(INPUT_SIZE / stride)
+class TestNetwork:
+    @pytest.mark.parametrize("input_channel,split,groups", [[32, 2, 16], [128, 4, 32]])
+    @pytest.mark.parametrize("pre_activation", [False, True])
+    def test_res2net_layer_forward_shape(
+        self,
+        input_channel: int,
+        split: int,
+        groups: int,
+        pre_activation: bool,
+    ):
+        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        layer = Res2NetLayer(input_channel, split, groups, pre_activation)
+        y = layer(x)
 
-    x = torch.randn(2, input_channel, INPUT_SIZE, INPUT_SIZE)
-    # 64 -> 128 -> 128 -> 256
-    layer = BottleNeck(input_channel, base_number, stride, split, groups)
-    y = layer(x)
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        )
 
-    assert y.shape == torch.Size((2, output_channel, OUTPUT_SIZE, OUTPUT_SIZE))
-
-
-@pytest.mark.parametrize("key", [50, 101, 152])
-@pytest.mark.parametrize("split", [2, 4])
-@pytest.mark.parametrize("groups", [4, 8])
-def test_res2net_forward_shape(
-    key: int,
-    split: int,
-    groups: int,
-):
-    x = torch.randn(2, 3, 224, 224)
-    model = Res2Net(
-        output_size=5,
-        key=key,
-        split=split,
-        groups=groups,
+    @pytest.mark.parametrize(
+        "name,input_channel,hidden_dim,expansion_factor,stride",
+        [
+            ["first", 64, 64, 4, 2],
+            ["middle", 256, 64, 4, 1],
+        ],
     )
-    y = model(x)
+    @pytest.mark.parametrize("pre_activation", [False, True])
+    @pytest.mark.parametrize("split", [2, 4])
+    @pytest.mark.parametrize("groups", [4, 8])
+    def test_bottleneck_forward_shape(
+        self,
+        name: str,
+        input_channel: int,
+        hidden_dim: int,
+        expansion_factor: int,
+        stride: int,
+        pre_activation: bool,
+        split: int,
+        groups: int,
+    ):
+        OUTPUT_SIZE = ceil(FEATURE_MAP_SIZE / stride)
 
-    assert y.shape == torch.Size((2, 5))
+        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        layer = BottleNeck(
+            input_channel,
+            hidden_dim,
+            stride=stride,
+            expansion_factor=expansion_factor,
+            pre_activation=pre_activation,
+            split=split,
+            groups=groups,
+        )
+        y = layer(x)
+
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, hidden_dim * expansion_factor, OUTPUT_SIZE, OUTPUT_SIZE)
+        )
+
+
+class TestModel:
+    @pytest.mark.parametrize("key", [50, 101, 152])
+    @pytest.mark.parametrize("pre_activation", [False, True])
+    @pytest.mark.parametrize("split", [2, 4])
+    @pytest.mark.parametrize("groups", [4, 8])
+    def test_res2net_forward_shape(
+        self,
+        key: int,
+        pre_activation: bool,
+        split: int,
+        groups: int,
+    ):
+        x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        model = Res2Net(
+            INPUT_CHANNEL,
+            OUTPUT_SIZE,
+            pre_activation=pre_activation,
+            key=key,
+            split=split,
+            groups=groups,
+        )
+        y = model(x)
+
+        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

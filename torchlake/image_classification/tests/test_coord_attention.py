@@ -1,91 +1,74 @@
 from math import ceil
+
 import pytest
 import torch
 
-from ..models.resnet.network import ResBlock
 from ..models.coord_attention.model import CoordAttentionResNet
 from ..models.coord_attention.network import BottleNeck, CoordinateAttention2d
 
-
-def test_coord_att2d_forward_shape():
-    x = torch.randn(8, 16, 112, 112)
-
-    model = CoordinateAttention2d(16, 16)
-
-    y = model(x)
-
-    assert y.shape == torch.Size((8, 16, 112, 112))
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+IMAGE_SIZE = 224
+OUTPUT_SIZE = 5
+HIDDEN_DIM = 16
+FEATURE_MAP_SIZE = 13
 
 
-@pytest.mark.parametrize(
-    "name,input_channel,base_number,output_channel,stride",
-    [
-        ["first", 64, 64, 256, 2],
-        ["middle", 256, 64, 256, 1],
-    ],
-)
-@pytest.mark.parametrize("pre_activation", [False, True])
-def test_bottleneck_forward_shape(
-    name: str,
-    input_channel: int,
-    base_number: int,
-    output_channel: int,
-    stride: int,
-    pre_activation: bool,
-):
-    INPUT_SIZE = 13
-    OUTPUT_SIZE = ceil(INPUT_SIZE / stride)
+class TestNetwork:
+    def test_coord_attention_2d_forward_shape(self):
+        x = torch.randn(BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        model = CoordinateAttention2d(HIDDEN_DIM, 16)
+        y = model(x)
 
-    x = torch.randn(2, input_channel, INPUT_SIZE, INPUT_SIZE)
-    layer = BottleNeck(input_channel, base_number, stride, pre_activation)
-    y = layer(x)
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        )
 
-    assert y.shape == torch.Size((2, output_channel, OUTPUT_SIZE, OUTPUT_SIZE))
-
-
-@pytest.mark.parametrize(
-    "name,input_channel,base_number,output_channel,block,stride",
-    [
-        ["bottleneck_first", 64, 64, 256, BottleNeck, 2],
-        ["bottleneck_middle", 256, 64, 256, BottleNeck, 1],
-    ],
-)
-@pytest.mark.parametrize("pre_activation", [False, True])
-def test_resblock_forward_shape(
-    name: str,
-    input_channel: int,
-    base_number: int,
-    output_channel: int,
-    block: BottleNeck,
-    stride: int,
-    pre_activation: bool,
-):
-    INPUT_SIZE = 13
-    OUTPUT_SIZE = ceil(INPUT_SIZE / stride)
-
-    x = torch.randn(2, input_channel, INPUT_SIZE, INPUT_SIZE)
-    layer = ResBlock(
-        input_channel,
-        base_number,
-        output_channel,
-        block,
-        stride,
-        pre_activation,
+    @pytest.mark.parametrize(
+        "name,input_channel,hidden_dim,expansion_factor,stride",
+        [
+            ["first", 64, 64, 4, 2],
+            ["middle", 256, 64, 4, 1],
+        ],
     )
-    y = layer(x)
+    @pytest.mark.parametrize("pre_activation", [False, True])
+    def test_bottleneck_forward_shape(
+        self,
+        name: str,
+        input_channel: int,
+        hidden_dim: int,
+        expansion_factor: int,
+        stride: int,
+        pre_activation: bool,
+    ):
+        OUTPUT_SIZE = ceil(FEATURE_MAP_SIZE / stride)
 
-    assert y.shape == torch.Size((2, output_channel, OUTPUT_SIZE, OUTPUT_SIZE))
+        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        layer = BottleNeck(
+            input_channel,
+            hidden_dim,
+            stride=stride,
+            expansion_factor=expansion_factor,
+            pre_activation=pre_activation,
+        )
+        y = layer(x)
+
+        assert y.shape == torch.Size(
+            (BATCH_SIZE, hidden_dim * expansion_factor, OUTPUT_SIZE, OUTPUT_SIZE)
+        )
 
 
-@pytest.mark.parametrize("key", [50, 101, 152])
-@pytest.mark.parametrize("pre_activation", [False, True])
-def test_resnet_forward_shape(key: int, pre_activation: bool):
-    x = torch.randn(2, 3, 224, 224)
-    model = CoordAttentionResNet(
-        output_size=5,
-        key=key,
-        pre_activation=pre_activation,
-    )
-    y = model(x)
+class TestModel:
+    @pytest.mark.parametrize("key", [50, 101, 152])
+    @pytest.mark.parametrize("pre_activation", [False, True])
+    def test_coord_attention_resnet_forward_shape(self, key: int, pre_activation: bool):
+        x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        model = CoordAttentionResNet(
+            INPUT_CHANNEL,
+            OUTPUT_SIZE,
+            key=key,
+            pre_activation=pre_activation,
+        )
+        y = model(x)
 
-    assert y.shape == torch.Size((2, 5))
+        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

@@ -1,25 +1,26 @@
 import torch
 from torch import nn
-from torchlake.common.mixins.network import SEMixin
 from torchvision.ops import Conv2dNormActivation
 
-from ..resnet.network import BottleNeck
+from torchlake.common.mixins.network import SEMixin
+
+from ..resnet.network import BottleNeck as BottleNeckBase
 
 
 class CoordinateAttention2d(nn.Module):
 
-    def __init__(self, in_dim: int, reduction_ratio: float = 1):
+    def __init__(self, input_channel: int, reduction_ratio: float = 1):
         """Coordinate attention module
 
         Args:
-            in_dim (int): input dimension
+            input_channel (int): input dimension
             reduction_ratio (float, optional): reduction ratio. Defaults to 1.
         """
         super().__init__()
-        compressed_channel = in_dim // reduction_ratio
-        self.conv = Conv2dNormActivation(in_dim, compressed_channel, 1)
-        self.conv_x = nn.Conv2d(compressed_channel, in_dim, 1)
-        self.conv_y = nn.Conv2d(compressed_channel, in_dim, 1)
+        compressed_channel = input_channel // reduction_ratio
+        self.conv = Conv2dNormActivation(input_channel, compressed_channel, 1)
+        self.conv_x = nn.Conv2d(compressed_channel, input_channel, 1)
+        self.conv_y = nn.Conv2d(compressed_channel, input_channel, 1)
 
     def get_x_poolings(self, x: torch.Tensor) -> torch.Tensor:
         return x.mean(3, keepdim=True)
@@ -51,28 +52,33 @@ class CoordinateAttention2d(nn.Module):
         return x * x_attention * y_attention
 
 
-class BottleNeck(SEMixin, BottleNeck):
+class BottleNeck(SEMixin, BottleNeckBase):
     def __init__(
         self,
         input_channel: int,
-        block_base_channel: int,
+        hidden_dim: int,
         stride: int = 1,
+        expansion_factor: int = 4,
         pre_activation: bool = False,
+        reduction_ratio: int = 32,
     ):
         """bottleneck block in coordinate attention resnet
-        1 -> 3 -> 1
-        input_channel -> block_base_channel -> block_base_channel -> 4 * block_base_channel
+        kernel: 1x1 -> 3x3 -> 1x1 -> coordinate attention
+        channel: input_channel -> hidden_dim -> expansion_factor * hidden_dim
 
         Args:
             input_channel (int): input channel size
-            block_base_channel (int): base number of block channel size
+            hidden_dim (int): hidden dimension
             stride (int, optional): stride of block. Defaults to 1.
-            pre_activation (bool, Defaults False): put activation before transformation [1603.05027v3]
+            expansion_factor (int, optional): output channel size = expansion factor x hidden dimension. Defaults to 4.
+            pre_activation (bool, optional): put activation before convolution layer in paper[1603.05027v3]. Defaults to False.
+            reduction_ratio (int, optional): reduction ratio of coordinate attention. Defaults to 32.
         """
         super().__init__(
             input_channel,
-            block_base_channel,
+            hidden_dim,
             stride,
+            expansion_factor,
             pre_activation,
         )
-        self.se = CoordinateAttention2d(block_base_channel * 4, 32)
+        self.se = CoordinateAttention2d(hidden_dim * expansion_factor, reduction_ratio)

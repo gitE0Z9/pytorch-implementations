@@ -22,10 +22,10 @@ class BottleNeck(nn.Module):
             stride (int, optional): stride of depthwise convolution. Defaults to 1.
             reduction_ratio (int, optional): ratio to compress channel in bottleneck of resnet. Defaults to 1.
         """
-        super(BottleNeck, self).__init__()
+        super().__init__()
         compressed_channel = output_channel // reduction_ratio
 
-        self.block = nn.Sequential(
+        self.layers = nn.Sequential(
             Conv2dNormActivation(input_channel, compressed_channel, 1),
             Conv2dNormActivation(
                 compressed_channel,
@@ -39,7 +39,7 @@ class BottleNeck(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
+        return self.layers(x)
 
 
 class ResBlock(nn.Module):
@@ -51,7 +51,7 @@ class ResBlock(nn.Module):
         stride: int = 1,
         groups: int = 1,
     ):
-        """_summary_
+        """residual block of shufflenet v2
 
         Args:
             input_channel (int): input channel size
@@ -59,14 +59,14 @@ class ResBlock(nn.Module):
             stride (int, optional): stride of depthwise convolution and identity branch. Defaults to 1.
             groups (int, optional): number of groups of channel shuffle. Defaults to 1.
         """
-        super(ResBlock, self).__init__()
+        super().__init__()
         self.stride = stride
 
         _input_channel = input_channel if stride > 1 else input_channel // 2
         _output_channel = output_channel // 2
 
         self.block = BottleNeck(_input_channel, _output_channel, stride)
-        self.identity_branch = (
+        self.shortcut = (
             nn.Sequential(
                 Conv2dNormActivation(
                     _input_channel,
@@ -86,9 +86,9 @@ class ResBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.stride == 1:
             x1, x2 = x.chunk(2, 1)
-            y = torch.cat([self.identity_branch(x1), self.block(x2)], 1)
+            y = torch.cat([self.shortcut(x1), self.block(x2)], 1)
         elif self.stride > 1:
-            y = torch.cat([self.identity_branch(x), self.block(x)], 1)
+            y = torch.cat([self.shortcut(x), self.block(x)], 1)
         else:
             raise ValueError("Stride {} should be at least 1.".format(self.stride))
 

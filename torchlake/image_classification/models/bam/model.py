@@ -1,36 +1,19 @@
-from torch import nn
-
-from ..resnet.model import ResNet
-from ..resnet.network import ResBlock
+from ..resnet.model import ConvBlockArgs, ResNet
 from .network import BAM2d
 
 
 class BAMResNet(ResNet):
 
-    def build_blocks(self):
-        for block_index, (
-            input_channel,
-            output_channel,
-            base_number,
-            num_layer,
-            layer_class,
-        ) in enumerate(self.config):
-            layers = [
-                ResBlock(
-                    input_channel if layer_index == 0 else output_channel,
-                    base_number,
-                    output_channel,
-                    layer_class,
-                    pre_activation=self.pre_activation,
-                )
-                for layer_index in range(num_layer)
-            ]
-            if block_index not in [0, len(self.config) - 1]:
-                layers.extend(
-                    [
-                        BAM2d(output_channel),
-                        nn.MaxPool2d(2, 2),
-                    ]
-                )
+    def build_blocks(self, **kwargs):
+        """place BAM at each bottleneck of the network [1807.06514v2],
+        i.e. at the end of every stage except the last, before the next stage downsamples
+        """
+        super().build_blocks(**kwargs)
 
-            setattr(self, f"block{block_index+1}", nn.Sequential(*layers))
+        for stage, stage_cfg in zip(self.blocks[:-1], self.config):
+            if isinstance(stage_cfg, ConvBlockArgs):
+                output_channel = stage_cfg.output_dim
+            else:
+                output_channel = stage_cfg.hidden_dim * stage_cfg.expansion
+
+            stage.append(BAM2d(output_channel))

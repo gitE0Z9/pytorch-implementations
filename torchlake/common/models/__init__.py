@@ -2,7 +2,7 @@ from .channel_shuffle import ChannelShuffle
 from .conv import ConvBNReLU, ConvINReLU
 from .ds_conv import DepthwiseSeparableConv2d
 from .flatten import FlattenFeature
-from .highway import HighwayBlock
+from .highway import HighwayLayer
 from .imagenet_normalization import ImageNetNormalization
 from .kernel_pca import KernelPCA
 
@@ -25,7 +25,7 @@ __all__ = [
     "SqueezeExcitation2d",
     "DepthwiseSeparableConv2d",
     "ResBlock",
-    "HighwayBlock",
+    "HighwayLayer",
     "ChannelShuffle",
     "FlattenFeature",
     "TopKMaxPool1d",

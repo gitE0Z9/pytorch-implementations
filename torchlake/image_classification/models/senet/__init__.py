@@ -1,6 +1,6 @@
-from .model import SeResNet, SeResNeXt
+from .model import SEResNet, SEResNeXt
 
 __all__ = [
-    "SeResNet",
-    "SeResNeXt",
+    "SEResNet",
+    "SEResNeXt",
 ]
