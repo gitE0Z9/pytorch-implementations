@@ -42,7 +42,7 @@ class WideResNet(ResNet):
         """parameter of layers
 
         Returns:
-            tuple[tuple[int | nn.Module]]: parameters of layers
+            tuple[tuple[int]]: parameters of layers
         """
         # input_dim, output_dim, num_block
         return self._config or (
@@ -55,7 +55,7 @@ class WideResNet(ResNet):
         self.foot = nn.Sequential(
             DropoutConvBlock(
                 input_channel,
-                16,
+                self.config[0][0],
                 pre_activation=self.pre_activation,
             ),
         )
@@ -64,21 +64,20 @@ class WideResNet(ResNet):
         self.blocks = nn.Sequential()
 
         for stage_idx, (in_c, out_c, num_block) in enumerate(self.config):
-            block = nn.Sequential()
+            stage = nn.Sequential()
 
             if stage_idx != 0:
                 in_c *= self.widening_factor
             out_c *= self.widening_factor
-            num_block *= self.deepening_factor
 
-            for layer_idx in range(num_block):
+            for layer_idx in range(num_block * self.deepening_factor):
                 stride = 1
                 if layer_idx == 0:
                     stride = 2
                 else:
                     in_c = out_c
 
-                block.append(
+                stage.append(
                     ResBlock(
                         in_c,
                         out_c,
@@ -93,7 +92,7 @@ class WideResNet(ResNet):
                     )
                 )
 
-            self.blocks.append(block)
+            self.blocks.append(stage)
 
 
 class WideResNetWithBottleneck(ResNet):
@@ -159,7 +158,7 @@ class WideResNetWithBottleneck(ResNet):
             expansion_factor,
             num_block,
         ) in enumerate(self.config):
-            block = nn.Sequential()
+            stage = nn.Sequential()
 
             if stage_idx != 0:
                 in_c *= self.widening_factor
@@ -173,7 +172,7 @@ class WideResNetWithBottleneck(ResNet):
                 else:
                     in_c = out_c
 
-                block.append(
+                stage.append(
                     ResBlock(
                         in_c,
                         out_c,
@@ -188,4 +187,4 @@ class WideResNetWithBottleneck(ResNet):
                     )
                 )
 
-            self.blocks.append(block)
+            self.blocks.append(stage)

@@ -4,34 +4,50 @@ import torch
 from ..models.densenet.model import DenseNet
 from ..models.densenet.network import DenseBlock, TransitionBlock
 
+BATCH_SIZE = 2
+INPUT_CHANNEL = 3
+IMAGE_SIZE = 224
+OUTPUT_SIZE = 5
+HIDDEN_DIM = 16
+FEATURE_MAP_SIZE = 13
+GROWTH_RATE = 32
 
-class TestDenseNet:
+
+class TestNetwork:
     def test_denseblock_forward_shape(self):
-        x = torch.randn(2, 16, 13, 13)
-        layer = DenseBlock(16, 4)
+        x = torch.randn(BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        layer = DenseBlock(HIDDEN_DIM, 4, growth_rate=GROWTH_RATE)
         y = layer(x)
 
-        assert y.shape == torch.Size((2, 16 + 4 * 32, 13, 13))
+        assert y.shape == torch.Size(
+            (
+                BATCH_SIZE,
+                HIDDEN_DIM + 4 * GROWTH_RATE,
+                FEATURE_MAP_SIZE,
+                FEATURE_MAP_SIZE,
+            )
+        )
 
     def test_transitionblock_forward_shape(self):
-        x = torch.randn(2, 16, 13, 13)
-        layer = TransitionBlock(16, 8)
+        x = torch.randn(BATCH_SIZE, HIDDEN_DIM, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
+        layer = TransitionBlock(HIDDEN_DIM, HIDDEN_DIM // 2)
         y = layer(x)
 
-        assert y.shape == torch.Size((2, 8, 6, 6))
+        assert y.shape == torch.Size(
+            (
+                BATCH_SIZE,
+                HIDDEN_DIM // 2,
+                FEATURE_MAP_SIZE // 2,
+                FEATURE_MAP_SIZE // 2,
+            )
+        )
 
-    @pytest.mark.parametrize(
-        "name,num_layer",
-        [
-            ["121", 121],
-            ["169", 169],
-            ["201", 201],
-            ["264", 264],
-        ],
-    )
-    def test_densenet_forward_shape(self, name: str, num_layer: int):
-        x = torch.randn(2, 3, 224, 224)
-        model = DenseNet(output_size=5, num_layer=num_layer)
+
+class TestModel:
+    @pytest.mark.parametrize("key", [121, 169, 201, 264])
+    def test_densenet_forward_shape(self, key: int):
+        x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
+        model = DenseNet(INPUT_CHANNEL, OUTPUT_SIZE, key=key)
         y = model(x)
 
-        assert y.shape == torch.Size((2, 5))
+        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))

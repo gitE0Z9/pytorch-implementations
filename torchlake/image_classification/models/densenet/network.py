@@ -7,12 +7,13 @@ class DenseBlock(nn.Module):
 
     def __init__(
         self,
-        input_channel: int = 3,
-        num_layer: int = 1,
+        input_channel: int,
+        num_layer: int,
         growth_rate: int = 32,
         expansion_ratio: int = 4,
     ):
-        super(DenseBlock, self).__init__()
+        super().__init__()
+        self.output_channel = input_channel + growth_rate * num_layer
         self.layers = nn.ModuleList()
 
         for i in range(num_layer):
@@ -43,21 +44,17 @@ class DenseBlock(nn.Module):
 
 class TransitionBlock(nn.Module):
 
-    def __init__(
-        self,
-        input_channel: int = 3,
-        output_channel: int = 1,
-    ):
-        super(TransitionBlock, self).__init__()
-        self.conv = ConvBNReLU(
-            input_channel,
-            output_channel,
-            1,
-            conv_last=True,
+    def __init__(self, input_channel: int, output_channel: int):
+        super().__init__()
+        self.layers = nn.Sequential(
+            ConvBNReLU(
+                input_channel,
+                output_channel,
+                1,
+                conv_last=True,
+            ),
+            nn.AvgPool2d(2, 2),
         )
 
-        self.pool = nn.AvgPool2d(2, 2)
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv(x)
-        return self.pool(y)
+        return self.layers(x)
