@@ -105,13 +105,10 @@ class ResNet(ModelBase):
             nn.MaxPool2d(3, stride=2, padding=1),
         )
 
-        if self.pre_activation:
-            self.foot.insert(2, nn.ReLU(True))
-
     def build_blocks(self):
         self.blocks = nn.Sequential()
 
-        for stage_cfg in self.config:
+        for stage_idx, stage_cfg in enumerate(self.config):
             is_conv_block = isinstance(stage_cfg, ConvBlockArgs)
             if is_conv_block:
                 in_c, out_c, num_block, layer_cls = stage_cfg
@@ -123,7 +120,7 @@ class ResNet(ModelBase):
             for block_idx in range(num_block):
                 stride = 1
                 if block_idx == 0:
-                    stride = 2
+                    stride = 2 if stage_idx > 0 else 1
                 else:
                     in_c = out_c
 
@@ -154,8 +151,14 @@ class ResNet(ModelBase):
 
             self.blocks.append(stage)
 
+    def build_neck(self, **kwargs):
+        self.neck = None
+
         if self.pre_activation:
-            self.blocks[-1].activation = nn.ReLU(True)
+            self.neck = nn.Sequential(
+                nn.BatchNorm2d(self.feature_dim),
+                nn.ReLU(True),
+            )
 
 
 class ResNetB(ResNet):

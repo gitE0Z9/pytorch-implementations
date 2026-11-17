@@ -1,9 +1,10 @@
 from math import ceil
+from typing import Literal
 
 import pytest
 import torch
 
-from ..models.wide_resnet import WideResNetWithBottleneck, WideResNet
+from ..models.wide_resnet import WideResNet
 from ..models.wide_resnet.network import DropoutConvBlock
 
 BATCH_SIZE = 2
@@ -54,13 +55,18 @@ class TestModel:
     @pytest.mark.parametrize("widening_factor", [1, 2])
     @pytest.mark.parametrize("dropout_prob", [0, 0.5])
     @pytest.mark.parametrize("pre_activation", [False, True])
+    @pytest.mark.parametrize("key", ["wrn", 50, 101, 152])
     def test_wide_resnet_forward_shape(
         self,
         deepening_factor: int,
         widening_factor: int,
         dropout_prob: float,
         pre_activation: bool,
+        key: Literal["wrn", 50, 101, 152],
     ):
+        if (dropout_prob != 0 or deepening_factor != 1) and key != "wrn":
+            pytest.skip("skip deepned bottleneck wide resnet")
+
         x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
 
         model = WideResNet(
@@ -70,25 +76,6 @@ class TestModel:
             widening_factor=widening_factor,
             pre_activation=pre_activation,
             dropout_prob=dropout_prob,
-        )
-        y = model(x)
-
-        assert y.shape == torch.Size((BATCH_SIZE, OUTPUT_SIZE))
-
-    @pytest.mark.parametrize("widening_factor", [1, 2])
-    @pytest.mark.parametrize("pre_activation", [False, True])
-    def test_wide_resnet_with_bottleneck_forward_shape(
-        self,
-        widening_factor: int,
-        pre_activation: bool,
-    ):
-        x = torch.randn(BATCH_SIZE, INPUT_CHANNEL, IMAGE_SIZE, IMAGE_SIZE)
-
-        model = WideResNetWithBottleneck(
-            INPUT_CHANNEL,
-            OUTPUT_SIZE,
-            widening_factor=widening_factor,
-            pre_activation=pre_activation,
         )
         y = model(x)
 

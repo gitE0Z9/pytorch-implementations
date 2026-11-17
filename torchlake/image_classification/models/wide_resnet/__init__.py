@@ -1,6 +1,5 @@
-from .model import WideResNet, WideResNetWithBottleneck
+from .model import WideResNet
 
 __all__ = [
     "WideResNet",
-    "WideResNetWithBottleneck",
 ]
