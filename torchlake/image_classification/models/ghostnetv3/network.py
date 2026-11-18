@@ -1,25 +1,23 @@
 from copy import deepcopy
+
 import torch
 from torch import nn
+from torchvision.ops import Conv2dNormActivation
+
+from torchlake.common.helpers.fuser import (
+    convert_bn_to_conv,
+    empty_conv,
+    fuse_conv_bn,
+    fuse_sum_parallel_convs,
+)
 from torchlake.common.models import (
     DepthwiseSeparableConv2d,
     ResBlock,
     SqueezeExcitation2d,
 )
-from torchvision.ops import Conv2dNormActivation
-from torchlake.common.helpers.fuser import (
-    fuse_conv_bn,
-    fuse_sum_parallel_convs,
-    empty_conv,
-    convert_bn_to_conv,
-)
 
 from ..ghostnet.network import GhostModule
-from ..ghostnetv2.network import (
-    DFCAttention,
-    GhostBottleNeckV2,
-    GhostLayerV2,
-)
+from ..ghostnetv2.network import DFCAttention, GhostBlockV2, GhostBottleNeckV2
 
 
 class InceptionModule(nn.Module):
@@ -49,8 +47,8 @@ class InceptionModule(nn.Module):
                     groups=groups,
                     activation_layer=None,
                 )
+                for _ in range(num_branch)
             ]
-            * num_branch
         )
 
         self.skip_branch = None
@@ -130,20 +128,20 @@ class GhostModuleV3(nn.Module):
         self,
         input_channel: int,
         output_channel: int,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
     ):
         """GhostNet ghost module v3 [2404.11202v1]
 
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_channel (int, optional): output channel size. Defaults to 1.
-            s (int): ratio of ghost features. Defaults to 2.
-            d (int): kernel size of ghost's depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): ratio of ghost features. Defaults to 2.
+            kernel_ds (int): kernel size of ghost's depthwise convolution layer. Defaults to 1.
         """
         super().__init__()
-        self.s = s
-        self.identity_channel = output_channel // s
+        self.num_ghost_feature = num_ghost_feature
+        self.identity_channel = output_channel // num_ghost_feature
         transformed_channel = output_channel - self.identity_channel
 
         self.pointwise_conv = InceptionModule(
@@ -155,21 +153,24 @@ class GhostModuleV3(nn.Module):
         self.ghost = InceptionModule(
             self.identity_channel,
             transformed_channel,
-            d,
+            kernel_ds,
             groups=self.identity_channel,
             num_branch=3,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # b, c // s, h, w
+        # b, c // num_ghost_feature, h, w
         y = self.pointwise_conv(x)
 
-        # b, c / s + c * (s-1) / s, h, w
+        # b, c / num_ghost_feature + c * (num_ghost_feature - 1) / num_ghost_feature, h, w
         return torch.cat([y, self.ghost(y)], 1)
 
     def reparameterize(self, dest: GhostModule):
-        dest.pointwise_conv = self.pointwise_conv.reparameterize()
-        dest.ghost = self.ghost.reparameterize()
+        # load into existing modules to keep state dict keys of GhostModule
+        dest.pointwise_conv.load_state_dict(
+            self.pointwise_conv.reparameterize().state_dict()
+        )
+        dest.ghost.load_state_dict(self.ghost.reparameterize().state_dict())
 
 
 class GhostBottleNeckV3(nn.Module):
@@ -180,8 +181,8 @@ class GhostBottleNeckV3(nn.Module):
         output_channel: int,
         kernel: int,
         stride: int = 1,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
         expansion_size: int = 1,
         enable_se: bool = True,
         reduction_ratio: int = 4,
@@ -195,8 +196,8 @@ class GhostBottleNeckV3(nn.Module):
             output_channel (int, optional): output channel size. Defaults to 1.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): ratio of ghost features. Defaults to 2.
-            d (int): kernel size of ghost's depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): ratio of ghost features. Defaults to 2.
+            kernel_ds (int): kernel size of ghost's depthwise convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
@@ -209,8 +210,8 @@ class GhostBottleNeckV3(nn.Module):
             GhostModuleV3(
                 input_channel,
                 expansion_size,
-                s=s,
-                d=d,
+                num_ghost_feature=num_ghost_feature,
+                kernel_ds=kernel_ds,
             ),
             nn.BatchNorm2d(expansion_size),
             nn.ReLU(inplace=True),
@@ -249,8 +250,8 @@ class GhostBottleNeckV3(nn.Module):
             GhostModuleV3(
                 expansion_size,
                 output_channel,
-                s=s,
-                d=d,
+                num_ghost_feature=num_ghost_feature,
+                kernel_ds=kernel_ds,
             ),
             nn.BatchNorm2d(output_channel),
         )
@@ -285,12 +286,21 @@ class GhostBottleNeckV3(nn.Module):
         # dw
         if self.dw is not None:
             conv = self.dw[0].reparameterize()
-            cloned = deepcopy(conv)
-            fuse_conv_bn(conv, self.dw[1], cloned)
-            dest.dw = cloned
+            fused = deepcopy(conv)
+            fuse_conv_bn(conv, self.dw[1], fused)
+
+            # don't bother bn in dest.dw, since layer fusion in pytorch won't bring much benefits
+            # should leave that to the inference engine
+            dest_conv, dest_bn = dest.dw[0], dest.dw[1]
+            with torch.no_grad():
+                dest_conv.weight.copy_(fused.weight)
+                dest_bn.weight.fill_(1)
+                dest_bn.bias.copy_(fused.bias)
+                dest_bn.running_mean.zero_()
+                dest_bn.running_var.fill_(1 - dest_bn.eps)
 
 
-class GhostLayerV3(nn.Module):
+class GhostBlockV3(nn.Module):
 
     def __init__(
         self,
@@ -298,23 +308,23 @@ class GhostLayerV3(nn.Module):
         output_channel: int,
         kernel: int,
         stride: int = 1,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
         expansion_size: int = 1,
         enable_se: bool = True,
         reduction_ratio: int = 4,
         horizontal_kernel: int = 3,
         vertical_kernel: int = 3,
     ):
-        """GhostNet layer v3 [2404.11202v1]
+        """GhostNet block v3 [2404.11202v1]
 
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_channel (int, optional): output channel size. Defaults to 1.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): num of ghost features, group parameter. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): num of ghost features, group parameter. Defaults to 2.
+            kernel_ds (int): kernel size of depthwise convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
@@ -328,8 +338,8 @@ class GhostLayerV3(nn.Module):
             output_channel,
             kernel,
             stride,
-            s,
-            d,
+            num_ghost_feature,
+            kernel_ds,
             expansion_size,
             enable_se,
             reduction_ratio,
@@ -337,14 +347,16 @@ class GhostLayerV3(nn.Module):
             vertical_kernel,
         )
 
-        shortcut = DepthwiseSeparableConv2d(
-            input_channel,
-            output_channel,
-            kernel,
-            stride,
-            padding=kernel // 2,
-            activations=(None, None),
-        )
+        shortcut = None
+        if input_channel != output_channel or stride > 1:
+            shortcut = DepthwiseSeparableConv2d(
+                input_channel,
+                output_channel,
+                kernel,
+                stride,
+                padding=kernel // 2,
+                activations=(None, None),
+            )
 
         # packed into resblock
         self.block = ResBlock(
@@ -359,6 +371,6 @@ class GhostLayerV3(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.block(x)
 
-    def reparameterize(self, dest: GhostLayerV2):
+    def reparameterize(self, dest: GhostBlockV2):
         self.block.block.reparameterize(dest.block.block)
-        dest.block.downsample.load_state_dict(self.block.downsample.state_dict())
+        dest.block.shortcut.load_state_dict(self.block.shortcut.state_dict())

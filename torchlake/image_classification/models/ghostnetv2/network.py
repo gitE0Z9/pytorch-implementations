@@ -1,12 +1,13 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torchvision.ops import Conv2dNormActivation
+
 from torchlake.common.models import (
+    DepthwiseSeparableConv2d,
     ResBlock,
     SqueezeExcitation2d,
-    DepthwiseSeparableConv2d,
 )
-from torchvision.ops import Conv2dNormActivation
 
 from ..ghostnet.network import GhostModule
 
@@ -70,8 +71,8 @@ class GhostBottleNeckV2(nn.Module):
         output_channel: int,
         kernel: int,
         stride: int = 1,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
         expansion_size: int = 1,
         enable_se: bool = True,
         reduction_ratio: int = 4,
@@ -85,8 +86,8 @@ class GhostBottleNeckV2(nn.Module):
             output_channel (int, optional): output channel size. Defaults to 1.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): num of ghost features, group parameter. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): num of ghost features, group parameter. Defaults to 2.
+            kernel_ds (int): kernel size of depthwise convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
@@ -99,8 +100,8 @@ class GhostBottleNeckV2(nn.Module):
             GhostModule(
                 input_channel,
                 expansion_size,
-                s=s,
-                d=d,
+                num_ghost_feature=num_ghost_feature,
+                kernel_ds=kernel_ds,
             ),
             nn.BatchNorm2d(expansion_size),
             nn.ReLU(inplace=True),
@@ -137,8 +138,8 @@ class GhostBottleNeckV2(nn.Module):
             GhostModule(
                 expansion_size,
                 output_channel,
-                s=s,
-                d=d,
+                num_ghost_feature=num_ghost_feature,
+                kernel_ds=kernel_ds,
             ),
             nn.BatchNorm2d(output_channel),
         )
@@ -155,7 +156,7 @@ class GhostBottleNeckV2(nn.Module):
         return self.head(y)
 
 
-class GhostLayerV2(nn.Module):
+class GhostBlockV2(nn.Module):
 
     def __init__(
         self,
@@ -163,23 +164,23 @@ class GhostLayerV2(nn.Module):
         output_channel: int,
         kernel: int,
         stride: int = 1,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
         expansion_size: int = 1,
         enable_se: bool = True,
         reduction_ratio: int = 4,
         horizontal_kernel: int = 3,
         vertical_kernel: int = 3,
     ):
-        """GhostNet layer [2211.12905v1]
+        """GhostNet block [2211.12905v1]
 
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_channel (int, optional): output channel size. Defaults to 1.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): num of ghost features, group parameter. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): num of ghost features, group parameter. Defaults to 2.
+            kernel_ds (int): kernel size of depthwise convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
@@ -193,8 +194,8 @@ class GhostLayerV2(nn.Module):
             output_channel,
             kernel,
             stride,
-            s,
-            d,
+            num_ghost_feature,
+            kernel_ds,
             expansion_size,
             enable_se,
             reduction_ratio,
@@ -202,14 +203,16 @@ class GhostLayerV2(nn.Module):
             vertical_kernel,
         )
 
-        shortcut = DepthwiseSeparableConv2d(
-            input_channel,
-            output_channel,
-            kernel,
-            stride,
-            padding=kernel // 2,
-            activations=(None, None),
-        )
+        shortcut = None
+        if input_channel != output_channel or stride > 1:
+            shortcut = DepthwiseSeparableConv2d(
+                input_channel,
+                output_channel,
+                kernel,
+                stride,
+                padding=kernel // 2,
+                activations=(None, None),
+            )
 
         # packed into resblock
         self.block = ResBlock(

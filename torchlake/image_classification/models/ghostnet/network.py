@@ -1,11 +1,9 @@
 import torch
 from torch import nn
-from torchlake.common.models import (
-    ResBlock,
-    SqueezeExcitation2d,
-)
-from torchlake.common.mixins.network import SEMixin
 from torchvision.ops import Conv2dNormActivation
+
+from torchlake.common.mixins.network import SEMixin
+from torchlake.common.models import SqueezeExcitation2d
 
 
 class GhostModule(nn.Module):
@@ -14,44 +12,37 @@ class GhostModule(nn.Module):
         self,
         input_channel: int,
         output_channel: int,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
     ):
         """GhostNet ghost module [1911.11907v2]
 
         Args:
             input_channel (int): input channel size. Defaults to 3.
             output_channel (int, optional): output channel size. Defaults to 1.
-            s (int): num of ghost features, split ratio of output features for depthwise convolution. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): num of ghost features, split ratio of output features for depthwise convolution. Defaults to 2.
+            kernel_ds (int): kernel size of depthwise convolution layer. Defaults to 1.
         """
         super().__init__()
-        self.s = s
-        self.identity_channel = output_channel // s
+        self.num_ghost_feature = num_ghost_feature
+        self.identity_channel = output_channel // num_ghost_feature
         transformed_channel = output_channel - self.identity_channel
 
-        self.pointwise_conv = Conv2dNormActivation(
-            input_channel,
-            self.identity_channel,
-            1,
-            norm_layer=None,
-            activation_layer=None,
-        )
+        self.pointwise_conv = nn.Conv2d(input_channel, self.identity_channel, 1)
 
-        self.ghost = Conv2dNormActivation(
+        self.ghost = nn.Conv2d(
             self.identity_channel,
             transformed_channel,
-            d,
+            kernel_ds,
             groups=self.identity_channel,
-            norm_layer=None,
-            activation_layer=None,
+            padding=kernel_ds // 2,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # b, c // s, h, w
+        # b, c // num_ghost_feature, h, w
         y = self.pointwise_conv(x)
 
-        # b, c / s + c * (s-1) / s, h, w
+        # b, c / num_ghost_feature + c * (num_ghost_feature - 1) / num_ghost_feature, h, w
         return torch.cat([y, self.ghost(y)], 1)
 
 
@@ -63,8 +54,8 @@ class GhostBottleNeck(SEMixin, nn.Module):
         output_channel: int,
         kernel: int,
         stride: int = 1,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
         expansion_size: int = 1,
         enable_se: bool = True,
         reduction_ratio: int = 4,
@@ -76,8 +67,8 @@ class GhostBottleNeck(SEMixin, nn.Module):
             output_channel (int, optional): output channel size. Defaults to 1.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): num of ghost features, group parameter. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): num of ghost features, group parameter. Defaults to 2.
+            kernel_ds (int): kernel size of depthwise convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
             enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
             reduction_ratio (int, optional): reduction ratio. Defaults to 4.
@@ -90,8 +81,8 @@ class GhostBottleNeck(SEMixin, nn.Module):
             output_channel,
             kernel,
             stride,
-            s,
-            d,
+            num_ghost_feature,
+            kernel_ds,
             expansion_size,
         )
 
@@ -109,8 +100,8 @@ class GhostBottleNeck(SEMixin, nn.Module):
         output_channel: int,
         kernel: int,
         stride: int = 1,
-        s: int = 2,
-        d: int = 1,
+        num_ghost_feature: int = 2,
+        kernel_ds: int = 1,
         expansion_size: int = 1,
     ) -> nn.Module:
         """Block in GhostNet bottleneck [1911.11907v2]
@@ -120,31 +111,31 @@ class GhostBottleNeck(SEMixin, nn.Module):
             output_channel (int, optional): output channel size. Defaults to 1.
             kernel (int): kernel size of depthwise separable convolution layer
             stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): num of ghost features, group parameter. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
+            num_ghost_feature (int): num of ghost features, group parameter. Defaults to 2.
+            kernel_ds (int): kernel size of depthwise convolution layer. Defaults to 1.
             expansion_size (int, optional): expansion size. Defaults to 1.
         """
         block = [
             GhostModule(
                 input_channel,
                 expansion_size,
-                s=s,
-                d=d,
+                num_ghost_feature=num_ghost_feature,
+                kernel_ds=kernel_ds,
             ),
             nn.BatchNorm2d(expansion_size),
             nn.ReLU(inplace=True),
             GhostModule(
                 expansion_size,
                 output_channel,
-                s=s,
-                d=d,
+                num_ghost_feature=num_ghost_feature,
+                kernel_ds=kernel_ds,
             ),
             nn.BatchNorm2d(output_channel),
         ]
 
         if stride > 1:
             block.insert(
-                -3,
+                -2,
                 Conv2dNormActivation(
                     expansion_size,
                     expansion_size,
@@ -156,60 +147,6 @@ class GhostBottleNeck(SEMixin, nn.Module):
             )
 
         return nn.Sequential(*block)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
-
-
-class GhostLayer(nn.Module):
-
-    def __init__(
-        self,
-        input_channel: int,
-        output_channel: int,
-        kernel: int,
-        stride: int = 1,
-        s: int = 2,
-        d: int = 1,
-        expansion_size: int = 1,
-        enable_se: bool = True,
-        reduction_ratio: int = 4,
-    ):
-        """GhostNet layer [1911.11907v2]
-
-        Args:
-            input_channel (int): input channel size. Defaults to 3.
-            output_channel (int, optional): output channel size. Defaults to 1.
-            kernel (int): kernel size of depthwise separable convolution layer
-            stride (int, optional): stride of depthwise separable convolution layer. Defaults to 1.
-            s (int): num of ghost features, group parameter. Defaults to 2.
-            d (int): kernel size of depthwise convolution layer. Defaults to 1.
-            expansion_size (int, optional): expansion size. Defaults to 1.
-            enable_se (bool, optional): enable squeeze and excitation. Defaults to True.
-            reduction_ratio (int, optional): reduction ratio. Defaults to 4.
-        """
-        super().__init__()
-
-        block = GhostBottleNeck(
-            input_channel,
-            output_channel,
-            kernel,
-            stride,
-            s,
-            d,
-            expansion_size,
-            enable_se,
-            reduction_ratio,
-        )
-
-        # packed into resblock
-        self.block = ResBlock(
-            input_channel,
-            output_channel,
-            block,
-            stride,
-            activation=None,
-        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.block(x)

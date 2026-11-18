@@ -1,7 +1,7 @@
 from torch import nn
 
 from ..ghostnetv2.model import GhostNetV2
-from .network import GhostLayerV3
+from .network import GhostBlockV3
 
 
 class GhostNetV3(GhostNetV2):
@@ -24,13 +24,13 @@ class GhostNetV3(GhostNetV2):
     def build_blocks(self):
         self.blocks = nn.Sequential(
             *[
-                GhostLayerV3(
+                GhostBlockV3(
                     int(in_c * self.width_multiplier),
                     int(out_c * self.width_multiplier),
                     kernel,
                     stride=stride,
-                    s=2,
-                    d=3,
+                    num_ghost_feature=2,
+                    kernel_ds=3,
                     expansion_size=expansion_size,
                     enable_se=enable_se,
                     horizontal_kernel=5,

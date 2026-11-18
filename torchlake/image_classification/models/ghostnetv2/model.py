@@ -1,8 +1,7 @@
-from typing import Any
 from torch import nn
 
 from ..ghostnet.model import GhostNet
-from .network import GhostLayerV2
+from .network import GhostBlockV2
 
 
 class GhostNetV2(GhostNet):
@@ -22,27 +21,16 @@ class GhostNetV2(GhostNet):
         self.width_multiplier = width_multiplier
         super().__init__(input_channel, output_size)
 
-    @property
-    def config(self) -> list[list[Any]]:
-        cfg = super().config
-        # kernel: 5 -> 3 in stage 4
-        for layer_idx in range(5, 11):
-            layer_cfg = list(cfg[layer_idx])
-            layer_cfg[2] = 3
-            cfg[layer_idx] = layer_cfg
-
-        return cfg
-
     def build_blocks(self):
         self.blocks = nn.Sequential(
             *[
-                GhostLayerV2(
+                GhostBlockV2(
                     int(in_c * self.width_multiplier),
                     int(out_c * self.width_multiplier),
                     kernel,
                     stride=stride,
-                    s=2,
-                    d=3,
+                    num_ghost_feature=2,
+                    kernel_ds=3,
                     expansion_size=expansion_size,
                     enable_se=enable_se,
                     horizontal_kernel=5,

@@ -1,9 +1,13 @@
 from typing import Any
+
 from torch import nn
-from torchlake.common.models.model_base import ModelBase
 from torchvision.ops import Conv2dNormActivation
 
-from .network import GhostLayer
+from torchlake.common.models.flatten import FlattenFeature
+from torchlake.common.models.model_base import ModelBase
+from torchlake.common.models.residual import ResBlock
+
+from .network import GhostBottleNeck
 
 
 class GhostNet(ModelBase):
@@ -33,21 +37,21 @@ class GhostNet(ModelBase):
             # input_channel, output_channel, kernel, stride, expansion_size, enable_se
             # stage 1
             (16, 16, 3, 1, 16, False),
-            # stage 2
             (16, 24, 3, 2, 48, False),
+            # stage 2
             (24, 24, 3, 1, 72, False),
-            # stage 3
             (24, 40, 5, 2, 72, True),
+            # stage 3
             (40, 40, 5, 1, 120, True),
+            (40, 80, 3, 2, 240, False),
             # stage 4
-            (40, 80, 5, 2, 240, False),
-            (80, 80, 5, 1, 200, False),
-            (80, 80, 5, 1, 184, False),
-            (80, 80, 5, 1, 184, False),
-            (80, 112, 5, 1, 480, True),
-            (112, 112, 5, 1, 672, True),
-            # stage 5
+            (80, 80, 3, 1, 200, False),
+            (80, 80, 3, 1, 184, False),
+            (80, 80, 3, 1, 184, False),
+            (80, 112, 3, 1, 480, True),
+            (112, 112, 3, 1, 672, True),
             (112, 160, 5, 2, 672, True),
+            # stage 5
             (160, 160, 5, 1, 960, False),
             (160, 160, 5, 1, 960, True),
             (160, 160, 5, 1, 960, False),
@@ -57,37 +61,47 @@ class GhostNet(ModelBase):
     def build_foot(self, input_channel):
         self.foot = Conv2dNormActivation(
             input_channel,
-            int(16 * self.width_multiplier),
+            int(self.config[0][0] * self.width_multiplier),
             stride=2,
         )
 
     def build_blocks(self):
         self.blocks = nn.Sequential(
             *[
-                GhostLayer(
+                ResBlock(
                     int(in_c * self.width_multiplier),
                     int(out_c * self.width_multiplier),
-                    kernel,
+                    block=GhostBottleNeck(
+                        int(in_c * self.width_multiplier),
+                        int(out_c * self.width_multiplier),
+                        kernel,
+                        stride=stride,
+                        num_ghost_feature=2,
+                        kernel_ds=3,
+                        expansion_size=int(expansion_size * self.width_multiplier),
+                        enable_se=enable_se,
+                    ),
                     stride=stride,
-                    s=2,
-                    d=3,
-                    expansion_size=int(expansion_size * self.width_multiplier),
-                    enable_se=enable_se,
+                    activation=None,
                 )
                 for in_c, out_c, kernel, stride, expansion_size, enable_se in self.config
             ]
         )
 
     def build_neck(self):
-        self.neck = nn.Sequential(
-            Conv2dNormActivation(
-                int(160 * self.width_multiplier),
-                int(960 * self.width_multiplier),
-                1,
+        self.neck = Conv2dNormActivation(
+            int(self.config[-1][1] * self.width_multiplier),
+            int(self.config[-1][4] * self.width_multiplier),
+            1,
+        )
+
+    def build_head(self, output_size: int):
+        self.head = nn.Sequential(
+            FlattenFeature(),
+            nn.Linear(
+                int(self.config[-1][4] * self.width_multiplier),
+                self.feature_dim,
             ),
-            Conv2dNormActivation(
-                int(960 * self.width_multiplier),
-                int(1280 * self.width_multiplier),
-                1,
-            ),
+            nn.ReLU(True),
+            nn.Linear(self.feature_dim, output_size),
         )
