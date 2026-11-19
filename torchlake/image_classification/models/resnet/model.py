@@ -234,19 +234,19 @@ class ResNetD(ResNet):
     def build_blocks(self):
         self.blocks = nn.Sequential()
 
-        for (
+        for stage_idx, (
             in_c,
             hidden_dim,
             expansion_factor,
             num_block,
             layer_cls,
-        ) in self.config:
+        ) in enumerate(self.config):
             block = nn.Sequential()
             for block_idx in range(num_block):
                 out_c = hidden_dim * expansion_factor
                 stride = 1
                 if block_idx == 0:
-                    stride = 2
+                    stride = 2 if stage_idx > 0 else 1
                 else:
                     in_c = out_c
 
