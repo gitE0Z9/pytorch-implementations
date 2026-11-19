@@ -6,6 +6,7 @@ from ..utils.numerical import (
     build_gaussian_heatmap,
     generate_grid,
     log_sum_exp,
+    make_divisible,
     safe_negative_factorial,
     safe_sqrt,
 )
@@ -121,3 +122,17 @@ def test_gaussian_heatmap(truncated):
     assert_close(y.shape, torch.Size((1, 2, 5, 5)))
     assert y[0, 0, 1, 1] == y[0, 0].max()
     assert y[0, 1, 1, 2] == y[0, 1].max()
+
+
+@pytest.mark.parametrize(
+    "value,divisor,expected",
+    [
+        (100, 8, 104),
+        (12, 8, 16),
+        (6, 8, 8),
+        (136, 16, 144),
+        (240, 12, 240),
+    ],
+)
+def test_make_divisible(value: float, divisor: int, expected: int):
+    assert make_divisible(value, divisor) == expected
