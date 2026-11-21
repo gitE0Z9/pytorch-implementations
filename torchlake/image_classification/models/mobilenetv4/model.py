@@ -39,132 +39,6 @@ class MQAArgs(NamedTuple):
 
 LAYER_ARGS = ConvArgs | FusedIBArgs | UIBArgs | MQAArgs
 
-# official specs: tensorflow/models official/vision/modeling/backbones/mobilenet.py
-CONV_SMALL = (
-    ConvArgs(32, 3, 2),
-    # paper: FusedIBArgs(32, 3, 2, 1)
-    *[ConvArgs(32, 3, 2), ConvArgs(32, 1, 1)],
-    # paper: FusedIBArgs(64, 3, 2, 3)
-    *[ConvArgs(96, 3, 2), ConvArgs(64, 1, 1)],
-    UIBArgs(96, 5, 5, 2, 3),
-    *[UIBArgs(96, 0, 3, 1, 2)] * 4,
-    UIBArgs(96, 3, 0, 1, 4),
-    UIBArgs(128, 3, 3, 2, 6),
-    UIBArgs(128, 5, 5, 1, 4),
-    UIBArgs(128, 0, 5, 1, 4),
-    UIBArgs(128, 0, 5, 1, 3),
-    *[UIBArgs(128, 0, 3, 1, 4)] * 2,
-)
-
-CONV_MEDIUM = (
-    ConvArgs(32, 3, 2),
-    FusedIBArgs(48, 3, 2, 4),
-    UIBArgs(80, 3, 5, 2, 4),
-    UIBArgs(80, 3, 3, 1, 2),
-    UIBArgs(160, 3, 5, 2, 6),
-    *[UIBArgs(160, 3, 3, 1, 4)] * 2,
-    UIBArgs(160, 3, 5, 1, 4),
-    UIBArgs(160, 3, 3, 1, 4),
-    UIBArgs(160, 3, 0, 1, 4),
-    UIBArgs(160, 0, 0, 1, 2),
-    UIBArgs(160, 3, 0, 1, 4),
-    UIBArgs(256, 5, 5, 2, 6),
-    UIBArgs(256, 5, 5, 1, 4),
-    *[UIBArgs(256, 3, 5, 1, 4)] * 2,
-    UIBArgs(256, 0, 0, 1, 4),
-    UIBArgs(256, 3, 0, 1, 4),
-    UIBArgs(256, 3, 5, 1, 2),
-    UIBArgs(256, 5, 5, 1, 4),
-    *[UIBArgs(256, 0, 0, 1, 4)] * 2,
-    UIBArgs(256, 5, 0, 1, 2),
-)
-
-CONV_LARGE = (
-    ConvArgs(24, 3, 2),
-    FusedIBArgs(48, 3, 2, 4),
-    UIBArgs(96, 3, 5, 2, 4),
-    UIBArgs(96, 3, 3, 1, 4),
-    UIBArgs(192, 3, 5, 2, 4),
-    *[UIBArgs(192, 3, 3, 1, 4)] * 3,
-    UIBArgs(192, 3, 5, 1, 4),
-    *[UIBArgs(192, 5, 3, 1, 4)] * 5,
-    UIBArgs(192, 3, 0, 1, 4),
-    UIBArgs(512, 5, 5, 2, 4),
-    *[UIBArgs(512, 5, 5, 1, 4)] * 3,
-    UIBArgs(512, 5, 0, 1, 4),
-    UIBArgs(512, 5, 3, 1, 4),
-    *[UIBArgs(512, 5, 0, 1, 4)] * 2,
-    UIBArgs(512, 5, 3, 1, 4),
-    UIBArgs(512, 5, 5, 1, 4),
-    *[UIBArgs(512, 5, 0, 1, 4)] * 3,
-)
-
-# paper does not give MQA heads, key/value dims or layer scale
-HYBRID_MEDIUM = (
-    ConvArgs(32, 3, 2),
-    FusedIBArgs(48, 3, 2, 4),
-    UIBArgs(80, 3, 5, 2, 4),
-    UIBArgs(80, 3, 3, 1, 2),
-    UIBArgs(160, 3, 5, 2, 6),
-    # paper: ExtraDW, UIBArgs(160, 3, 3, 1, 4)
-    UIBArgs(160, 0, 0, 1, 2),
-    UIBArgs(160, 3, 3, 1, 4),
-    UIBArgs(160, 3, 5, 1, 4),
-    MQAArgs(4, 64, 64, 2),
-    UIBArgs(160, 3, 3, 1, 4),
-    MQAArgs(4, 64, 64, 2),
-    UIBArgs(160, 3, 0, 1, 4),
-    MQAArgs(4, 64, 64, 2),
-    # paper: FFN, UIBArgs(160, 0, 0, 1, 4)
-    UIBArgs(160, 3, 3, 1, 4),
-    MQAArgs(4, 64, 64, 2),
-    UIBArgs(160, 3, 0, 1, 4),
-    UIBArgs(256, 5, 5, 2, 6),
-    UIBArgs(256, 5, 5, 1, 4),
-    *[UIBArgs(256, 3, 5, 1, 4)] * 2,
-    # paper: FFN, UIBArgs(256, 0, 0, 1, 4)
-    UIBArgs(256, 0, 0, 1, 2),
-    # paper: ConvNext, UIBArgs(256, 3, 0, 1, 4)
-    UIBArgs(256, 3, 5, 1, 2),
-    # paper: ExtraDW, UIBArgs(256, 3, 5, 1, 2)
-    UIBArgs(256, 0, 0, 1, 2),
-    # paper: no such block
-    UIBArgs(256, 0, 0, 1, 4),
-    MQAArgs(4, 64, 64, 1),
-    # paper: ExtraDW, UIBArgs(256, 5, 5, 1, 4)
-    UIBArgs(256, 3, 0, 1, 4),
-    MQAArgs(4, 64, 64, 1),
-    # paper: FFN, UIBArgs(256, 0, 0, 1, 4)
-    UIBArgs(256, 5, 5, 1, 4),
-    MQAArgs(4, 64, 64, 1),
-    # paper: FFN, UIBArgs(256, 0, 0, 1, 4)
-    UIBArgs(256, 5, 0, 1, 4),
-    MQAArgs(4, 64, 64, 1),
-    UIBArgs(256, 5, 0, 1, 4),
-)
-
-HYBRID_LARGE = (
-    ConvArgs(24, 3, 2),
-    FusedIBArgs(48, 3, 2, 4),
-    UIBArgs(96, 3, 5, 2, 4),
-    UIBArgs(96, 3, 3, 1, 4),
-    UIBArgs(192, 3, 5, 2, 4),
-    *[UIBArgs(192, 3, 3, 1, 4)] * 3,
-    UIBArgs(192, 3, 5, 1, 4),
-    *[UIBArgs(192, 5, 3, 1, 4)] * 2,
-    *[MQAArgs(8, 48, 48, 2), UIBArgs(192, 5, 3, 1, 4)] * 3,
-    MQAArgs(8, 48, 48, 2),
-    UIBArgs(192, 3, 0, 1, 4),
-    UIBArgs(512, 5, 5, 2, 4),
-    *[UIBArgs(512, 5, 5, 1, 4)] * 3,
-    UIBArgs(512, 5, 0, 1, 4),
-    UIBArgs(512, 5, 3, 1, 4),
-    *[UIBArgs(512, 5, 0, 1, 4)] * 2,
-    UIBArgs(512, 5, 3, 1, 4),
-    UIBArgs(512, 5, 5, 1, 4),
-    *[MQAArgs(8, 64, 64, 1), UIBArgs(512, 5, 0, 1, 4)] * 4,
-)
-
 
 class MobileNetV4(ModelBase):
     def __init__(
@@ -198,14 +72,130 @@ class MobileNetV4(ModelBase):
 
     @property
     def config(self) -> tuple[LAYER_ARGS]:
+        # official specs: tensorflow/models official/vision/modeling/backbones/mobilenet.py
         return (
             self._config
             or {
-                "conv_small": CONV_SMALL,
-                "conv_medium": CONV_MEDIUM,
-                "conv_large": CONV_LARGE,
-                "hybrid_medium": HYBRID_MEDIUM,
-                "hybrid_large": HYBRID_LARGE,
+                "conv_small": (
+                    ConvArgs(32, 3, 2),
+                    # paper: FusedIBArgs(32, 3, 2, 1)
+                    *[ConvArgs(32, 3, 2), ConvArgs(32, 1, 1)],
+                    # paper: FusedIBArgs(64, 3, 2, 3)
+                    *[ConvArgs(96, 3, 2), ConvArgs(64, 1, 1)],
+                    UIBArgs(96, 5, 5, 2, 3),
+                    *[UIBArgs(96, 0, 3, 1, 2)] * 4,
+                    UIBArgs(96, 3, 0, 1, 4),
+                    UIBArgs(128, 3, 3, 2, 6),
+                    UIBArgs(128, 5, 5, 1, 4),
+                    UIBArgs(128, 0, 5, 1, 4),
+                    UIBArgs(128, 0, 5, 1, 3),
+                    *[UIBArgs(128, 0, 3, 1, 4)] * 2,
+                ),
+                "conv_medium": (
+                    ConvArgs(32, 3, 2),
+                    FusedIBArgs(48, 3, 2, 4),
+                    UIBArgs(80, 3, 5, 2, 4),
+                    UIBArgs(80, 3, 3, 1, 2),
+                    UIBArgs(160, 3, 5, 2, 6),
+                    *[UIBArgs(160, 3, 3, 1, 4)] * 2,
+                    UIBArgs(160, 3, 5, 1, 4),
+                    UIBArgs(160, 3, 3, 1, 4),
+                    UIBArgs(160, 3, 0, 1, 4),
+                    UIBArgs(160, 0, 0, 1, 2),
+                    UIBArgs(160, 3, 0, 1, 4),
+                    UIBArgs(256, 5, 5, 2, 6),
+                    UIBArgs(256, 5, 5, 1, 4),
+                    *[UIBArgs(256, 3, 5, 1, 4)] * 2,
+                    UIBArgs(256, 0, 0, 1, 4),
+                    UIBArgs(256, 3, 0, 1, 4),
+                    UIBArgs(256, 3, 5, 1, 2),
+                    UIBArgs(256, 5, 5, 1, 4),
+                    *[UIBArgs(256, 0, 0, 1, 4)] * 2,
+                    UIBArgs(256, 5, 0, 1, 2),
+                ),
+                "conv_large": (
+                    ConvArgs(24, 3, 2),
+                    FusedIBArgs(48, 3, 2, 4),
+                    UIBArgs(96, 3, 5, 2, 4),
+                    UIBArgs(96, 3, 3, 1, 4),
+                    UIBArgs(192, 3, 5, 2, 4),
+                    *[UIBArgs(192, 3, 3, 1, 4)] * 3,
+                    UIBArgs(192, 3, 5, 1, 4),
+                    *[UIBArgs(192, 5, 3, 1, 4)] * 5,
+                    UIBArgs(192, 3, 0, 1, 4),
+                    UIBArgs(512, 5, 5, 2, 4),
+                    *[UIBArgs(512, 5, 5, 1, 4)] * 3,
+                    UIBArgs(512, 5, 0, 1, 4),
+                    UIBArgs(512, 5, 3, 1, 4),
+                    *[UIBArgs(512, 5, 0, 1, 4)] * 2,
+                    UIBArgs(512, 5, 3, 1, 4),
+                    UIBArgs(512, 5, 5, 1, 4),
+                    *[UIBArgs(512, 5, 0, 1, 4)] * 3,
+                ),
+                # paper does not give MQA heads, key/value dims or layer scale
+                "hybrid_medium": (
+                    ConvArgs(32, 3, 2),
+                    FusedIBArgs(48, 3, 2, 4),
+                    UIBArgs(80, 3, 5, 2, 4),
+                    UIBArgs(80, 3, 3, 1, 2),
+                    UIBArgs(160, 3, 5, 2, 6),
+                    # paper: ExtraDW, UIBArgs(160, 3, 3, 1, 4)
+                    UIBArgs(160, 0, 0, 1, 2),
+                    UIBArgs(160, 3, 3, 1, 4),
+                    UIBArgs(160, 3, 5, 1, 4),
+                    MQAArgs(4, 64, 64, 2),
+                    UIBArgs(160, 3, 3, 1, 4),
+                    MQAArgs(4, 64, 64, 2),
+                    UIBArgs(160, 3, 0, 1, 4),
+                    MQAArgs(4, 64, 64, 2),
+                    # paper: FFN, UIBArgs(160, 0, 0, 1, 4)
+                    UIBArgs(160, 3, 3, 1, 4),
+                    MQAArgs(4, 64, 64, 2),
+                    UIBArgs(160, 3, 0, 1, 4),
+                    UIBArgs(256, 5, 5, 2, 6),
+                    UIBArgs(256, 5, 5, 1, 4),
+                    *[UIBArgs(256, 3, 5, 1, 4)] * 2,
+                    # paper: FFN, UIBArgs(256, 0, 0, 1, 4)
+                    UIBArgs(256, 0, 0, 1, 2),
+                    # paper: ConvNext, UIBArgs(256, 3, 0, 1, 4)
+                    UIBArgs(256, 3, 5, 1, 2),
+                    # paper: ExtraDW, UIBArgs(256, 3, 5, 1, 2)
+                    UIBArgs(256, 0, 0, 1, 2),
+                    # paper: no such block
+                    UIBArgs(256, 0, 0, 1, 4),
+                    MQAArgs(4, 64, 64, 1),
+                    # paper: ExtraDW, UIBArgs(256, 5, 5, 1, 4)
+                    UIBArgs(256, 3, 0, 1, 4),
+                    MQAArgs(4, 64, 64, 1),
+                    # paper: FFN, UIBArgs(256, 0, 0, 1, 4)
+                    UIBArgs(256, 5, 5, 1, 4),
+                    MQAArgs(4, 64, 64, 1),
+                    # paper: FFN, UIBArgs(256, 0, 0, 1, 4)
+                    UIBArgs(256, 5, 0, 1, 4),
+                    MQAArgs(4, 64, 64, 1),
+                    UIBArgs(256, 5, 0, 1, 4),
+                ),
+                "hybrid_large": (
+                    ConvArgs(24, 3, 2),
+                    FusedIBArgs(48, 3, 2, 4),
+                    UIBArgs(96, 3, 5, 2, 4),
+                    UIBArgs(96, 3, 3, 1, 4),
+                    UIBArgs(192, 3, 5, 2, 4),
+                    *[UIBArgs(192, 3, 3, 1, 4)] * 3,
+                    UIBArgs(192, 3, 5, 1, 4),
+                    *[UIBArgs(192, 5, 3, 1, 4)] * 2,
+                    *[MQAArgs(8, 48, 48, 2), UIBArgs(192, 5, 3, 1, 4)] * 3,
+                    MQAArgs(8, 48, 48, 2),
+                    UIBArgs(192, 3, 0, 1, 4),
+                    UIBArgs(512, 5, 5, 2, 4),
+                    *[UIBArgs(512, 5, 5, 1, 4)] * 3,
+                    UIBArgs(512, 5, 0, 1, 4),
+                    UIBArgs(512, 5, 3, 1, 4),
+                    *[UIBArgs(512, 5, 0, 1, 4)] * 2,
+                    UIBArgs(512, 5, 3, 1, 4),
+                    UIBArgs(512, 5, 5, 1, 4),
+                    *[MQAArgs(8, 64, 64, 1), UIBArgs(512, 5, 0, 1, 4)] * 4,
+                ),
             }[self.key]
         )
 
