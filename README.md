@@ -33,11 +33,13 @@
 | SKNet                                      | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-sknet-resnest-273954c83197)        | ``sknet``              |
 | Residual attention network(AttentionNet56) | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-senet-and-its-variants-2-f8f77cef8e2b)   | ``residual_attention`` |
 | DenseNet                                   | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-densenet-467fbf0ce976)                   | ``densenet``           |
+| VoVNet                                     |                                                                                                                                       | ``vovnet``             |
 | Highway Network                            | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-highway-network-1e8bd63e432f)            | ``highway``            |
 | ConvNeXt                                   | -                                                                                                                                     | ``convnext``           |
 | MobileNet v1                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenet``          |
 | MobileNet v2                               | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v1-v2-9224c02ff45e)             | ``mobilenetv2``        |
 | MobileNet v3                               | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-mobilenet-v3-e1a90b8a9abc)               | ``mobilenetv3``        |
+| MobileNet v4                               |                                                                                                                                       | ``mobilenetv4``        |
 | Inception v1 (GoogLeNet)                   | [medium](https://acrocanthosaurus627.medium.com/inception-v1-v4-xception-pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ae35f0d9273f)    | ``inception``          |
 | Inception v2 (BN-Inception)                | [medium](https://acrocanthosaurus627.medium.com/inception-v1-v4-xception-pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ae35f0d9273f)    | ``inceptionv2``        |
 | Inception v3                               | [medium](https://acrocanthosaurus627.medium.com/inception-v1-v4-xception-pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ae35f0d9273f)    | ``inceptionv3``        |
