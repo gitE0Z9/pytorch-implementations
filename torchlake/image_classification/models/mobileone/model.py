@@ -38,7 +38,7 @@ class MobileOne(RepVGG):
 
     @property
     def config(self) -> tuple[StageArgs]:
-        # s: official specs: apple/ml-mobileone mobileone.py, the stem is capped at min(64, 64 * α)
+        # s: official specs: apple/ml-mobileone mobileone.py, the stem keeps RepVGG's min(64, 64 * α) [2101.03697]
         # mu: paper table 17, merged stages with the same width
         # the first stage is the stem, a single full 3x3 conv block with stride 2
         return (

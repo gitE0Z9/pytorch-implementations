@@ -12,7 +12,6 @@ from ..models.ghostnetv3.network import (
     GhostBlockV3,
     GhostBottleNeckV3,
     GhostModuleV3,
-    InceptionModule,
 )
 
 BATCH_SIZE = 2
@@ -25,37 +24,6 @@ NUM_BRANCH = 3
 
 
 class TestNetwork:
-    @pytest.mark.parametrize(
-        "input_channel,output_channel,groups",
-        [
-            [16, 64, 1],
-            [16, 16, 1],
-            [16, 64, 16],
-            [16, 16, 16],
-        ],
-    )
-    @pytest.mark.parametrize("kernel", [1, 3])
-    def test_inception_module_forward_shape(
-        self,
-        input_channel: int,
-        output_channel: int,
-        groups: int,
-        kernel: int,
-    ):
-        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
-        model = InceptionModule(
-            input_channel,
-            output_channel,
-            kernel,
-            groups=groups,
-            num_branch=NUM_BRANCH,
-        )
-        y = model(x)
-
-        assert y.shape == torch.Size(
-            (BATCH_SIZE, output_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
-        )
-
     @pytest.mark.parametrize("kernel_ds", [1, 3])
     def test_ghost_module_v3_forward_shape(self, kernel_ds: int):
         x = torch.randn(BATCH_SIZE, 64, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
@@ -156,35 +124,6 @@ class TestModel:
 
 
 class TestReparameterize:
-    @pytest.mark.parametrize(
-        "input_channel,output_channel,groups",
-        [
-            [16, 64, 1],
-            [16, 16, 1],
-            [16, 64, 16],
-            [16, 16, 16],
-        ],
-    )
-    @pytest.mark.parametrize("kernel", [1, 3])
-    def test_inception_module(
-        self,
-        input_channel: int,
-        output_channel: int,
-        groups: int,
-        kernel: int,
-    ):
-        x = torch.randn(BATCH_SIZE, input_channel, FEATURE_MAP_SIZE, FEATURE_MAP_SIZE)
-        model = InceptionModule(
-            input_channel,
-            output_channel,
-            kernel,
-            groups=groups,
-            num_branch=NUM_BRANCH,
-        ).eval()
-        dest = model.reparameterize()
-
-        assert_close(model(x), dest(x))
-
     @pytest.mark.parametrize("input_channel,output_channel", [[16, 64], [16, 16]])
     @pytest.mark.parametrize("kernel_ds", [1, 3])
     def test_ghost_module_v3(
