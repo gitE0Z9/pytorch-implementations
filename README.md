@@ -49,6 +49,7 @@
 | Xception                                   | [medium](https://acrocanthosaurus627.medium.com/inception-v1-v4-xception-pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ae35f0d9273f)    | ``xception``           |
 | EfficientNet v1                            | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-efficientnet-v1-v2-bdd18eb59b3a)          | ``efficientnet``       |
 | EfficientNet v2                            | [medium](https://acrocanthosaurus627.medium.com/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-efficientnet-v1-v2-bdd18eb59b3a)          | ``efficientnetv2``     |
+| RepVGG                                     | -                                                                                                                                     | ``repvgg``             |
 | GhostNet                                   | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnet-10b0bab4110e)                   | ``ghostnet``           |
 | GhostNet v2                                | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnetv2-v3-202529dd7671)              | ``ghostnetv2``         |
 | GhostNet v3                                | [medium](https://medium.com/@acrocanthosaurus627/pytorch%E5%AF%A6%E4%BD%9C%E7%B3%BB%E5%88%97-ghostnetv2-v3-202529dd7671)              | ``ghostnetv3``         |
